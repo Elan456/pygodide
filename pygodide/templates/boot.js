@@ -2,10 +2,12 @@ const status = document.getElementById({{ status_element_id | tojson }});
 const canvas = document.getElementById({{ canvas_element_id | tojson }});
 
 const pyodidePackages = {{ pyodide_packages | tojson }};
+const micropipPackages = {{ micropip_packages | tojson }};
 const pythonFiles = {{ python_files | tojson }};
 const assetBasePath = {{ asset_base_path | tojson }};
 const virtualFsRoot = {{ virtual_fs_root | tojson }};
 const startupPythonCode = {{ startup_python_code | tojson }};
+const assetRequestCacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const statusText = {
   startingPyodide: {{ starting_pyodide_status_text | tojson }},
   loadingPackages: {{ loading_packages_status_text | tojson }},
@@ -43,11 +45,13 @@ function ensureParentDir(runtime, filePath) {
 }
 
 function resolveAssetUrl(filename) {
-  return new URL(filename, new URL(assetBasePath, import.meta.url)).toString();
+  const url = new URL(filename, new URL(assetBasePath, import.meta.url));
+  url.searchParams.set("_pygodide", assetRequestCacheBuster);
+  return url.toString();
 }
 
 async function fetchTextFile(filename) {
-  const response = await fetch(resolveAssetUrl(filename));
+  const response = await fetch(resolveAssetUrl(filename), { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to fetch ${filename}: ${response.status} ${response.statusText}`);
   }
@@ -77,6 +81,12 @@ async function boot() {
   if (pyodidePackages.length > 0) {
     setStatus(statusText.loadingPackages);
     await runtime.loadPackage(pyodidePackages);
+  }
+
+  if (micropipPackages.length > 0) {
+    await runtime.loadPackage("micropip");
+    const micropip = runtime.pyimport("micropip");
+    await micropip.install(micropipPackages);
   }
 
   setStatus(statusText.stagingFiles);

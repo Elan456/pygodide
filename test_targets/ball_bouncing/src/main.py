@@ -39,6 +39,4 @@ async def main():
 
         clock.tick(60)  # Limit to 60 FPS
 
-        # pygame.display.update() should go right next line
-
         await asyncio.sleep(0)  # Very important, and keep it 0

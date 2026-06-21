@@ -1,12 +1,15 @@
 import http.server
 import shutil
 import socketserver
+from errno import EADDRINUSE
 from functools import partial
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from jinja2 import Environment, PackageLoader, select_autoescape
+
+from pygodide.dep_handling.collection import collect_requirements
 
 app = typer.Typer(name="Pygodide CLI", help="A command-line interface for Pygodide.")
 
@@ -76,6 +79,7 @@ def render_boot_js(
     status_element_id: str = "status",
     canvas_element_id: str = "canvas",
     pyodide_packages: list[str] | None = None,
+    micropip_packages: list[str] | None = None,
     python_files: list[str] | None = None,
     python_path_entries: list[str] | None = None,
     asset_base_path: str = "./",
@@ -101,6 +105,7 @@ def render_boot_js(
         status_element_id=status_element_id,
         canvas_element_id=canvas_element_id,
         pyodide_packages=pyodide_packages or DEFAULT_PYODIDE_PACKAGES,
+        micropip_packages=micropip_packages or [],
         python_files=python_files or DEFAULT_PYTHON_FILES,
         asset_base_path=asset_base_path,
         virtual_fs_root=virtual_fs_root,
@@ -141,6 +146,9 @@ def build(
         help="Whether to serve the built app after building",
     ),
 ):
+
+    package_requirements = collect_requirements(path)
+
     source_dir = path.resolve()
     if not source_dir.is_dir():
         raise typer.BadParameter(f"{source_dir} is not a directory")
@@ -166,6 +174,8 @@ def build(
 
     boot_js = render_boot_js(
         python_files=[source_file.name for source_file in source_files],
+        pyodide_packages=[],
+        micropip_packages=[str(pkg) for pkg in package_requirements],
     )
 
     boot_output_path = output_dir / boot_script_name
@@ -194,12 +204,37 @@ def serve(
     _serve(output_dir)
 
 
-def _serve(directory: Path, port: int = 8000):
-    Handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(directory))
+class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self) -> None:
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
 
-    with socketserver.TCPServer(("", port), Handler) as httpd:
-        print(f"Serving {directory} at http://localhost:{port}")
-        httpd.serve_forever()
+
+class ReusableTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
+
+
+def _serve(directory: Path, port: int = 8000):
+    handler = partial(NoCacheHTTPRequestHandler, directory=str(directory))
+
+    try:
+        with ReusableTCPServer(("", port), handler) as httpd:
+            print(f"Serving {directory} at http://localhost:{port}")
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("Shutting down server...")
+    except OSError as exc:
+        if exc.errno == EADDRINUSE:
+            raise RuntimeError(
+                f"Port {port} is already in use. Stop the other server or choose a "
+                "different port."
+            ) from exc
+        raise
+
+    print("Server stopped.")
 
 
 @app.command()

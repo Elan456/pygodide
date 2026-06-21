@@ -3,6 +3,7 @@ import typer
 from typer.testing import CliRunner
 
 from pygodide.cli.main import (
+    ReusableTCPServer,
     _build_startup_python_code,
     app,
     build,
@@ -73,3 +74,9 @@ def test_template_renderers_include_configured_values():
     assert '"ball.py"' in boot_js
     assert "from demo.main import start" in boot_js
     assert "/vendor" in boot_js
+    assert 'cache: "no-store"' in boot_js
+    assert 'url.searchParams.set("_pygodide", assetRequestCacheBuster)' in boot_js
+
+
+def test_dev_server_reuses_recently_closed_port():
+    assert ReusableTCPServer.allow_reuse_address is True
