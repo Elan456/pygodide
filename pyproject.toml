@@ -1,6 +1,6 @@
 [project]
 name = "pygodide"
-version = "0.1.0b1"
+version = "0.1.0b2"
 description = "Modern replacement for pygbag that leverages pyodide for running pygame in the web"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,6 +16,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "hatchling>=1.17.0",
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
     "ruff>=0.15.18",
@@ -51,9 +52,6 @@ testpaths = ["tests"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["pygodide"]
-
-[tool.hatch.build]
-include = ["pygodide/templates/*.html", "pygodide/templates/*.js"]
 
 [build-system]
 requires = ["hatchling"]

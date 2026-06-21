@@ -44,3 +44,12 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
+
+      - name: Build distribution artifacts
+        run: uv build
+
+      - name: Smoke test installed CLI
+        run: |
+          python -m venv .wheel-smoke
+          .wheel-smoke/bin/pip install dist/*.whl
+          .wheel-smoke/bin/pygodide --help
