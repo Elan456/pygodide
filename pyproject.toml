@@ -1,6 +1,6 @@
 [project]
 name = "pygodide"
-version = "0.1.0"
+version = "0.1.0b1"
 description = "Modern replacement for pygbag that leverages pyodide for running pygame in the web"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -11,9 +11,14 @@ authors = [
 dependencies = [
     "jinja2>=3.1.6",
     "pygame-ce",
-    "ruff>=0.15.18",
-    "hatchling>=1.17.0",
     "typer>=0.26.7",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "ruff>=0.15.18",
 ]
 
 [project.urls]
@@ -39,6 +44,10 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["pygodide"]

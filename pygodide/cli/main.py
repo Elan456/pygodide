@@ -1,13 +1,12 @@
-from pathlib import Path
+import http.server
 import shutil
+import socketserver
+from functools import partial
+from pathlib import Path
 from typing import Annotated
 
 import typer
 from jinja2 import Environment, PackageLoader, select_autoescape
-
-import http.server
-from functools import partial
-import socketserver
 
 app = typer.Typer(name="Pygodide CLI", help="A command-line interface for Pygodide.")
 
@@ -133,8 +132,14 @@ def _build_output_dir(path: Path) -> Path:
 
 @app.command()
 def build(
-    path: Annotated[Path, typer.Argument(help="Root directory of the Pygame app to build")],
-    serve: bool = typer.Option(False, help="Whether to serve the built app after building")
+    path: Annotated[
+        Path,
+        typer.Argument(help="Root directory of the Pygame app to build"),
+    ],
+    serve: bool = typer.Option(
+        False,
+        help="Whether to serve the built app after building",
+    ),
 ):
     source_dir = path.resolve()
     if not source_dir.is_dir():
@@ -170,9 +175,13 @@ def build(
     if serve:
         _serve(output_dir)
 
+
 @app.command()
 def serve(
-    path: Annotated[Path, typer.Argument(help="Source directory or build directory to serve")],
+    path: Annotated[
+        Path,
+        typer.Argument(help="Source directory or build directory to serve"),
+    ],
 ):
     """
     Serve the built Pygodide app from the build directory.
@@ -183,6 +192,7 @@ def serve(
         raise RuntimeError(f"{output_dir} does not exist. Please run 'build' first.")
 
     _serve(output_dir)
+
 
 def _serve(directory: Path, port: int = 8000):
     Handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(directory))

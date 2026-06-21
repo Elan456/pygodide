@@ -1,6 +1,6 @@
 import asyncio
-import pygame
 
+import pygame
 from ball import Ball
 
 # Do init here
@@ -13,12 +13,10 @@ pygame.display.set_caption("Pygame WASM Example")
 
 
 async def main():
-
     ball = Ball(pygame.Color("white"), 20)
     clock = pygame.time.Clock()
 
     while True:
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
@@ -32,7 +30,6 @@ async def main():
                     ball.nudge(-10, 0)
                 if event.key == pygame.K_RIGHT:
                     ball.nudge(10, 0)
-
 
         screen.fill((0, 0, 0))
         ball.update(screen)

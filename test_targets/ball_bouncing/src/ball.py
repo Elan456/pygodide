@@ -1,9 +1,13 @@
 import pygame
 
+
 class Ball(pygame.sprite.Sprite):
     def __init__(self, color, radius):
         super().__init__()
-        self.image: pygame.Surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        self.image: pygame.Surface = pygame.Surface(
+            (radius * 2, radius * 2),
+            pygame.SRCALPHA,
+        )
         pygame.draw.circle(self.image, color, (radius, radius), radius)
         self.rect: pygame.Rect = self.image.get_rect()
         self.velocity: pygame.math.Vector2 = pygame.math.Vector2(0, 0)
