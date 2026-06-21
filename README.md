@@ -8,6 +8,7 @@
 git clone https://github.com/Elan456/pygodide.git
 cd pygodide
 uv sync
+source .venv/bin/activate
 ```
 
 ## Proof of Concept
@@ -27,3 +28,4 @@ Serving /home/ethan/Projects/pygodide/test_targets/ball_bouncing/build at http:/
 ```
 
 Open http://localhost:8000 in a web browser to see the app running. You should see a bouncing ball!
+Press the arrow keys to accelerate the ball in different directions. 
