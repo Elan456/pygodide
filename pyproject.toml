@@ -1,0 +1,51 @@
+[project]
+name = "pygodide"
+version = "0.1.0"
+description = "Modern replacement for pygbag that leverages pyodide for running pygame in the web"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Ethan Anderson", email = "telan4892@gmail.com" }
+]
+dependencies = [
+    "jinja2>=3.1.6",
+    "pygame-ce",
+    "ruff>=0.15.18",
+    "hatchling>=1.17.0",
+    "typer>=0.26.7",
+]
+
+[project.urls]
+Homepage = "https://github.com/Elan456/pygodide"
+Repository = "https://github.com/Elan456/pygodide.git"
+
+[project.scripts]
+pygodide = "pygodide.cli.main:app"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pygodide"]
+
+[tool.hatch.build]
+include = ["pygodide/templates/*.html", "pygodide/templates/*.js"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

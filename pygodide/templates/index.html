@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="{{ lang }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+  </head>
+  <body>
+    <div id="{{ status_element_id }}">{{ status_text }}</div>
+    <canvas
+      id="{{ canvas_element_id }}"
+      width="{{ canvas_width }}"
+      height="{{ canvas_height }}"
+      tabindex="0"
+    ></canvas>
+    <script src="{{ pyodide_url }}"></script>
+    <script type="module" src="{{ boot_script_path }}"></script>
+  </body>
+</html>
