@@ -303,6 +303,7 @@ version = "0.1.0b2"
 source = { editable = "." }
 dependencies = [
     { name = "jinja2" },
+    { name = "packaging" },
     { name = "pygame-ce" },
     { name = "typer" },
 ]
@@ -318,6 +319,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "packaging", specifier = ">=23.1" },
     { name = "pygame-ce" },
     { name = "typer", specifier = ">=0.26.7" },
 ]
