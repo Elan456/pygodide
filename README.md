@@ -9,6 +9,8 @@ asset files and then building them together with some web-specific glue code to 
 
 Thanks to Pyodide, pygodide supports far more Python packages than just pygame.
 
+**Documentation**: [https://elan456.github.io/pygodide/](https://elan456.github.io/pygodide/)
+
 ## Install
 
 ```bash
