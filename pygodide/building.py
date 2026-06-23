@@ -96,7 +96,7 @@ def build_output_dir(path: str | Path) -> Path:
     resolved_path = Path(path).resolve()
     if resolved_path.name == "build":
         return resolved_path
-    return resolved_path.parent / "build"
+    return resolved_path / "build"
 
 
 def copy_staged_files(

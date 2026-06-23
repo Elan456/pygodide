@@ -95,7 +95,7 @@ uv run pytest
 Using the following command, you can build and serve the app in a web browser:
 
 ```bash
-pygodide build test_targets/ball_bouncing/src --serve
+pygodide build test_targets/ball_bouncing --serve
 ```
 
 You'll get the output of:
