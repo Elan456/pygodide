@@ -84,6 +84,7 @@ def render_boot_js(
     canvas_element_id: str = "canvas",
     pyodide_packages: list[str] | None = None,
     micropip_packages: list[str] | None = None,
+    declared_package_names: list[str] | None = None,
     staged_files: list[str] | None = None,
     python_files: list[str] | None = None,
     python_path_entries: list[str] | None = None,
@@ -130,6 +131,9 @@ def render_boot_js(
             else DEFAULT_PYODIDE_PACKAGES
         ),
         micropip_packages=micropip_packages if micropip_packages is not None else [],
+        declared_package_names=(
+            declared_package_names if declared_package_names is not None else []
+        ),
         staged_files=resolved_staged_files,
         asset_base_path=asset_base_path,
         virtual_fs_root=virtual_fs_root,
@@ -191,6 +195,7 @@ def build(
         staged_files=build_plan.staged_files,
         pyodide_packages=[],
         micropip_packages=[str(pkg) for pkg in package_requirements],
+        declared_package_names=[pkg.name for pkg in package_requirements],
         python_path_entries=build_plan.python_path_entries,
         entry_module=build_plan.entry_module,
         entry_function=build_plan.entry_function,

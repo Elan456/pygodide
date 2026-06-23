@@ -152,6 +152,7 @@ def test_template_renderers_include_configured_values():
     )
     index_html = render_index_html(title="Example", boot_script_path="./custom.js")
     boot_js = render_boot_js(
+        declared_package_names=["pygame-ce", "numpy"],
         staged_files=["main.py", "ball.py", "assets/theme.ogg"],
         python_path_entries=["/", "/vendor"],
         entry_module="demo.main",
@@ -168,6 +169,11 @@ def test_template_renderers_include_configured_values():
     assert "'/vendor'" in startup_code
     assert '"ball.py"' in boot_js
     assert '"assets/theme.ogg"' in boot_js
+    assert 'const declaredPackageNames = ["pygame-ce", "numpy"];' in boot_js
+    assert "function formatPyodideError(error)" in boot_js
+    assert "ModuleNotFoundError" in boot_js
+    assert "Add '${suggestedPackageName}' to [project].dependencies" in boot_js
+    assert 'pygame: "pygame-ce"' in boot_js
     assert "from demo.main import start" in boot_js
     assert "/vendor" in boot_js
     assert "await asyncio.sleep(0)" in boot_js
