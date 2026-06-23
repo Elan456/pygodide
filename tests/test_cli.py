@@ -15,7 +15,7 @@ runner = CliRunner()
 
 
 def test_build_command_creates_expected_output(tmp_path):
-    source_dir = tmp_path / "demo_app" / "src"
+    source_dir = tmp_path / "demo_app"
     source_dir.mkdir(parents=True)
     (source_dir / "main.py").write_text(
         "def main():\n    return None\n", encoding="utf-8"
@@ -37,7 +37,7 @@ def test_build_command_creates_expected_output(tmp_path):
     assert "Dependency sources: none" in result.output
     assert "Resolved dependencies: none" in result.output
 
-    output_dir = tmp_path / "demo_app" / "build"
+    output_dir = source_dir / "build"
     assert output_dir.is_dir()
     assert (output_dir / "main.py").read_text(encoding="utf-8") == (
         source_dir / "main.py"
@@ -68,7 +68,7 @@ def test_build_command_rejects_empty_source_dir(tmp_path):
 
 
 def test_build_command_uses_tool_pygodide_config(tmp_path):
-    source_dir = tmp_path / "configured_app" / "src"
+    source_dir = tmp_path / "configured_app"
     source_dir.mkdir(parents=True)
     (source_dir / "main.py").write_text(
         "async def web_main():\n    return None\n", encoding="utf-8"
@@ -108,7 +108,7 @@ dependencies = ["fastquadtree"]
     assert "pyodide.loadPackage: pygame-ce" in result.output
     assert "micropip.install: fastquadtree" in result.output
 
-    output_dir = tmp_path / "configured_app" / "build"
+    output_dir = source_dir / "build"
     assert (output_dir / "main.py").is_file()
     assert not (output_dir / "ball.py").exists()
     assert (output_dir / "assets" / "tone.dat").read_bytes() == b"\x10\x20"
@@ -126,7 +126,7 @@ dependencies = ["fastquadtree"]
 
 
 def test_build_command_cli_app_overrides_project_config(tmp_path):
-    source_dir = tmp_path / "override_app" / "src"
+    source_dir = tmp_path / "override_app"
     source_dir.mkdir(parents=True)
     (source_dir / "main.py").write_text(
         "async def web_main():\n    return None\n", encoding="utf-8"
@@ -151,15 +151,13 @@ app = "main:web_main"
     assert result.exit_code == 0, result.output
     assert "App entrypoint: launcher:start (CLI --app)" in result.output
 
-    boot_js = (tmp_path / "override_app" / "build" / "boot.js").read_text(
-        encoding="utf-8"
-    )
+    boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
     assert "from launcher import start" in boot_js
     assert "from main import web_main" not in boot_js
 
 
 def test_build_command_accepts_requirements_txt_and_dep_flags(tmp_path):
-    source_dir = tmp_path / "requirements_app" / "src"
+    source_dir = tmp_path / "requirements_app"
     source_dir.mkdir(parents=True)
     (source_dir / "main.py").write_text(
         "def main():\n    return None\n", encoding="utf-8"
