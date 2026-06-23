@@ -3,7 +3,7 @@ const canvas = document.getElementById({{ canvas_element_id | tojson }});
 
 const pyodidePackages = {{ pyodide_packages | tojson }};
 const micropipPackages = {{ micropip_packages | tojson }};
-const pythonFiles = {{ python_files | tojson }};
+const stagedFiles = {{ staged_files | tojson }};
 const assetBasePath = {{ asset_base_path | tojson }};
 const virtualFsRoot = {{ virtual_fs_root | tojson }};
 const startupPythonCode = {{ startup_python_code | tojson }};
@@ -50,20 +50,20 @@ function resolveAssetUrl(filename) {
   return url.toString();
 }
 
-async function fetchTextFile(filename) {
+async function fetchAssetBytes(filename) {
   const response = await fetch(resolveAssetUrl(filename), { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to fetch ${filename}: ${response.status} ${response.statusText}`);
   }
-  return await response.text();
+  return new Uint8Array(await response.arrayBuffer());
 }
 
-async function stagePythonFiles(runtime) {
-  for (const filename of pythonFiles) {
-    const source = await fetchTextFile(filename);
+async function stageAppFiles(runtime) {
+  for (const filename of stagedFiles) {
+    const source = await fetchAssetBytes(filename);
     const targetPath = joinVirtualPath(virtualFsRoot, filename);
     ensureParentDir(runtime, targetPath);
-    runtime.FS.writeFile(targetPath, source, { encoding: "utf8" });
+    runtime.FS.writeFile(targetPath, source);
   }
 }
 
@@ -90,7 +90,7 @@ async function boot() {
   }
 
   setStatus(statusText.stagingFiles);
-  await stagePythonFiles(runtime);
+  await stageAppFiles(runtime);
 
   setStatus(statusText.loadingApp);
   await runtime.runPythonAsync(startupPythonCode);

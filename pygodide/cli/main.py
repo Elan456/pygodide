@@ -1,5 +1,4 @@
 import http.server
-import shutil
 import socketserver
 from errno import EADDRINUSE
 from functools import partial
@@ -9,13 +8,18 @@ from typing import Annotated
 import typer
 from jinja2 import Environment, PackageLoader, select_autoescape
 
+from pygodide.building import (
+    build_output_dir,
+    build_plan_for_source,
+    copy_staged_files,
+)
 from pygodide.dep_handling.collection import collect_requirements
 
 app = typer.Typer(name="Pygodide CLI", help="A command-line interface for Pygodide.")
 
 DEFAULT_PYODIDE_PACKAGES = ["pygame-ce"]
-DEFAULT_PYTHON_FILES = ["main.py"]
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
+DEFAULT_STAGED_FILES = ["main.py"]
 
 
 def _template_environment() -> Environment:
@@ -80,6 +84,7 @@ def render_boot_js(
     canvas_element_id: str = "canvas",
     pyodide_packages: list[str] | None = None,
     micropip_packages: list[str] | None = None,
+    staged_files: list[str] | None = None,
     python_files: list[str] | None = None,
     python_path_entries: list[str] | None = None,
     asset_base_path: str = "./",
@@ -89,12 +94,22 @@ def render_boot_js(
     startup_python_code: str | None = None,
     starting_pyodide_status_text: str = "Starting Pyodide...",
     loading_packages_status_text: str = "Loading Python packages...",
-    staging_files_status_text: str = "Staging Python files...",
+    staging_files_status_text: str = "Staging app files...",
     loading_app_status_text: str = "Loading Python app...",
     running_status_text: str = "Running",
 ) -> str:
     template = _template_environment().get_template("boot.js")
-    resolved_python_path_entries = python_path_entries or DEFAULT_PYTHON_PATH_ENTRIES
+    if python_path_entries is None:
+        resolved_python_path_entries = DEFAULT_PYTHON_PATH_ENTRIES
+    else:
+        resolved_python_path_entries = python_path_entries
+    resolved_staged_files = (
+        staged_files
+        if staged_files is not None
+        else python_files
+        if python_files is not None
+        else DEFAULT_STAGED_FILES
+    )
     resolved_startup_python_code = startup_python_code or _build_startup_python_code(
         entry_module=entry_module,
         entry_function=entry_function,
@@ -104,9 +119,13 @@ def render_boot_js(
     return template.render(
         status_element_id=status_element_id,
         canvas_element_id=canvas_element_id,
-        pyodide_packages=pyodide_packages or DEFAULT_PYODIDE_PACKAGES,
-        micropip_packages=micropip_packages or [],
-        python_files=python_files or DEFAULT_PYTHON_FILES,
+        pyodide_packages=(
+            pyodide_packages
+            if pyodide_packages is not None
+            else DEFAULT_PYODIDE_PACKAGES
+        ),
+        micropip_packages=micropip_packages if micropip_packages is not None else [],
+        staged_files=resolved_staged_files,
         asset_base_path=asset_base_path,
         virtual_fs_root=virtual_fs_root,
         startup_python_code=resolved_startup_python_code,
@@ -116,23 +135,6 @@ def render_boot_js(
         loading_app_status_text=loading_app_status_text,
         running_status_text=running_status_text,
     )
-
-
-def _default_title(source_dir: Path) -> str:
-    if source_dir.name == "src" and source_dir.parent.name:
-        return f"{source_dir.parent.name} Pyodide App"
-    return f"{source_dir.name} Pyodide App"
-
-
-def _discover_flat_files(source_dir: Path) -> list[Path]:
-    return sorted(path for path in source_dir.iterdir() if path.is_file())
-
-
-def _build_output_dir(path: Path) -> Path:
-    resolved_path = path.resolve()
-    if resolved_path.name == "build":
-        return resolved_path
-    return resolved_path.parent / "build"
 
 
 @app.command()
@@ -145,27 +147,34 @@ def build(
         False,
         help="Whether to serve the built app after building",
     ),
+    app_spec: Annotated[
+        str | None,
+        typer.Option(
+            "--app",
+            help="Entrypoint in 'module:callable' format. Overrides "
+            "[tool.pygodide].app when provided.",
+        ),
+    ] = None,
 ):
-
-    package_requirements = collect_requirements(path)
-
     source_dir = path.resolve()
-    if not source_dir.is_dir():
-        raise typer.BadParameter(f"{source_dir} is not a directory")
+    try:
+        build_plan = build_plan_for_source(source_dir, app_spec=app_spec)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
-    source_files = _discover_flat_files(source_dir)
-    if not source_files:
-        raise typer.BadParameter(f"{source_dir} does not contain any files to build")
-
-    output_dir = _build_output_dir(source_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    for source_file in source_files:
-        shutil.copy2(source_file, output_dir / source_file.name)
+    package_requirements = collect_requirements(source_dir)
+    output_dir = build_plan.output_dir
+    copy_staged_files(
+        source_dir=build_plan.source_dir,
+        output_dir=output_dir,
+        staged_files=build_plan.staged_files,
+    )
 
     boot_script_name = "boot.js"
     index_html = render_index_html(
-        title=_default_title(source_dir),
+        title=build_plan.title,
+        canvas_width=build_plan.canvas_width,
+        canvas_height=build_plan.canvas_height,
         boot_script_path=f"./{boot_script_name}",
     )
 
@@ -173,9 +182,12 @@ def build(
     index_output_path.write_text(index_html, encoding="utf-8")
 
     boot_js = render_boot_js(
-        python_files=[source_file.name for source_file in source_files],
+        staged_files=build_plan.staged_files,
         pyodide_packages=[],
         micropip_packages=[str(pkg) for pkg in package_requirements],
+        python_path_entries=build_plan.python_path_entries,
+        entry_module=build_plan.entry_module,
+        entry_function=build_plan.entry_function,
     )
 
     boot_output_path = output_dir / boot_script_name
@@ -197,7 +209,7 @@ def serve(
     Serve the built Pygodide app from the build directory.
     """
 
-    output_dir = _build_output_dir(path)
+    output_dir = build_output_dir(path)
     if not output_dir.is_dir():
         raise RuntimeError(f"{output_dir} does not exist. Please run 'build' first.")
 

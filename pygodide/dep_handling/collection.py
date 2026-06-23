@@ -2,10 +2,11 @@
 Collects the dependencies of a project
 """
 
-import tomllib
 from pathlib import Path
 
 from packaging.requirements import InvalidRequirement, Requirement
+
+from pygodide.pyproject import load_pyproject_data
 
 from .common import PackageInfo
 
@@ -22,9 +23,7 @@ def collect_requirements(app_path: str | Path) -> list[PackageInfo]:
 def parse_pyproject_dependencies(pyproject_path: str | Path) -> list[PackageInfo]:
     """Parse ``project.dependencies`` from a ``pyproject.toml`` file."""
     path = Path(pyproject_path)
-    with path.open("rb") as pyproject_file:
-        pyproject_data = tomllib.load(pyproject_file)
-
+    pyproject_data = load_pyproject_data(path)
     raw_dependencies = pyproject_data.get("project", {}).get("dependencies", [])
     if raw_dependencies is None:
         return []

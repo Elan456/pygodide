@@ -5,4 +5,12 @@ description = "A small pygame example that uses numpy for particle motion."
 dependencies = [
     "numpy>=1.26",
     "pygame-ce",
+    "fastquadtree",
+    "numpy"
 ]
+
+# test_targets/numpy_particles/build/boot.js
+
+[pygodide]
+entrypoint = "main.py"
+entrypoint_function = "main"
