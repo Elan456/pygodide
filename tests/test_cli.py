@@ -24,6 +24,9 @@ def test_build_command_creates_expected_output(tmp_path):
     asset_dir = source_dir / "assets"
     asset_dir.mkdir()
     (asset_dir / "sprite.bin").write_bytes(b"\x00\x01\x02")
+    venv_dir = source_dir / ".venv" / "bin"
+    venv_dir.mkdir(parents=True)
+    (venv_dir / "python").write_text("not a real interpreter\n", encoding="utf-8")
 
     result = runner.invoke(app, ["build", str(source_dir)])
 
@@ -38,6 +41,7 @@ def test_build_command_creates_expected_output(tmp_path):
         source_dir / "helpers.py"
     ).read_text(encoding="utf-8")
     assert (output_dir / "assets" / "sprite.bin").read_bytes() == b"\x00\x01\x02"
+    assert not (output_dir / ".venv").exists()
 
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
     boot_js = (output_dir / "boot.js").read_text(encoding="utf-8")
@@ -156,12 +160,21 @@ def test_template_renderers_include_configured_values():
 
     assert "<title>Example</title>" in index_html
     assert '<script type="module" src="./custom.js"></script>' in index_html
+    assert 'class="pygodide-shell"' in index_html
+    assert 'data-state="active"' in index_html
+    assert "background: #090c17;" in index_html
+    assert "border-radius" not in index_html
     assert "from demo.main import start" in startup_code
     assert "'/vendor'" in startup_code
     assert '"ball.py"' in boot_js
     assert '"assets/theme.ogg"' in boot_js
     assert "from demo.main import start" in boot_js
     assert "/vendor" in boot_js
+    assert "await asyncio.sleep(0)" in boot_js
+    assert "console.warn(getLoadingAppStatusMessage())" in boot_js
+    assert "const appPromise = runtime.runPythonAsync(startupPythonCode);" in boot_js
+    assert "status.dataset.state = state" in boot_js
+    assert 'setStatus("", "hidden")' in boot_js
     assert "new Uint8Array(await response.arrayBuffer())" in boot_js
     assert 'cache: "no-store"' in boot_js
     assert 'url.searchParams.set("_pygodide", assetRequestCacheBuster)' in boot_js

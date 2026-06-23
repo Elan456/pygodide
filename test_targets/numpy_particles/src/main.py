@@ -1,3 +1,4 @@
+import asyncio
 import math
 
 import fastquadtree as fqt
@@ -247,30 +248,40 @@ def _draw_scene(
     pygame.display.flip()
 
 
+def loop(clock, score):
+    dt = clock.tick(60) / 1000.0
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            return
+
+    now_seconds = pygame.time.get_ticks() / 1000.0
+    radii = _particle_radii(now_seconds)
+
+    _move_player(dt)
+    _update_particles(dt, radii)
+    _rebuild_quadtree()
+    collision_count = _resolve_particle_collisions(radii)
+    _rebuild_quadtree()
+
+    score += _collect_particles(radii)
+    radii = _particle_radii(now_seconds)
+    _rebuild_quadtree()
+    _draw_scene(score, now_seconds, radii, collision_count)
+
+
 def main():
+    asyncio.run(web_main())
+
+
+async def web_main():
     clock = pygame.time.Clock()
     score = 0
 
     while True:
-        dt = clock.tick(60) / 1000.0
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return
-
-        now_seconds = pygame.time.get_ticks() / 1000.0
-        radii = _particle_radii(now_seconds)
-
-        _move_player(dt)
-        _update_particles(dt, radii)
-        _rebuild_quadtree()
-        collision_count = _resolve_particle_collisions(radii)
-        _rebuild_quadtree()
-
-        score += _collect_particles(radii)
-        radii = _particle_radii(now_seconds)
-        _rebuild_quadtree()
-        _draw_scene(score, now_seconds, radii, collision_count)
+        loop(clock, score)
+        await asyncio.sleep(0)
 
 
-main()
+if __name__ == "__main__":
+    main()

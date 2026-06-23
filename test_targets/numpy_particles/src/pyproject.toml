@@ -9,8 +9,5 @@ dependencies = [
     "numpy"
 ]
 
-# test_targets/numpy_particles/build/boot.js
-
-[pygodide]
-entrypoint = "main.py"
-entrypoint_function = "main"
+[tool.pygodide]
+app="main:web_main"

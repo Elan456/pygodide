@@ -13,6 +13,7 @@ const statusText = {
   loadingPackages: {{ loading_packages_status_text | tojson }},
   stagingFiles: {{ staging_files_status_text | tojson }},
   loadingApp: {{ loading_app_status_text | tojson }},
+  loadingAppHint: {{ loading_app_hint_text | tojson }},
   running: {{ running_status_text | tojson }},
 };
 
@@ -23,10 +24,21 @@ function requireElement(element, id) {
   return element;
 }
 
-function setStatus(message) {
+function setStatus(message, state = "active") {
   if (status) {
     status.textContent = message;
+    status.dataset.state = state;
   }
+}
+
+function getLoadingAppStatusMessage() {
+  return `${statusText.loadingApp} ${statusText.loadingAppHint}`.trim();
+}
+
+function waitForNextPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
 }
 
 function joinVirtualPath(root, relativePath) {
@@ -90,15 +102,20 @@ async function boot() {
   }
 
   setStatus(statusText.stagingFiles);
+  await waitForNextPaint();
   await stageAppFiles(runtime);
 
-  setStatus(statusText.loadingApp);
-  await runtime.runPythonAsync(startupPythonCode);
+  console.warn(getLoadingAppStatusMessage());
+  setStatus(getLoadingAppStatusMessage());
+  await waitForNextPaint();
+  const appPromise = runtime.runPythonAsync(startupPythonCode);
+  await waitForNextPaint();
+  setStatus("", "hidden");
 
-  setStatus(statusText.running);
+  await appPromise;
 }
 
 boot().catch((error) => {
   console.error(error);
-  setStatus(`Error: ${error}`);
+  setStatus(`Error: ${error}`, "error");
 });
