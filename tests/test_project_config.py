@@ -35,6 +35,8 @@ title = "Demo"
 canvas-width = 900
 canvas-height = 700
 python-path = [".", "vendor"]
+dependencies = ["pygame-ce", "fastquadtree"]
+dependency-groups = ["web"]
 """.strip(),
         encoding="utf-8",
     )
@@ -48,3 +50,5 @@ python-path = [".", "vendor"]
     assert config.canvas_width == 900
     assert config.canvas_height == 700
     assert config.python_path == [".", "vendor"]
+    assert config.dependencies == ["pygame-ce", "fastquadtree"]
+    assert config.dependency_groups == ["web"]

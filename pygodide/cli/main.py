@@ -13,7 +13,10 @@ from pygodide.building import (
     build_plan_for_source,
     copy_staged_files,
 )
-from pygodide.dep_handling.collection import collect_requirements
+from pygodide.dep_handling.pyodide_resolution import (
+    build_install_plan,
+    collect_requirements,
+)
 
 app = typer.Typer(name="Pygodide CLI", help="A command-line interface for Pygodide.")
 
@@ -165,6 +168,14 @@ def build(
             "[tool.pygodide].app when provided.",
         ),
     ] = None,
+    deps: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--dep",
+            help="Additional dependency requirement to include. Repeat for "
+            "multiple dependencies.",
+        ),
+    ] = None,
 ):
     source_dir = path.resolve()
     try:
@@ -172,7 +183,18 @@ def build(
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
 
-    package_requirements = collect_requirements(source_dir)
+    dependency_collection = collect_requirements(
+        source_dir,
+        extra_dependencies=deps,
+    )
+    install_plan = build_install_plan(dependency_collection.packages)
+
+    _log_build_choices(
+        build_plan=build_plan,
+        dependency_collection=dependency_collection,
+        install_plan=install_plan,
+    )
+
     output_dir = build_plan.output_dir
     copy_staged_files(
         source_dir=build_plan.source_dir,
@@ -193,9 +215,9 @@ def build(
 
     boot_js = render_boot_js(
         staged_files=build_plan.staged_files,
-        pyodide_packages=[],
-        micropip_packages=[str(pkg) for pkg in package_requirements],
-        declared_package_names=[pkg.name for pkg in package_requirements],
+        pyodide_packages=install_plan.pyodide_packages,
+        micropip_packages=install_plan.micropip_packages,
+        declared_package_names=[pkg.name for pkg in dependency_collection.packages],
         python_path_entries=build_plan.python_path_entries,
         entry_module=build_plan.entry_module,
         entry_function=build_plan.entry_function,
@@ -266,6 +288,53 @@ def hello(name: str):
     Print a greeting message to the specified name.
     """
     print(f"Hello, {name}!")
+
+
+def _log_build_choices(*, build_plan, dependency_collection, install_plan) -> None:
+    typer.echo(f"Building {build_plan.source_dir}")
+    typer.echo(
+        f"App entrypoint: {build_plan.entry_module}:{build_plan.entry_function} "
+        f"({build_plan.app_source})"
+    )
+    typer.echo(
+        f"Staged files: {len(build_plan.staged_files)} "
+        f"({build_plan.staged_files_source})"
+    )
+
+    if dependency_collection.sources:
+        typer.echo("Dependency sources:")
+        for source in dependency_collection.sources:
+            typer.echo(f"  - {source.label}: {_format_package_list(source.packages)}")
+    else:
+        typer.echo("Dependency sources: none")
+
+    if dependency_collection.packages:
+        typer.echo(
+            "Resolved dependencies: "
+            f"{_format_package_list(dependency_collection.packages)}"
+        )
+    else:
+        typer.echo("Resolved dependencies: none")
+
+    typer.echo("Install strategy:")
+    typer.echo(
+        f"  - pyodide.loadPackage: {_format_name_list(install_plan.pyodide_packages)}"
+    )
+    typer.echo(
+        f"  - micropip.install: {_format_name_list(install_plan.micropip_packages)}"
+    )
+
+
+def _format_package_list(packages) -> str:
+    if not packages:
+        return "(none)"
+    return ", ".join(str(package) for package in packages)
+
+
+def _format_name_list(values: list[str]) -> str:
+    if not values:
+        return "(none)"
+    return ", ".join(values)
 
 
 if __name__ == "__main__":

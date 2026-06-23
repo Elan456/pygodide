@@ -8,7 +8,51 @@ Options (in order of priority):
 
 from __future__ import annotations
 
-from .collection import parse_pyproject_dependencies
+from dataclasses import dataclass
+
+from .collection import (
+    DependencyCollection,
+    DependencySource,
+    collect_requirements,
+    parse_dependency_groups,
+    parse_pyproject_dependencies,
+    parse_requirements_txt,
+)
 from .common import PackageInfo
 
-__all__ = ["PackageInfo", "parse_pyproject_dependencies"]
+DEFAULT_PYODIDE_PACKAGE_NAMES = {"pygame-ce"}
+
+
+@dataclass(frozen=True)
+class InstallPlan:
+    pyodide_packages: list[str]
+    micropip_packages: list[str]
+
+
+def build_install_plan(packages: list[PackageInfo]) -> InstallPlan:
+    pyodide_packages: list[str] = []
+    micropip_packages: list[str] = []
+
+    for package in packages:
+        if package.normalized_name in DEFAULT_PYODIDE_PACKAGE_NAMES:
+            pyodide_packages.append(package.name)
+        else:
+            micropip_packages.append(str(package))
+
+    return InstallPlan(
+        pyodide_packages=pyodide_packages,
+        micropip_packages=micropip_packages,
+    )
+
+
+__all__ = [
+    "DependencyCollection",
+    "DependencySource",
+    "InstallPlan",
+    "PackageInfo",
+    "build_install_plan",
+    "collect_requirements",
+    "parse_dependency_groups",
+    "parse_pyproject_dependencies",
+    "parse_requirements_txt",
+]

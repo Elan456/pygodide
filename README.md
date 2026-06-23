@@ -33,6 +33,45 @@ That's it! Open http://localhost:8000 in a web browser to see your app running.
 Currently only supports flat projects. The vision is to support any arbitrary 
 pygame project. 
 
+You can also add dependencies directly from the CLI:
+
+```bash
+pygodide build /path/to/your/pygame/project \
+  --dep pygame-ce \
+  --dep fastquadtree
+```
+
+## Dependency Sources
+
+`pygodide build` now merges dependencies from these sources:
+
+1. `requirements.txt`
+2. `[project].dependencies`
+3. `[tool.pygodide].dependencies`
+4. dependency groups named in `[tool.pygodide].dependency-groups`
+5. repeated `--dep` flags
+
+Later sources override earlier ones when the same package is declared more than
+once. The build command prints the sources it used and whether each dependency
+was assigned to `pyodide.loadPackage(...)` or `micropip.install(...)`.
+
+Example:
+
+```toml
+[project]
+name = "my-game"
+version = "0.1.0"
+dependencies = ["numpy>=1.26"]
+
+[dependency-groups]
+web = ["pygame-ce"]
+
+[tool.pygodide]
+app = "main:web_main"
+dependencies = ["fastquadtree"]
+dependency-groups = ["web"]
+```
+
 ## Development
 
 Install the local hooks once after cloning:

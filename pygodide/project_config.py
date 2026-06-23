@@ -21,6 +21,8 @@ class PygodideProjectConfig:
     canvas_width: int | None = None
     canvas_height: int | None = None
     python_path: list[str] | None = None
+    dependencies: list[str] | None = None
+    dependency_groups: list[str] | None = None
 
 
 def parse_app_spec(app_spec: str) -> AppEntrypoint:
@@ -75,6 +77,16 @@ def load_pygodide_project_config(
         python_path=_parse_optional_string_list(
             raw_config,
             key="python-path",
+            pyproject_path=pyproject_path,
+        ),
+        dependencies=_parse_optional_string_list(
+            raw_config,
+            key="dependencies",
+            pyproject_path=pyproject_path,
+        ),
+        dependency_groups=_parse_optional_string_list(
+            raw_config,
+            key="dependency-groups",
             pyproject_path=pyproject_path,
         ),
     )

@@ -31,6 +31,11 @@ def test_build_command_creates_expected_output(tmp_path):
     result = runner.invoke(app, ["build", str(source_dir)])
 
     assert result.exit_code == 0, result.output
+    assert "Building" in result.output
+    assert "App entrypoint: main:main (default)" in result.output
+    assert "Staged files: 3 (auto-discovery)" in result.output
+    assert "Dependency sources: none" in result.output
+    assert "Resolved dependencies: none" in result.output
 
     output_dir = tmp_path / "demo_app" / "build"
     assert output_dir.is_dir()
@@ -88,6 +93,7 @@ title = "Configured Game"
 canvas-width = 1024
 canvas-height = 768
 python-path = [".", "vendor"]
+dependencies = ["fastquadtree"]
 """.strip(),
         encoding="utf-8",
     )
@@ -95,6 +101,12 @@ python-path = [".", "vendor"]
     result = runner.invoke(app, ["build", str(source_dir)])
 
     assert result.exit_code == 0, result.output
+    assert "App entrypoint: main:web_main ([tool.pygodide].app)" in result.output
+    assert "Staged files: 2 ([tool.pygodide].include)" in result.output
+    assert "[project].dependencies: pygame-ce" in result.output
+    assert "[tool.pygodide].dependencies: fastquadtree" in result.output
+    assert "pyodide.loadPackage: pygame-ce" in result.output
+    assert "micropip.install: fastquadtree" in result.output
 
     output_dir = tmp_path / "configured_app" / "build"
     assert (output_dir / "main.py").is_file()
@@ -107,6 +119,7 @@ python-path = [".", "vendor"]
     assert "<title>Configured Game</title>" in index_html
     assert 'width="1024"' in index_html
     assert 'height="768"' in index_html
+    assert 'const pyodidePackages = ["pygame-ce"];' in boot_js
     assert '"assets/tone.dat"' in boot_js
     assert "from main import web_main" in boot_js
     assert "/vendor" in boot_js
@@ -136,12 +149,47 @@ app = "main:web_main"
     result = runner.invoke(app, ["build", str(source_dir), "--app", "launcher:start"])
 
     assert result.exit_code == 0, result.output
+    assert "App entrypoint: launcher:start (CLI --app)" in result.output
 
     boot_js = (tmp_path / "override_app" / "build" / "boot.js").read_text(
         encoding="utf-8"
     )
     assert "from launcher import start" in boot_js
     assert "from main import web_main" not in boot_js
+
+
+def test_build_command_accepts_requirements_txt_and_dep_flags(tmp_path):
+    source_dir = tmp_path / "requirements_app" / "src"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "def main():\n    return None\n", encoding="utf-8"
+    )
+    (source_dir / "requirements.txt").write_text(
+        "pygame-ce\nnumpy>=1.26\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "build",
+            str(source_dir),
+            "--dep",
+            "fastquadtree",
+            "--dep",
+            "rich",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "requirements.txt: pygame-ce, numpy>=1.26" in result.output
+    assert "CLI --dep: fastquadtree, rich" in result.output
+    assert (
+        "Resolved dependencies: pygame-ce, numpy>=1.26, fastquadtree, rich"
+        in result.output
+    )
+    assert "pyodide.loadPackage: pygame-ce" in result.output
+    assert "micropip.install: numpy>=1.26, fastquadtree, rich" in result.output
 
 
 def test_template_renderers_include_configured_values():
@@ -152,6 +200,8 @@ def test_template_renderers_include_configured_values():
     )
     index_html = render_index_html(title="Example", boot_script_path="./custom.js")
     boot_js = render_boot_js(
+        pyodide_packages=["pygame-ce"],
+        micropip_packages=["fastquadtree", "numpy>=1.26"],
         declared_package_names=["pygame-ce", "numpy"],
         staged_files=["main.py", "ball.py", "assets/theme.ogg"],
         python_path_entries=["/", "/vendor"],
@@ -169,6 +219,8 @@ def test_template_renderers_include_configured_values():
     assert "'/vendor'" in startup_code
     assert '"ball.py"' in boot_js
     assert '"assets/theme.ogg"' in boot_js
+    assert 'const pyodidePackages = ["pygame-ce"];' in boot_js
+    assert 'const micropipPackages = ["fastquadtree", "numpy\\u003e=1.26"];' in boot_js
     assert 'const declaredPackageNames = ["pygame-ce", "numpy"];' in boot_js
     assert "function formatPyodideError(error)" in boot_js
     assert "ModuleNotFoundError" in boot_js

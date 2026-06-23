@@ -27,6 +27,8 @@ class BuildPlan:
     staged_files: list[str]
     entry_module: str
     entry_function: str
+    app_source: str
+    staged_files_source: str
     title: str
     canvas_width: int
     canvas_height: int
@@ -43,7 +45,9 @@ def build_plan_for_source(
         raise ValueError(f"{resolved_source_dir} is not a directory")
 
     project_config = load_pygodide_project_config(resolved_source_dir)
-    resolved_app = _resolve_app_entrypoint(project_config, app_spec=app_spec)
+    resolved_app, app_source = _resolve_app_entrypoint(
+        project_config, app_spec=app_spec
+    )
     staged_files = discover_staged_files(
         resolved_source_dir,
         include_patterns=project_config.include if project_config else None,
@@ -63,6 +67,12 @@ def build_plan_for_source(
         staged_files=staged_files,
         entry_module=resolved_app.module,
         entry_function=resolved_app.callable_name,
+        app_source=app_source,
+        staged_files_source=(
+            "[tool.pygodide].include"
+            if project_config and project_config.include
+            else "auto-discovery"
+        ),
         title=(
             project_config.title
             if project_config and project_config.title
@@ -173,13 +183,15 @@ def resolve_python_path_entries(
 
 def _resolve_app_entrypoint(
     project_config: PygodideProjectConfig | None, *, app_spec: str | None
-) -> AppEntrypoint:
+) -> tuple[AppEntrypoint, str]:
     resolved_spec = app_spec
-    if resolved_spec is None and project_config and project_config.app is not None:
-        return project_config.app
+    if resolved_spec is not None:
+        return parse_app_spec(resolved_spec), "CLI --app"
+    if project_config and project_config.app is not None:
+        return project_config.app, "[tool.pygodide].app"
     if resolved_spec is None:
         resolved_spec = DEFAULT_APP_SPEC
-    return parse_app_spec(resolved_spec)
+    return parse_app_spec(resolved_spec), "default"
 
 
 def _normalize_virtual_path(path: str) -> str:
