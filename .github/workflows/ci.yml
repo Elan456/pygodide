@@ -45,6 +45,14 @@ jobs:
       - name: Run tests
         run: uv run pytest
 
+      - name: Install Playwright browsers
+        if: matrix.python-version == '3.11'
+        run: uv run playwright install chromium
+
+      - name: Run smoke target suite
+        if: matrix.python-version == '3.11'
+        run: ./scripts/smoke
+
       - name: Build distribution artifacts
         run: uv build
 

@@ -21,9 +21,15 @@ def test_build_command_creates_expected_output(tmp_path):
         "def main():\n    return None\n", encoding="utf-8"
     )
     (source_dir / "helpers.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (source_dir / "testing_manifest.yaml").write_text(
+        "name: demo-app\n", encoding="utf-8"
+    )
     asset_dir = source_dir / "assets"
     asset_dir.mkdir()
     (asset_dir / "sprite.bin").write_bytes(b"\x00\x01\x02")
+    generated_build_dir = source_dir / "build"
+    generated_build_dir.mkdir()
+    (generated_build_dir / "old.py").write_text("VALUE = 2\n", encoding="utf-8")
     venv_dir = source_dir / ".venv" / "bin"
     venv_dir.mkdir(parents=True)
     (venv_dir / "python").write_text("not a real interpreter\n", encoding="utf-8")
@@ -56,6 +62,8 @@ def test_build_command_creates_expected_output(tmp_path):
     assert '"assets/sprite.bin"' in boot_js
     assert '"helpers.py"' in boot_js
     assert '"main.py"' in boot_js
+    assert "testing_manifest.yaml" not in boot_js
+    assert "build/old.py" not in boot_js
     assert "from main import main" in boot_js
 
 
@@ -229,11 +237,62 @@ def test_template_renderers_include_configured_values():
     assert "await asyncio.sleep(0)" in boot_js
     assert "console.warn(getLoadingAppStatusMessage())" in boot_js
     assert "const appPromise = runtime.runPythonAsync(startupPythonCode);" in boot_js
+    assert 'const readyLogMessage = "[pygodide] ready";' in boot_js
+    assert "console.info(readyLogMessage)" in boot_js
     assert "status.dataset.state = state" in boot_js
     assert 'setStatus("", "hidden")' in boot_js
     assert "new Uint8Array(await response.arrayBuffer())" in boot_js
     assert 'cache: "no-store"' in boot_js
     assert 'url.searchParams.set("_pygodide", assetRequestCacheBuster)' in boot_js
+
+
+def test_smoke_command_can_run_single_app_build_only(tmp_path):
+    source_dir = tmp_path / "demo_app"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "def main():\n    return None\n", encoding="utf-8"
+    )
+
+    result = runner.invoke(
+        app,
+        ["smoke", str(source_dir), "--build-only"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert f"Building {source_dir}" in result.output
+    assert "Smoke testing" not in result.output
+    assert (source_dir / "build" / "index.html").is_file()
+
+
+def test_smoke_command_can_run_target_suite_build_only(tmp_path):
+    targets_root = tmp_path / "targets"
+    target_dir = targets_root / "demo"
+    target_dir.mkdir(parents=True)
+    (target_dir / "main.py").write_text(
+        "def main():\n    return None\n", encoding="utf-8"
+    )
+    (target_dir / "testing_manifest.yaml").write_text(
+        "name: demo-target\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        ["smoke", str(targets_root), "--suite", "--build-only"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Discovered 1 target(s)." in result.output
+    assert "[demo-target] building" in result.output
+    assert "[demo-target] passed" in result.output
+    assert (target_dir / "build" / "index.html").is_file()
+
+
+def test_compatibility_command_is_not_registered():
+    result = runner.invoke(app, ["compatibility", "test_targets"])
+
+    assert result.exit_code != 0
+    assert "No such command 'compatibility'" in result.output
 
 
 def test_dev_server_reuses_recently_closed_port():

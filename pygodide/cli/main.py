@@ -1,5 +1,6 @@
 import http.server
 import socketserver
+from collections.abc import Callable
 from errno import EADDRINUSE
 from functools import partial
 from pathlib import Path
@@ -23,6 +24,7 @@ app = typer.Typer(name="Pygodide CLI", help="A command-line interface for Pygodi
 DEFAULT_PYODIDE_PACKAGES = ["pygame-ce"]
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_STAGED_FILES = ["main.py"]
+DEFAULT_READY_LOG = "[pygodide] ready"
 
 
 def _template_environment() -> Environment:
@@ -106,6 +108,7 @@ def render_boot_js(
         "add await asyncio.sleep(0)."
     ),
     running_status_text: str = "Running",
+    ready_log: str = DEFAULT_READY_LOG,
 ) -> str:
     template = _template_environment().get_template("boot.js")
     if python_path_entries is None:
@@ -147,53 +150,31 @@ def render_boot_js(
         loading_app_status_text=loading_app_status_text,
         loading_app_hint_text=loading_app_hint_text,
         running_status_text=running_status_text,
+        ready_log=ready_log,
     )
 
 
-@app.command()
-def build(
-    path: Annotated[
-        Path,
-        typer.Argument(help="Root directory of the Pygame app to build"),
-    ],
-    serve: bool = typer.Option(
-        False,
-        help="Whether to serve the built app after building",
-    ),
-    app_spec: Annotated[
-        str | None,
-        typer.Option(
-            "--app",
-            help="Entrypoint in 'module:callable' format. Overrides "
-            "[tool.pygodide].app when provided.",
-        ),
-    ] = None,
-    deps: Annotated[
-        list[str] | None,
-        typer.Option(
-            "--dep",
-            help="Additional dependency requirement to include. Repeat for "
-            "multiple dependencies.",
-        ),
-    ] = None,
-):
-    source_dir = path.resolve()
-    try:
-        build_plan = build_plan_for_source(source_dir, app_spec=app_spec)
-    except ValueError as exc:
-        raise typer.BadParameter(str(exc)) from exc
-
+def build_app(
+    source_dir: Path,
+    *,
+    app_spec: str | None = None,
+    deps: list[str] | None = None,
+    log: Callable[[str], None] | None = typer.echo,
+) -> Path:
+    build_plan = build_plan_for_source(source_dir, app_spec=app_spec)
     dependency_collection = collect_requirements(
         source_dir,
         extra_dependencies=deps,
     )
     install_plan = build_install_plan(dependency_collection.packages)
 
-    _log_build_choices(
-        build_plan=build_plan,
-        dependency_collection=dependency_collection,
-        install_plan=install_plan,
-    )
+    if log is not None:
+        _log_build_choices(
+            build_plan=build_plan,
+            dependency_collection=dependency_collection,
+            install_plan=install_plan,
+            log=log,
+        )
 
     output_dir = build_plan.output_dir
     copy_staged_files(
@@ -227,6 +208,42 @@ def build(
     boot_output_path.parent.mkdir(parents=True, exist_ok=True)
     boot_output_path.write_text(boot_js, encoding="utf-8")
 
+    return output_dir
+
+
+@app.command()
+def build(
+    path: Annotated[
+        Path,
+        typer.Argument(help="Root directory of the Pygame app to build"),
+    ],
+    serve: bool = typer.Option(
+        False,
+        help="Whether to serve the built app after building",
+    ),
+    app_spec: Annotated[
+        str | None,
+        typer.Option(
+            "--app",
+            help="Entrypoint in 'module:callable' format. Overrides "
+            "[tool.pygodide].app when provided.",
+        ),
+    ] = None,
+    deps: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--dep",
+            help="Additional dependency requirement to include. Repeat for "
+            "multiple dependencies.",
+        ),
+    ] = None,
+):
+    source_dir = path.resolve()
+    try:
+        output_dir = build_app(source_dir, app_spec=app_spec, deps=deps)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
     if serve:
         _serve(output_dir)
 
@@ -247,6 +264,135 @@ def serve(
         raise RuntimeError(f"{output_dir} does not exist. Please run 'build' first.")
 
     _serve(output_dir)
+
+
+@app.command("smoke")
+def smoke(
+    path: Annotated[
+        Path,
+        typer.Argument(help="Source app directory to build and smoke test."),
+    ],
+    suite: Annotated[
+        bool,
+        typer.Option(
+            "--suite",
+            help=(
+                "Treat PATH as a directory of testing_manifest.yaml target "
+                "fixtures and run all targets by default."
+            ),
+        ),
+    ] = False,
+    targets: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--target",
+            "-t",
+            help=(
+                "Only with --suite: filter the suite to a manifest name. "
+                "Repeat to include multiple targets."
+            ),
+        ),
+    ] = None,
+    app_spec: Annotated[
+        str | None,
+        typer.Option(
+            "--app",
+            help="Entrypoint in 'module:callable' format. Overrides "
+            "[tool.pygodide].app when provided.",
+        ),
+    ] = None,
+    deps: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--dep",
+            help="Additional dependency requirement to include. Repeat for "
+            "multiple dependencies.",
+        ),
+    ] = None,
+    smoke_path: Annotated[
+        str,
+        typer.Option(
+            "--smoke-path",
+            help="URL path to load from the built app during the smoke test.",
+        ),
+    ] = "/",
+    timeout_ms: Annotated[
+        int,
+        typer.Option(
+            "--timeout-ms",
+            help="Milliseconds to wait for the generated app ready log.",
+        ),
+    ] = 120_000,
+    post_ready_ms: Annotated[
+        int,
+        typer.Option(
+            "--post-ready-ms",
+            help="Milliseconds to keep listening for errors after the ready log.",
+        ),
+    ] = 500,
+    ready_log: Annotated[
+        str,
+        typer.Option(
+            "--ready-log",
+            help="Console log message that marks the generated app as ready.",
+        ),
+    ] = DEFAULT_READY_LOG,
+    build_only: Annotated[
+        bool,
+        typer.Option(
+            "--build-only",
+            help="Build without launching Playwright.",
+        ),
+    ] = False,
+):
+    """
+    Build and smoke-test an app in a headless browser.
+    """
+
+    from pygodide.compatibility import (
+        SmokeConfig,
+        run_compatibility_suite,
+        smoke_test_app,
+    )
+
+    if suite:
+        results = run_compatibility_suite(
+            path,
+            target_names=targets,
+            build_only=build_only,
+            echo=typer.echo,
+        )
+        failures = [result for result in results if not result.success]
+
+        if failures:
+            raise typer.Exit(1)
+        return
+
+    if targets:
+        raise typer.BadParameter("--target can only be used with --suite")
+    if not smoke_path.startswith("/"):
+        raise typer.BadParameter("--smoke-path must start with '/'")
+    if timeout_ms <= 0:
+        raise typer.BadParameter("--timeout-ms must be a positive integer")
+    if post_ready_ms < 0:
+        raise typer.BadParameter("--post-ready-ms must be a non-negative integer")
+
+    try:
+        smoke_test_app(
+            path,
+            app_spec=app_spec,
+            deps=deps,
+            smoke=SmokeConfig(
+                path=smoke_path,
+                ready_log=ready_log,
+                timeout_ms=timeout_ms,
+                post_ready_ms=post_ready_ms,
+            ),
+            build_only=build_only,
+            echo=typer.echo,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -290,39 +436,37 @@ def hello(name: str):
     print(f"Hello, {name}!")
 
 
-def _log_build_choices(*, build_plan, dependency_collection, install_plan) -> None:
-    typer.echo(f"Building {build_plan.source_dir}")
-    typer.echo(
+def _log_build_choices(
+    *, build_plan, dependency_collection, install_plan, log: Callable[[str], None]
+) -> None:
+    log(f"Building {build_plan.source_dir}")
+    log(
         f"App entrypoint: {build_plan.entry_module}:{build_plan.entry_function} "
         f"({build_plan.app_source})"
     )
-    typer.echo(
+    log(
         f"Staged files: {len(build_plan.staged_files)} "
         f"({build_plan.staged_files_source})"
     )
 
     if dependency_collection.sources:
-        typer.echo("Dependency sources:")
+        log("Dependency sources:")
         for source in dependency_collection.sources:
-            typer.echo(f"  - {source.label}: {_format_package_list(source.packages)}")
+            log(f"  - {source.label}: {_format_package_list(source.packages)}")
     else:
-        typer.echo("Dependency sources: none")
+        log("Dependency sources: none")
 
     if dependency_collection.packages:
-        typer.echo(
+        log(
             "Resolved dependencies: "
             f"{_format_package_list(dependency_collection.packages)}"
         )
     else:
-        typer.echo("Resolved dependencies: none")
+        log("Resolved dependencies: none")
 
-    typer.echo("Install strategy:")
-    typer.echo(
-        f"  - pyodide.loadPackage: {_format_name_list(install_plan.pyodide_packages)}"
-    )
-    typer.echo(
-        f"  - micropip.install: {_format_name_list(install_plan.micropip_packages)}"
-    )
+    log("Install strategy:")
+    log(f"  - pyodide.loadPackage: {_format_name_list(install_plan.pyodide_packages)}")
+    log(f"  - micropip.install: {_format_name_list(install_plan.micropip_packages)}")
 
 
 def _format_package_list(packages) -> str:

@@ -8,6 +8,7 @@ const stagedFiles = {{ staged_files | tojson }};
 const assetBasePath = {{ asset_base_path | tojson }};
 const virtualFsRoot = {{ virtual_fs_root | tojson }};
 const startupPythonCode = {{ startup_python_code | tojson }};
+const readyLogMessage = {{ ready_log | tojson }};
 const assetRequestCacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const knownImportPackageAliases = {
   pygame: "pygame-ce",
@@ -202,6 +203,7 @@ async function boot() {
   setStatus(getLoadingAppStatusMessage());
   await waitForNextPaint();
   const appPromise = runtime.runPythonAsync(startupPythonCode);
+  console.info(readyLogMessage);
   await waitForNextPaint();
   setStatus("", "hidden");
 

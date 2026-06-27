@@ -88,6 +88,84 @@ uv run ruff check .
 uv run pytest
 ```
 
+### Headless smoke tests
+
+Use `pygodide smoke` to build an app, serve it locally, and launch it in a
+headless Chromium browser:
+
+```bash
+uv run playwright install chromium
+uv run pygodide smoke /path/to/your/pygame/project
+```
+
+This command does not require any extra manifest file in your app. It uses the
+same build configuration as `pygodide build`, so `pyproject.toml`,
+`requirements.txt`, `--app`, and repeated `--dep` flags work the same way:
+
+```bash
+uv run pygodide smoke /path/to/your/pygame/project \
+  --app main:web_main \
+  --dep pygame-ce
+```
+
+The default smoke test passes when the generated page loads, no browser console
+or page errors occur, and the bootstrap emits the deterministic
+`[pygodide] ready` console log. It is intentionally a launch check, not a
+screenshot suite.
+
+For a faster build-only check that does not launch a browser:
+
+```bash
+uv run pygodide smoke /path/to/your/pygame/project --build-only
+```
+
+### Test target fixtures
+
+The repository includes smoke-test fixtures under `test_targets/`. Each direct
+child directory is treated as one target and must contain a
+`testing_manifest.yaml` manifest. This file is only for pygodide's own test
+fixtures; end-user projects do not need it.
+
+```yaml
+name: ball-bouncing
+description: Small pygame app with a bouncing ball and keyboard input.
+smoke:
+  path: /
+  ready-log: "[pygodide] ready"
+  timeout-ms: 120000
+  post-ready-ms: 500
+```
+
+The only required field is `name`. Optional `build` metadata can override the
+entrypoint or add CLI-style dependencies without changing the target's
+`pyproject.toml`:
+
+```yaml
+build:
+  app: launcher:start
+  deps:
+    - pygame-ce
+```
+
+Run the full fixture suite locally with:
+
+```bash
+uv run playwright install chromium
+./scripts/smoke
+```
+
+For a faster manifest-plus-build check that does not launch a browser:
+
+```bash
+./scripts/smoke --build-only
+```
+
+Run one target by manifest name with:
+
+```bash
+./scripts/smoke --target ball-bouncing
+```
+
 ## Proof of Concept
 
 `test_targets/ball_bouncing` contains a small Pygame app. 

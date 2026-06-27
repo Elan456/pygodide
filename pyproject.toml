@@ -13,11 +13,13 @@ dependencies = [
     "pygame-ce",
     "typer>=0.26.7",
     "packaging>=23.1",
+    "pyyaml>=6.0.3",
 ]
 
 [dependency-groups]
 dev = [
     "hatchling>=1.17.0",
+    "playwright>=1.57.0",
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
     "ruff>=0.15.18",

@@ -16,8 +16,8 @@ DEFAULT_CANVAS_WIDTH = 800
 DEFAULT_CANVAS_HEIGHT = 600
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_RELATIVE_PYTHON_PATH_ENTRIES = ["."]
-DEFAULT_EXCLUDED_FILENAMES = {"pyproject.toml", "uv.lock"}
-IGNORED_PATH_PARTS = {".venv", "__pycache__"}
+DEFAULT_EXCLUDED_FILENAMES = {"pyproject.toml", "testing_manifest.yaml", "uv.lock"}
+IGNORED_PATH_PARTS = {".venv", "__pycache__", "build"}
 
 
 @dataclass(frozen=True)
