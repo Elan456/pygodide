@@ -3,11 +3,11 @@
 **BETA (Everything is subject to change)**
 
 Pronounced "pie-go-died",
-pygodide is a tool for converting pygame projects into web applications using Pyodide.
+pygodide is a tool for converting Pygame projects into web applications using Pyodide.
 It provides a simple command line interface and works by analyzing your code and
 asset files and then building them together with some web-specific glue code to make everything work in the browser.
 
-Thanks to Pyodide, pygodide supports far more Python packages than just pygame.
+Thanks to Pyodide, pygodide supports far more Python packages than just Pygame.
 
 **Documentation**: [https://elan456.github.io/pygodide/](https://elan456.github.io/pygodide/)
 

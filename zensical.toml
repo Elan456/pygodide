@@ -10,6 +10,7 @@ site_dir = "site"
 extra_css = ["styles/overrides.css"]
 nav = [
   {"Home" = "index.md"},
+  {"Instructions" = "instructions.md"},
 ]
 
 [project.theme]
