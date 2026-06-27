@@ -213,9 +213,7 @@ def _draw_scene(
         )
         pygame.draw.rect(screen, QUADTREE_COLOR, rect, width=1)
 
-    for (x_pos, y_pos), radius, color_shift in zip(
-        particle_positions, radii, glow, strict=False
-    ):
+    for (x_pos, y_pos), radius, color_shift in zip(particle_positions, radii, glow):
         pygame.draw.circle(
             screen,
             (80, int(color_shift), 240),
@@ -253,7 +251,8 @@ def loop(clock, score):
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            return
+            pygame.quit()
+            raise SystemExit
 
     now_seconds = pygame.time.get_ticks() / 1000.0
     radii = _particle_radii(now_seconds)

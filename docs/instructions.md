@@ -3,20 +3,23 @@
 The following page details the steps you need to take to effectively use pygodide to serve
 your Pygame app on the web.
 
-## 1. Creating an async loop
+## Steps Summary
+
+1. Make your game async-compatible **(required)**
+2. Declare an entry point and dependencies when the defaults do not cover your app
+
+> Pygodide defaults to `main:main` and automatically reads dependencies from
+> `pyproject.toml` or `requirements.txt` when those files are present.
+
+## 1. Making the game async-compatible
 
 This step sounds scary, but it's actually pretty simple. When the game is running in the browser, we need it to
 take small breaks to let the rest of the web page update properly.
 
-To do so, we'll use a Python package called `asyncio`.
+To do so, we'll use Python's built-in `asyncio` module.
 
 
-### 1.1 Install asyncio
-
-
-```bash
-pip install asyncio
-```
+### 1.1 Import asyncio
 
 ```python
 import asyncio
@@ -40,6 +43,19 @@ async def main():
 
 Finally, find the main loop of your game (typically `while True:`) and
 add `await asyncio.sleep(0)` there.
+
+### 1.4 Keep local runs working
+
+Often, you'll still want the option to run the game outside of the browser.
+You can do that by adding a local script entry point that calls your async game
+function. Pygodide imports the configured function instead of running the file
+directly, so the `if __name__ == "__main__":` block will not be triggered in the
+browser.
+
+```python
+if __name__ == "__main__":
+    asyncio.run(main())
+```
 
 ### Example
 
@@ -77,9 +93,13 @@ async def main():
         pygame.display.update()
         clock.tick(60)
 
-        # 3. Yield once per frame so the webpage can keep updating.
+        # 3. Yield once per frame so the web page can keep updating.
         # Keep the sleep duration at 0.
         await asyncio.sleep(0)
+
+# 4. When this Python file is run directly, launch the game locally.
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 See the [bouncing ball](https://github.com/Elan456/pygodide/blob/main/test_targets/ball_bouncing/main.py) and [numpy particles](https://github.com/Elan456/pygodide/blob/main/test_targets/numpy_particles/main.py) examples for larger async-compatible games.

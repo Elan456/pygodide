@@ -1,11 +1,12 @@
 [project]
 name = "numpy-particles"
 version = "0.1.0"
+requires-python = ">=3.11"
 description = "A small pygame example that uses numpy for particle motion."
 dependencies = [
     "numpy>=1.26",
     "pygame-ce",
-    "fastquadtree",
+    "fastquadtree>=1.4.0",
     "numpy"
 ]
 
