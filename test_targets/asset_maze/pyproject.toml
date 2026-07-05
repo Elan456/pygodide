@@ -1,0 +1,8 @@
+[project]
+name = "asset-maze"
+version = "0.1.0"
+dependencies = ["pygame-ce"]
+
+[tool.pygodide]
+app = "main:main"
+title = "Asset Maze"
