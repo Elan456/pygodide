@@ -237,6 +237,8 @@ def _analyze_entrypoint(
             ),
         )
 
+    import_warnings = _module_import_warnings(module)
+
     target_function = _find_function_by_name(module, build_plan.entry_function)
     if target_function is None:
         return _EntrypointAnalysis(
@@ -246,10 +248,14 @@ def _analyze_entrypoint(
                 f"Auto async: skipped {relative_path}, entrypoint function "
                 f"{build_plan.entry_function!r} was not found. {MANUAL_ASYNC_GUIDANCE}"
             ),
+            warnings=import_warnings,
         )
 
     if isinstance(target_function, ast.AsyncFunctionDef):
-        warnings = _blocking_call_warnings(module, target_function)
+        warnings = _merge_warnings(
+            import_warnings,
+            _blocking_call_warnings(module, target_function),
+        )
         return _EntrypointAnalysis(
             relative_path=relative_path,
             module=module,
@@ -266,7 +272,10 @@ def _analyze_entrypoint(
         target_function,
         relative_path=relative_path,
     )
-    warnings = _blocking_call_warnings_for_targets(module, transform_targets)
+    warnings = _merge_warnings(
+        import_warnings,
+        _blocking_call_warnings_for_targets(module, transform_targets),
+    )
 
     if transform_targets is None:
         return _EntrypointAnalysis(
@@ -400,6 +409,32 @@ def _is_pygame_frame_signal(node: ast.AST) -> bool:
     if call_name in PYGAME_FRAME_SIGNALS:
         return True
     return call_name is not None and call_name.endswith(".tick")
+
+
+def _module_import_warnings(module: ast.Module) -> tuple[str, ...]:
+    warnings: list[str] = []
+    for statement in module.body:
+        if not isinstance(statement, ast.Expr):
+            continue
+        if not isinstance(statement.value, ast.Call):
+            continue
+        call_name = _dotted_name(statement.value.func)
+        if call_name == "asyncio.run":
+            warnings.append(
+                "Pygodide warning: module-level asyncio.run() executes during "
+                "import in the browser and breaks startup. Move it under "
+                'if __name__ == "__main__": for local runs only.'
+            )
+    return tuple(warnings)
+
+
+def _merge_warnings(*warning_groups: tuple[str, ...]) -> tuple[str, ...]:
+    merged: list[str] = []
+    for warning_group in warning_groups:
+        for warning in warning_group:
+            if warning not in merged:
+                merged.append(warning)
+    return tuple(merged)
 
 
 def _blocking_call_warnings(

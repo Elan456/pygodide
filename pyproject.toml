@@ -25,6 +25,7 @@ dev = [
     "ruff>=0.15.18",
     "numpy>=2.4.0",
     "zensical>=0.0.46",
+    "pygbag"
 ]
 
 [project.urls]

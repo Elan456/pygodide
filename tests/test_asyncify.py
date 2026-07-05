@@ -204,6 +204,27 @@ def main():
     )
 
 
+def test_asyncify_warns_about_module_level_asyncio_run(tmp_path):
+    build_plan = _write_staged_app(
+        tmp_path,
+        """
+import asyncio
+import pygame
+
+async def main():
+    while True:
+        pygame.display.update()
+        await asyncio.sleep(0)
+
+asyncio.run(main())
+""".lstrip(),
+    )
+
+    result = asyncify_entrypoint(build_plan, tmp_path)
+
+    assert any("module-level asyncio.run()" in warning for warning in result.warnings)
+
+
 def test_asyncify_warns_about_blocking_calls_in_game_loop(tmp_path):
     build_plan = _write_staged_app(
         tmp_path,
