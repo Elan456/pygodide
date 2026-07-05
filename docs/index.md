@@ -4,6 +4,22 @@
 It bundles your code and assets, installs Python dependencies in the browser, and
 generates the HTML and JavaScript needed to run your game on the web.
 
+## Performance
+
+On the [`perf_bench`](https://github.com/Elan456/pygodide/tree/main/test_targets/perf_bench)
+workload, a reference run reported **433 FPS** in pygodide vs **180 FPS** in
+pygbag (headed Chromium; local desktop **950 FPS**).
+
+<div class="benchmark-chart-frame" markdown="0">
+<iframe
+  src="assets/benchmark-chart.html"
+  title="FPS benchmark"
+  loading="lazy"
+></iframe>
+</div>
+
+[Full benchmark details](benchmark.md) · [Reproduce locally](benchmark.md#reproduce-locally)
+
 ## Install
 
 ```bash

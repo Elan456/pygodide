@@ -20,12 +20,13 @@ dependencies = [
 dev = [
     "hatchling>=1.17.0",
     "playwright>=1.57.0",
+    "plotly>=6.0.0",
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
     "ruff>=0.15.18",
     "numpy>=2.4.0",
     "zensical>=0.0.46",
-    "pygbag"
+    "pygbag",
 ]
 
 [project.urls]

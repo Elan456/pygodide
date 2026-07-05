@@ -15,6 +15,31 @@ No rewrite required for most small games. See the
 [instructions](https://elan456.github.io/pygodide/instructions/#publishing-to-itchio)
 for details.
 
+## Performance
+
+Cross-runtime FPS on the [`perf_bench`](test_targets/perf_bench) workload
+(headed browser, Linux reference machine):
+
+<div align="center" style="background:#1a1b26;border-radius:8px;overflow:hidden;max-width:100%;">
+  <iframe
+    src="docs/assets/benchmark-chart.html"
+    title="FPS benchmark"
+    width="100%"
+    height="460"
+    frameborder="0"
+    style="display:block;border:0;"
+  ></iframe>
+</div>
+
+| Runtime | Mean FPS |
+| --- | ---: |
+| Local (pygame-ce) | 950 |
+| pygodide | 433 |
+| pygbag | 180 |
+
+[Benchmark docs](https://elan456.github.io/pygodide/benchmark/) ·
+[Reproduce](benchmarks/README.md)
+
 ## Install
 
 ```bash

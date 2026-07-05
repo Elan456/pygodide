@@ -1,0 +1,5 @@
+name: perf-bench
+description: Small arcade workload with sustained FPS logging for cross-runtime benchmarks.
+smoke:
+  path: /
+  timeout-ms: 45000
