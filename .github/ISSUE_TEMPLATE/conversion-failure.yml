@@ -1,31 +1,25 @@
-name: Conversion failure
-description: Report trouble converting a Pygame project to a web app with pygodide
-title: "[Conversion] "
+name: My project didn't convert
+description: Something went wrong turning your Pygame project into a web app
+title: ""
 labels:
   - conversion-failure
-  - needs-triage
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a conversion issue. The details below help us reproduce failures, improve pygodide, and—when possible—turn your case into a regression test in [`test_targets/`](https://github.com/Elan456/pygodide/tree/main/test_targets) so future users benefit.
+        Sorry that it didn't work, but it'll be interesting to figure out why! Please fill out the fields below, so we can make pygodide better for everyone.
 
-        **Before filing**, check the [documentation](https://elan456.github.io/pygodide/) for async compatibility, entry points, and dependency setup.
+        Two things make this easy for us to debug: a quick description of what happened, and your build log. That's it!
 
-        The build log is the main artifact we need. It already records pygodide version, Python/platform, working directory, CLI flags (`--app`, `--dep`, `--serve`, auto-async), entry point, dependencies, install strategy, and any traceback. Please paste it in full rather than re-entering that information here.
+        > **Tip:** After running `pygodide build`, your log is at `build/pygodide-build.log`. The CLI prints the path when the build finishes.
 
-  - type: dropdown
-    id: failure-stage
+  - type: textarea
+    id: what-happened
     attributes:
-      label: Where does it fail?
-      description: Pick the stage that best matches what you see.
-      options:
-        - Build fails (CLI error before or during `pygodide build`)
-        - Build succeeds but the page will not load
-        - Page loads but the app crashes, hangs, or shows a blank canvas
-        - Page loads but behavior differs from desktop Pygame
-        - Dependency or package install problem
-        - Other / not sure
+      label: What happened?
+      description: In your own words — what did you try, and what did you see instead?
+      placeholder: |
+        I ran `pygodide build . --serve` on my snake game. The build finished, but the browser stays on "Loading..." and never shows the game.
     validations:
       required: true
 
@@ -33,68 +27,21 @@ body:
     id: build-log
     attributes:
       label: Build log
-      description: |
-        Paste the full contents of `build/pygodide-build.log` (or `build/pygodide-smoke.log` if you ran `pygodide smoke`).
-        Do not summarize — include the entire file.
+      description: Paste the full contents of `build/pygodide-build.log`. It has everything we need on our end (version, dependencies, errors).
       render: shell
     validations:
       required: true
 
-  - type: textarea
-    id: browser-console
+  - type: input
+    id: project-link
     attributes:
-      label: Browser console output
-      description: |
-        Only for failures that happen in the browser after the build succeeds.
-        Open DevTools (F12) → Console and paste errors or warnings. Include your browser name and version here too — those are not recorded in the build log.
-      render: shell
-
-  - type: dropdown
-    id: works-locally
-    attributes:
-      label: Does the project run locally with Pygame?
-      options:
-        - "Yes"
-        - "No"
-        - Partially / not tested
-    validations:
-      required: true
+      label: Link to your project (optional)
+      description: A GitHub repo, gist, or zip link helps us reproduce the issue faster.
+      placeholder: https://github.com/you/my-game
 
   - type: textarea
-    id: reproduction
+    id: anything-else
     attributes:
-      label: Minimal reproduction
-      description: |
-        Link to a public repo, gist, or zip with the smallest project that still fails.
-        If you cannot share the full game, a stripped-down version with the same failure is ideal.
-      placeholder: https://github.com/you/my-game-repro
-    validations:
-      required: true
-
-  - type: textarea
-    id: expected-vs-actual
-    attributes:
-      label: Expected vs actual behavior
-      description: What should happen, and what happens instead?
-      placeholder: |
-        Expected: Game canvas appears and responds to keyboard input.
-        Actual: Build completes but browser shows "Loading..." forever.
-    validations:
-      required: true
-
-  - type: checkboxes
-    id: maintainer-use
-    attributes:
-      label: Help us improve pygodide for everyone
-      description: Optional — lets maintainers turn your case into docs, CLI hints, or a regression test.
-      options:
-        - label: I can provide or link to a minimal reproduction that maintainers may add to `test_targets/` as a regression test.
-          required: false
-        - label: I am willing to license a minimal reproduction under the pygodide MIT license for inclusion in the repository.
-          required: false
-
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Anything else?
-      description: Screenshots, workarounds you tried, or related issues.
+      label: Anything else? (optional)
+      description: Browser console errors (F12 → Console), screenshots, or a link to a smaller repro — only if you have them handy.
+      placeholder: Firefox console says "micropip install failed for ..."

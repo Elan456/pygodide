@@ -1,6 +1,6 @@
 [project]
 name = "pygodide"
-version = "0.1.0b2"
+version = "0.1.0b3"
 description = "Modern replacement for pygbag that leverages pyodide for running Pygame in the web"
 readme = "README.md"
 requires-python = ">=3.11"
