@@ -99,6 +99,13 @@ def build_output_dir(path: str | Path) -> Path:
     return resolved_path / "build"
 
 
+def clean_build_dir(path: str | Path) -> Path:
+    output_dir = build_output_dir(path)
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    return output_dir
+
+
 def copy_staged_files(
     *, source_dir: str | Path, output_dir: str | Path, staged_files: list[str]
 ) -> None:

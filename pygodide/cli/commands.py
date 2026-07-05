@@ -12,7 +12,7 @@ from pygodide.build_logging import (
     write_build_log_failure,
     write_build_log_success,
 )
-from pygodide.building import build_output_dir
+from pygodide.building import build_output_dir, clean_build_dir
 from pygodide.packaging import create_itch_zip, default_itch_zip_path
 from pygodide.serving import serve_directory_forever
 
@@ -24,10 +24,14 @@ def run_build_command(
     app_spec: str | None,
     deps: list[str] | None,
     auto_async: bool | None = None,
+    clean: bool = False,
     create_zip: bool = False,
     zip_output: Path | None = None,
 ) -> None:
     source_dir = path.resolve()
+    if clean or create_zip:
+        clean_build_dir(source_dir)
+
     resolved_auto_async, auto_async_source = resolve_auto_async(
         source_dir,
         cli_auto_async=auto_async,

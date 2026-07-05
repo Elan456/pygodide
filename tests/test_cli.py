@@ -339,6 +339,48 @@ def main():
     assert "Auto async: disabled" in build_log
 
 
+def test_build_command_clean_removes_stale_build_files(tmp_path):
+    source_dir = tmp_path / "demo_app"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n", encoding="utf-8"
+    )
+
+    build_dir = source_dir / "build"
+    build_dir.mkdir()
+    stale_file = build_dir / "old-asset.txt"
+    stale_file.write_text("stale", encoding="utf-8")
+
+    result = runner.invoke(app, ["build", str(source_dir), "--clean"])
+
+    assert result.exit_code == 0, result.output
+    assert not stale_file.exists()
+    assert (build_dir / "index.html").is_file()
+
+
+def test_build_command_zip_cleans_stale_build_files_without_clean_flag(tmp_path):
+    source_dir = tmp_path / "demo_app"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n", encoding="utf-8"
+    )
+
+    build_dir = source_dir / "build"
+    build_dir.mkdir()
+    stale_file = build_dir / "old-asset.txt"
+    stale_file.write_text("stale", encoding="utf-8")
+
+    result = runner.invoke(app, ["build", str(source_dir), "--zip"])
+
+    assert result.exit_code == 0, result.output
+    assert not stale_file.exists()
+
+    import zipfile
+
+    with zipfile.ZipFile(source_dir / "demo_app.zip") as archive:
+        assert "old-asset.txt" not in archive.namelist()
+
+
 def test_build_command_creates_itch_zip(tmp_path):
     source_dir = tmp_path / "demo_app"
     source_dir.mkdir(parents=True)

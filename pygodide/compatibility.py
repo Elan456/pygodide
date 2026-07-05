@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextlib
 import http.server
-import shutil
 import socketserver
 import threading
 import time
@@ -26,7 +25,7 @@ from pygodide.build_logging import (
     write_smoke_log_failure,
     write_smoke_log_success,
 )
-from pygodide.building import build_output_dir, build_plan_for_source
+from pygodide.building import build_plan_for_source, clean_build_dir
 from pygodide.rendering import DEFAULT_READY_LOG
 
 MANIFEST_FILENAME = "testing_manifest.yaml"
@@ -297,9 +296,7 @@ def smoke_test_app(
     )
 
     if clean_build:
-        output_dir = build_output_dir(resolved_source_dir)
-        if output_dir.exists():
-            shutil.rmtree(output_dir)
+        clean_build_dir(resolved_source_dir)
 
     smoke_log_path = initialize_smoke_log(
         resolved_source_dir,
@@ -361,9 +358,7 @@ def smoke_test_app(
 
 
 def build_target(target: DiscoveredTarget, *, echo: Echo | None = None) -> Path:
-    output_dir = build_output_dir(target.path)
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
+    clean_build_dir(target.path)
 
     build_plan = build_plan_for_source(
         target.path.resolve(),

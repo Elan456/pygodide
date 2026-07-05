@@ -53,13 +53,21 @@ def build(
             ),
         ),
     ] = None,
+    clean: Annotated[
+        bool,
+        typer.Option(
+            "--clean",
+            help="Remove the build directory before building.",
+        ),
+    ] = False,
     create_zip: Annotated[
         bool,
         typer.Option(
             "--zip",
             help=(
                 "Create an itch.io-ready ZIP of the build output. "
-                "Defaults to <project-dir>/<project-name>.zip."
+                "Defaults to <project-dir>/<project-name>.zip. "
+                "Implies --clean."
             ),
         ),
     ] = False,
@@ -81,6 +89,7 @@ def build(
         app_spec=app_spec,
         deps=deps,
         auto_async=auto_async,
+        clean=clean,
         create_zip=create_zip,
         zip_output=zip_output,
     )
