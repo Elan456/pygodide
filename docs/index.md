@@ -25,6 +25,11 @@ Pygodide looks for `main()` in `main.py`, reads dependencies from
 `requirements.txt` or `pyproject.toml`, and auto-converts simple game loops for
 the browser. That covers most small projects without extra setup.
 
+When it works, your game is a normal web page — easy to host, link, and share.
+`pygodide build . --zip` produces an itch.io-ready upload if you want to reach
+more players without a separate web port. See
+[Publishing to itch.io](instructions.md#publishing-to-itchio) in the instructions.
+
 ## Need more help?
 
 See the **[Instructions](instructions.md)** guide for:

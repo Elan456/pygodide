@@ -9,6 +9,12 @@ to run your game on the web.
 
 **Documentation**: [https://elan456.github.io/pygodide/](https://elan456.github.io/pygodide/)
 
+Already have a Pygame project? You can put it in the browser and share a link —
+or upload to [itch.io](https://itch.io) as an HTML game with `pygodide build . --zip`.
+No rewrite required for most small games. See the
+[instructions](https://elan456.github.io/pygodide/instructions/#publishing-to-itchio)
+for details.
+
 ## Install
 
 ```bash

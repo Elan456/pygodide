@@ -304,3 +304,23 @@ pygodide build . --zip
 This builds your project and writes `<project-name>.zip` in the project
 directory, with `index.html` at the archive root. Upload that ZIP as an HTML
 game on itch.io. Use `--zip-output path/to/game.zip` to pick a different path.
+
+## Still stuck?
+
+If you've worked through the sections above and a real part of your game still
+will not build, load, or run in the browser, please
+[open an issue](https://github.com/Elan456/pygodide/issues/new?template=conversion-failure.yml)
+using the **My project didn't convert** template.
+
+That format keeps reports easy to act on. Please include:
+
+1. **What happened?** — what you ran, what you expected, and what you saw
+   instead (browser behavior, error overlay text, and so on)
+2. **Build log** — the full contents of `build/pygodide-build.log` (or
+   `build/pygodide-smoke.log` if the failure came from `pygodide smoke`)
+3. **Link to your project** (optional) — a repo, gist, or zip so we can reproduce
+4. **Anything else** (optional) — browser console errors (F12 → Console),
+   screenshots, or a smaller repro case
+
+Run `pygodide smoke . --verbose` before filing if you have not already; the
+smoke log often captures browser-side failures that a plain build log does not.
