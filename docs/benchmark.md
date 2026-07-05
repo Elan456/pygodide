@@ -105,8 +105,6 @@ The benchmark app logs:
 | **pygodide** | Parse browser console after `pygodide build` |
 | **pygbag** | Parse pygbag xterm output after `pygbag --build` |
 
-See [benchmark proposal](benchmark-proposal.md) for design notes and caveats.
-
 !!! note "Results vary by machine"
     CPU, GPU, browser build, and monitor refresh rate all affect FPS. Treat
     published numbers as a reference run on one machine, not a guarantee on
