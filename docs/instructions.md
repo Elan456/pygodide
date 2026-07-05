@@ -1,81 +1,112 @@
 # Instructions
 
-The following page details the steps you need to take to effectively use pygodide to serve
-your Pygame app on the web.
+This guide gets a typical Pygame project running in the browser. Start with the
+quick path below; if something breaks, use the troubleshooting links to jump to the
+relevant section.
 
-## Steps Summary
+## Quick start
 
-1. Make your game async-compatible **(required)**
-2. Declare an entry point and dependencies when the defaults do not cover your app
+From your project root:
 
-> Pygodide defaults to `main:main` and automatically reads dependencies from
-> `pyproject.toml` or `requirements.txt` when those files are present.
-
-## 1. Making the game async-compatible
-
-This step sounds scary, but it's actually pretty simple. When the game is running in the browser, we need it to
-take small breaks to let the rest of the web page update properly.
-
-To do so, we'll use Python's built-in `asyncio` module.
-
-
-### 1.1 Import asyncio
-
-```python
-import asyncio
+```bash
+pygodide build .
+pygodide serve .
 ```
 
+Then open [http://localhost:8000](http://localhost:8000) in your browser.
 
-### 1.2 Make the entry point async
+That is enough for many projects. By default, pygodide:
 
-Then, we need to make your game's entry point async. This can be done by adding the keyword `async` to the definition.
+- looks for a `main()` function in `main.py`
+- reads dependencies from `requirements.txt` and/or `pyproject.toml`
+- auto-converts simple synchronous game loops for the browser
 
-```python
-def main():
+Use a different port with `pygodide serve . --port 3000`.
 
-# Becomes
+Build details are written to `build/pygodide-build.log`.
 
-async def main():
+## Something went wrong?
+
+| Symptom | What to try |
+| --- | --- |
+| Build fails or packages are missing | [Declare dependencies](#dependencies) |
+| The wrong function runs, or nothing starts | [Set the entry point](#entry-point) |
+| The page stays on "Loading..." or the game freezes | [Make the game async-compatible](#make-the-game-async-compatible) |
+| You are not sure what failed | [Run a smoke test](#check-your-build-with-a-smoke-test) |
+
+## Check your build with a smoke test
+
+`pygodide smoke` builds your app and opens it in a headless browser. Use it to
+catch problems before you debug in a real browser:
+
+```bash
+pygodide smoke .
 ```
 
+By default you only see pass/fail on the console. For full build and smoke
+output:
 
-### 1.3 Add an asyncio.sleep to the main loop
+```bash
+pygodide smoke . --verbose
+```
 
-Finally, find the main loop of your game (typically `while True:`) and
-add `await asyncio.sleep(0)` there.
+Either way, the full log is saved to `build/pygodide-smoke.log`. Look there for
+dependency resolution, auto-async status, and smoke-test errors.
 
-### 1.4 Keep local runs working
+To validate without launching a browser:
 
-Often, you'll still want the option to run the game outside of the browser.
-You can do that by adding a local script entry point that calls your async game
-function. Pygodide imports the configured function instead of running the file
-directly, so the `if __name__ == "__main__":` block will not be triggered in the
-browser.
+```bash
+pygodide smoke . --build-only --verbose
+```
+
+## Make the game async-compatible
+
+Pygame games need to yield to the browser event loop. Pygodide tries to do this
+automatically during `pygodide build` by inserting `await asyncio.sleep(0)` into
+simple `while` game loops in your entrypoint (or a helper it calls directly).
+
+Check whether that worked:
+
+```bash
+pygodide smoke . --verbose
+```
+
+Look for `Auto async: transformed ...` in the output or log. If you see
+`Auto async: skipped ...`, convert the game manually using the steps below.
+
+Disable auto-conversion with `pygodide build . --no-auto-async` or in
+`pyproject.toml`:
+
+```toml
+[tool.pygodide]
+auto-async = false
+```
+
+### Manual conversion
+
+1. `import asyncio`
+2. Change `def main():` to `async def main():`
+3. Add `await asyncio.sleep(0)` once per frame inside the main loop
+4. Keep local runs working with:
 
 ```python
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-### Example
+Pygodide imports your configured entry function in the browser, so the
+`if __name__ == "__main__":` block is only for local runs.
 
-Here's a minimal but complete example of async-ifying a Pygame game loop:
+### Minimal example
 
 ```python
-# 1. Import asyncio so the game can yield control back to the browser.
 import asyncio
-
 import pygame
 
-
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
-
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Async Pygame Example")
 
-
-# 2. Make the game entry point async.
 async def main():
     clock = pygame.time.Clock()
     running = True
@@ -86,35 +117,66 @@ async def main():
                 running = False
 
         screen.fill((0, 0, 0))
-
-        # Draw and update your game here.
-        pygame.draw.circle(screen, pygame.Color("white"), (400, 300), 40)
-
         pygame.display.update()
         clock.tick(60)
-
-        # 3. Yield once per frame so the web page can keep updating.
-        # Keep the sleep duration at 0.
         await asyncio.sleep(0)
 
-# 4. When this Python file is run directly, launch the game locally.
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-See the [bouncing ball](https://github.com/Elan456/pygodide/blob/main/test_targets/ball_bouncing/main.py) and [numpy particles](https://github.com/Elan456/pygodide/blob/main/test_targets/numpy_particles/main.py) examples for larger async-compatible games.
+Larger examples:
 
-## 2. Declaring Entry Point and Dependencies
+- [ball bouncing](https://github.com/Elan456/pygodide/blob/main/test_targets/ball_bouncing/main.py) — already-async game
+- [not async](https://github.com/Elan456/pygodide/blob/main/test_targets/not_async/main.py) — sync loop that auto-asyncifies at build time
+- [numpy particles](https://github.com/Elan456/pygodide/blob/main/test_targets/numpy_particles/main.py) — custom entry point and extra dependencies
 
-Pygodide needs you to declare which packages your app depends on so that pygodide can have pyodide install them in the user's browser. You can do so with a few different methods, but some are preferred over others.
+## Configure your project
 
-Additionally, pygodide needs to know which function to call to start the game (the entry point). This can also be specified in a few different ways.
+### Entry point
 
-### pyproject.toml (Recommended)
+If your game does not start at `main()` in `main.py`, tell pygodide which
+function to run. The value uses `module:callable` format — a Python import path,
+not a filename:
 
-If your project is already using a `pyproject.toml`, you can add a few more fields to give pygodide the entry point, dependencies, files, and display settings for your project.
+```toml
+[tool.pygodide]
+app = "main:web_main"
+```
 
-Here is a complete example showing standard project dependencies plus every `[tool.pygodide]` field pygodide currently reads:
+Or for a one-off build:
+
+```bash
+pygodide build . --app main:web_main
+```
+
+CLI `--app` overrides `[tool.pygodide].app`.
+
+### Dependencies
+
+Pygodide installs your Python packages in the browser. It merges dependencies
+from these sources, in order (later entries override earlier ones for the same
+package name):
+
+1. `requirements.txt`
+2. `[project].dependencies` in `pyproject.toml`
+3. `[tool.pygodide].dependencies`
+4. groups listed in `[tool.pygodide].dependency-groups`
+5. repeated `--dep` flags on the CLI
+
+Declare each package once when you can. The build log and `pygodide smoke .
+--verbose` show what was found and how each package will be installed:
+
+- `pygame-ce` → `pyodide.loadPackage(...)`
+- everything else → `micropip.install(...)`
+
+**Without `pyproject.toml`:** add a `requirements.txt` (see the
+[ball bouncing](https://github.com/Elan456/pygodide/tree/main/test_targets/ball_bouncing)
+example) and/or pass `--dep` on the command line.
+
+### `pyproject.toml` reference
+
+Recommended when your project already has a `pyproject.toml`:
 
 ```toml
 [project]
@@ -123,147 +185,35 @@ version = "0.1.0"
 dependencies = [
     "pygame-ce",
     "numpy>=1.26",
-    "pillow",
 ]
 
 [dependency-groups]
-web = [
-    "fastquadtree",
-]
+web = ["fastquadtree"]
 
 [tool.pygodide]
 app = "main:web_main"
+auto-async = true
 include = ["main.py", "sprites/**", "sounds/**"]
 title = "My Game"
 canvas-width = 800
 canvas-height = 600
 python-path = [".", "vendor"]
-dependencies = [
-    "pyyaml",
-]
+dependencies = ["pyyaml"]
 dependency-groups = ["web"]
 ```
 
-Pygodide looks for `pyproject.toml` in the root directory you pass to `pygodide build`.
-For example, `pygodide build test_targets/numpy_particles` reads `test_targets/numpy_particles/pyproject.toml`.
+| Field | Purpose |
+| --- | --- |
+| `app` | Entry function (`module:callable`). Defaults to `main:main`. |
+| `auto-async` | Enable/disable automatic game-loop conversion. Defaults to `true`. |
+| `include` | Files to stage into the build. If omitted, pygodide auto-discovers files (excluding `.venv`, `build`, `pyproject.toml`, etc.). |
+| `title` | HTML page title. Defaults to the project directory name. |
+| `canvas-width`, `canvas-height` | Canvas size in pixels. Default `800`×`600`. |
+| `python-path` | Entries added to `sys.path` before importing your app. |
+| `dependencies` | Extra browser-only packages not listed under `[project]`. |
+| `dependency-groups` | Named dependency groups to include in the web build. |
 
-The `numpy_particles` target uses this file for two things:
-
-- `[project].dependencies` declares browser runtime packages: `numpy`, `pygame-ce`, and `fastquadtree`.
-- `[tool.pygodide].app = "main:web_main"` tells pygodide to import `web_main` from `main.py` and run it as the app entry point.
-
-#### Entry point
-
-Use `[tool.pygodide].app` to choose the function pygodide should run:
-
-```toml
-[tool.pygodide]
-app = "main:web_main"
-```
-
-The value must use `module:callable` format. For `main:web_main`, pygodide generates startup code equivalent to importing `web_main` from the `main` module and then calling it. If the function returns an awaitable, pygodide awaits it, so this works naturally with `async def web_main():`.
-
-This is a Python import path, not a filename. Use `main:web_main`, not `main.py:web_main`.
-
-If you do not set `app`, pygodide defaults to:
-
-```toml
-[tool.pygodide]
-app = "main:main"
-```
-
-The CLI flag `--app` overrides `[tool.pygodide].app` for that build.
-
-#### Dependencies
-
-Pygodide merges dependencies from these sources, in this order:
-
-1. `requirements.txt`
-2. `[project].dependencies`
-3. `[tool.pygodide].dependencies`
-4. groups listed in `[tool.pygodide].dependency-groups`
-5. repeated CLI `--dep` flags
-
-Later sources override earlier sources when the same package name appears more than once. Package names are compared case-insensitively, and underscores are treated like hyphens. This means `numpy`, `NumPy`, and `numpy>=1.26` all refer to the same package for merging purposes.
-
-This also applies inside a single list. In the current `numpy_particles` target, `numpy>=1.26` appears before `numpy`, so the later plain `numpy` entry wins and removes the `>=1.26` constraint. Prefer declaring each package only once unless you intentionally want a later entry to replace an earlier one.
-
-Use `[project].dependencies` for normal runtime dependencies:
-
-```toml
-[project]
-dependencies = [
-    "pygame-ce",
-    "numpy>=1.26",
-    "fastquadtree",
-]
-```
-
-Use `[tool.pygodide].dependencies` for extra browser-only dependencies you do not want in your normal project dependency list:
-
-```toml
-[tool.pygodide]
-dependencies = [
-    "pyyaml",
-]
-```
-
-Use dependency groups when you want named dependency sets and then opt into them for the web build:
-
-```toml
-[dependency-groups]
-web = [
-    "pillow",
-    "fastquadtree",
-]
-
-[tool.pygodide]
-dependency-groups = ["web"]
-```
-
-All dependency entries must be strings in the normal Python requirement format, such as `"pygame-ce"`, `"numpy>=1.26"`, or `"pillow<12"`.
-
-During the build, pygodide decides how to install each resolved dependency in the browser:
-
-- `pygame-ce` is loaded with `pyodide.loadPackage(...)`.
-- Other packages are installed with `micropip.install(...)`.
-
-The build output prints the dependency sources it found, the final merged dependency list, and which installer each dependency will use.
-
-#### Files and Assets
-
-By default, pygodide auto-discovers files under your project directory and stages them into the browser filesystem. It excludes `pyproject.toml`, `testing_manifest.yaml`, `uv.lock`, and anything under `.venv`, `__pycache__`, or `build`.
-
-If you set `[tool.pygodide].include`, pygodide stages only files matching those patterns:
-
-```toml
-[tool.pygodide]
-include = ["main.py", "assets/**"]
-```
-
-Each include pattern must match at least one file. Use this when you want to keep development-only files out of the web build or when you need to explicitly include asset folders.
-
-#### Display and Imports
-
-These optional `[tool.pygodide]` fields customize the generated page and Python import path:
-
-```toml
-[tool.pygodide]
-title = "My Game"
-canvas-width = 1024
-canvas-height = 768
-python-path = [".", "vendor"]
-```
-
-- `title` sets the generated HTML page title. If omitted, pygodide creates a title from the project directory name.
-- `canvas-width` and `canvas-height` set the Pygame canvas size in the generated HTML. Both must be integers. If omitted, pygodide uses `800` by `600`.
-- `python-path` adds entries to `sys.path` before importing your app. Relative entries are resolved inside the browser filesystem. If omitted, pygodide uses the staged project root (`/` in the browser filesystem, equivalent to `"."` in your source project).
-
-### No pyproject.toml
-
-Without a `pyproject.toml`, pygodide will use default values or CLI-defined values.
-It will check for a `requirements.txt` and add those dependencies to the dependency list.
-
-For example, the [ball bouncing](https://github.com/Elan456/pygodide/tree/main/test_targets/ball_bouncing) example does not have a `pyproject.toml`, but it does have a `requirements.txt`, so those dependencies will be installed. The default entry point of `main:main` will also work because the main function in `main.py` is the actual entry point for that target.
-
-You can still use the `--dep` and `--app` CLI options to configure the entry point and dependencies.
+The [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles)
+example uses `[project].dependencies` for `numpy`, `pygame-ce`, and
+`fastquadtree`, plus `app = "main:web_main"` for a separate browser entry
+function.

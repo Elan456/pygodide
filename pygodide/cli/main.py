@@ -73,11 +73,21 @@ def serve(
         Path,
         typer.Argument(help="Source directory or build directory to serve"),
     ],
+    port: Annotated[
+        int,
+        typer.Option(
+            "--port",
+            "-p",
+            min=1,
+            max=65535,
+            help="Port to listen on.",
+        ),
+    ] = 8000,
 ):
     """
     Serve the built Pygodide app from the build directory.
     """
-    run_serve_command(path)
+    run_serve_command(path, port=port)
 
 
 @app.command("smoke")

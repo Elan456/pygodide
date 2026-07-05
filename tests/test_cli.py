@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 import typer
 from typer.testing import CliRunner
@@ -411,6 +413,27 @@ def test_compatibility_command_is_not_registered():
 
     assert result.exit_code != 0
     assert "No such command 'compatibility'" in result.output
+
+
+def test_serve_command_accepts_custom_port(tmp_path, monkeypatch):
+    source_dir = tmp_path / "demo"
+    build_dir = source_dir / "build"
+    build_dir.mkdir(parents=True)
+    (build_dir / "index.html").write_text("<html></html>", encoding="utf-8")
+    calls: list[tuple[Path, int]] = []
+
+    def fake_serve(directory, *, port: int = 8000) -> None:
+        calls.append((directory, port))
+
+    monkeypatch.setattr(
+        "pygodide.cli.commands.serve_directory_forever",
+        fake_serve,
+    )
+
+    result = runner.invoke(app, ["serve", str(source_dir), "--port", "9000"])
+
+    assert result.exit_code == 0, result.output
+    assert calls == [(build_dir, 9000)]
 
 
 def test_dev_server_reuses_recently_closed_port():

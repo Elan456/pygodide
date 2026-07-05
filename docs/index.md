@@ -1,6 +1,8 @@
 # pygodide
 
-**pygodide** is a modern replacement for pygbag that leverages pyodide for running pygame in the web.
+**pygodide** turns Pygame projects into browser apps using [Pyodide](https://pyodide.org/).
+It bundles your code and assets, installs Python dependencies in the browser, and
+generates the HTML and JavaScript needed to run your game on the web.
 
 ## Install
 
@@ -8,36 +10,50 @@
 pip install pygodide
 ```
 
-## Headless Smoke Tests
+## Get started in 30 seconds
 
-Use `pygodide smoke` to build an app and launch it in a headless browser:
-
-```bash
-uv run playwright install chromium
-uv run pygodide smoke /path/to/your/pygame/project
-```
-
-No manifest file is required for normal app smoke tests.
-
-## Test Target Fixtures
-
-Development fixtures live under `test_targets/`. Each target needs a
-`testing_manifest.yaml` file with at least a manifest name. This file is only
-for pygodide's own fixture suite:
-
-```yaml
-name: ball-bouncing
-smoke:
-  path: /
-  timeout-ms: 120000
-```
-
-Run every target with:
+From your project root:
 
 ```bash
-uv run playwright install chromium
-./scripts/smoke
+pygodide build .
+pygodide serve .
 ```
 
-Use `--build-only` for manifest discovery and build validation without opening a
-browser. Use `--target NAME` to run a single manifest name.
+Open [http://localhost:8000](http://localhost:8000) in your browser.
+
+Pygodide looks for `main()` in `main.py`, reads dependencies from
+`requirements.txt` or `pyproject.toml`, and auto-converts simple game loops for
+the browser. That covers most small projects without extra setup.
+
+## Need more help?
+
+See the **[Instructions](instructions.md)** guide for:
+
+- troubleshooting when the quick start does not work
+- setting a custom entry point or dependencies
+- making your game async-compatible
+- running `pygodide smoke` to check a build before debugging in the browser
+
+## Common commands
+
+| Command | What it does |
+| --- | --- |
+| `pygodide build .` | Bundle your project into `build/` |
+| `pygodide serve .` | Serve the built app locally (default port `8000`) |
+| `pygodide serve . --port 3000` | Serve on a different port |
+| `pygodide smoke .` | Build and test in a headless browser |
+| `pygodide build . --app game:start` | Use a different entry function |
+| `pygodide build . --dep numpy` | Add an extra dependency for this build |
+
+Build output is logged to `build/pygodide-build.log`. Smoke tests also write
+`build/pygodide-smoke.log`.
+
+## Examples
+
+Working sample projects live in the
+[test_targets](https://github.com/Elan456/pygodide/tree/main/test_targets)
+directory on GitHub, including:
+
+- [ball bouncing](https://github.com/Elan456/pygodide/tree/main/test_targets/ball_bouncing) — minimal async Pygame game
+- [not async](https://github.com/Elan456/pygodide/tree/main/test_targets/not_async) — sync loop converted automatically at build time
+- [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles) — larger game with extra dependencies

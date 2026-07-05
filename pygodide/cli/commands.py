@@ -61,12 +61,12 @@ def run_build_command(
         serve_directory_forever(output_dir)
 
 
-def run_serve_command(path: Path) -> None:
+def run_serve_command(path: Path, *, port: int = 8000) -> None:
     output_dir = build_output_dir(path)
     if not output_dir.is_dir():
         raise RuntimeError(f"{output_dir} does not exist. Please run 'build' first.")
 
-    serve_directory_forever(output_dir)
+    serve_directory_forever(output_dir, port=port)
 
 
 def run_smoke_command(
