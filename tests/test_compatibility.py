@@ -9,6 +9,7 @@ from pygodide.compatibility import (
     DiscoveredTarget,
     SmokeConfig,
     TargetManifest,
+    _assert_ready_status_hidden,
     discover_targets,
     load_target_manifest,
     run_compatibility_suite,
@@ -133,6 +134,32 @@ def test_run_compatibility_suite_reports_target_failures(tmp_path):
     assert len(results) == 1
     assert results[0].success is False
     assert results[0].error == "demo-target build failed"
+
+
+def test_ready_status_must_hide_after_ready_log():
+    class FakeTimeoutError(Exception):
+        pass
+
+    class StuckPage:
+        selector: str | None = None
+        timeout: int | None = None
+
+        def wait_for_selector(self, selector: str, *, timeout: int) -> None:
+            self.selector = selector
+            self.timeout = timeout
+            raise FakeTimeoutError("timed out")
+
+    page = StuckPage()
+
+    with pytest.raises(RuntimeError, match="did not hide the loading status"):
+        _assert_ready_status_hidden(
+            page,
+            timeout_ms=0,
+            timeout_error=FakeTimeoutError,
+        )
+
+    assert page.selector == '#status[data-state="hidden"]'
+    assert page.timeout == 1
 
 
 def _write_target_manifest(target_dir: Path, name: str) -> Path:

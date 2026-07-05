@@ -22,6 +22,7 @@ MANIFEST_FILENAME = "testing_manifest.yaml"
 DEFAULT_SMOKE_PATH = "/"
 DEFAULT_TIMEOUT_MS = 120_000
 DEFAULT_POST_READY_MS = 500
+READY_STATUS_SELECTOR = '#status[data-state="hidden"]'
 
 
 @dataclass(frozen=True)
@@ -280,6 +281,7 @@ def serve_directory(directory: str | Path) -> Iterator[str]:
 
 def run_playwright_smoke(smoke: SmokeConfig, base_url: str) -> None:
     try:
+        from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
         from playwright.sync_api import sync_playwright
     except ModuleNotFoundError as exc:
         raise RuntimeError(
@@ -313,7 +315,16 @@ def run_playwright_smoke(smoke: SmokeConfig, base_url: str) -> None:
                 page.wait_for_timeout(100)
 
             if ready_seen.is_set() and not failures:
-                page.wait_for_timeout(smoke.post_ready_ms)
+                try:
+                    _assert_ready_status_hidden(
+                        page,
+                        timeout_ms=smoke.post_ready_ms,
+                        timeout_error=PlaywrightTimeoutError,
+                    )
+                except RuntimeError as exc:
+                    failures.append(str(exc))
+                else:
+                    page.wait_for_timeout(smoke.post_ready_ms)
         finally:
             browser.close()
 
@@ -324,6 +335,22 @@ def run_playwright_smoke(smoke: SmokeConfig, base_url: str) -> None:
             f"Timed out waiting for ready log {smoke.ready_log!r} "
             f"after {smoke.timeout_ms} ms"
         )
+
+
+def _assert_ready_status_hidden(
+    page: Any,
+    *,
+    timeout_ms: int,
+    timeout_error: type[BaseException],
+) -> None:
+    try:
+        page.wait_for_selector(READY_STATUS_SELECTOR, timeout=max(timeout_ms, 1))
+    except timeout_error as exc:
+        raise RuntimeError(
+            "Page logged ready but did not hide the loading status. "
+            "The app may be blocking the browser event loop; make the entrypoint "
+            "async and yield with await asyncio.sleep(0) in long-running loops."
+        ) from exc
 
 
 class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
