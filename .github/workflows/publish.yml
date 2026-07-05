@@ -9,6 +9,8 @@ on:
 jobs:
   verify:
     uses: ./.github/workflows/ci.yml
+    with:
+      run_smoke: true
 
   publish:
     name: Publish to PyPI

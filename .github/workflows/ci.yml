@@ -6,6 +6,12 @@ on:
     branches:
       - main
   workflow_call:
+    inputs:
+      run_smoke:
+        description: Run Playwright smoke tests against test_targets
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   checks:
@@ -46,11 +52,11 @@ jobs:
         run: uv run pytest
 
       - name: Install Playwright browsers
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.11' && github.event_name == 'workflow_call' && inputs.run_smoke
         run: uv run playwright install chromium
 
       - name: Run smoke target suite
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.11' && github.event_name == 'workflow_call' && inputs.run_smoke
         run: ./scripts/smoke
 
       - name: Build distribution artifacts
