@@ -32,6 +32,8 @@ Build details are written to `build/pygodide-build.log`.
 | Build fails or packages are missing | [Declare dependencies](#dependencies) |
 | The wrong function runs, or nothing starts | [Set the entry point](#entry-point) |
 | The page stays on "Loading..." or the game freezes | [Make the game async-compatible](#make-the-game-async-compatible) |
+| `ModuleNotFoundError` in the browser | [Python path](#python-path) |
+| Asset `FileNotFoundError` in the browser | [Assets and paths](#assets-and-paths) |
 | You are not sure what failed | [Run a smoke test](#check-your-build-with-a-smoke-test) |
 
 ## Check your build with a smoke test
@@ -174,6 +176,78 @@ Declare each package once when you can. The build log and `pygodide smoke .
 [ball bouncing](https://github.com/Elan456/pygodide/tree/main/test_targets/ball_bouncing)
 example) and/or pass `--dep` on the command line.
 
+### Assets and paths
+
+Use simple paths relative to your project root, the same way you would when
+running the game locally from that directory:
+
+```python
+pygame.image.load("assets/sprites/player.png")
+pygame.mixer.Sound("sounds/jump.ogg")
+```
+
+Pygodide stages those files into the browser build and sets the working
+directory to the project root before your app starts, so `sounds/...` and
+`assets/...` usually work without extra configuration.
+
+`python-path` does **not** affect asset loading. It only changes where Python
+looks for modules to `import`. If an image or sound fails to load, fix the file
+path or make sure the file is included in the build — do not add its folder to
+`python-path`.
+
+The [asset maze](https://github.com/Elan456/pygodide/tree/main/test_targets/asset_maze)
+example loads nested assets from several modules using plain relative paths.
+
+### Python path
+
+The default is `python-path = ["."]`, which is enough for most projects.
+
+`python-path` adds folders to `sys.path` before pygodide imports your entry
+function. Only add entries beyond `"."` when your **imports** need them.
+
+**You usually do not need extra entries for:**
+
+- `sounds/`, `assets/`, `data/`, and other asset folders opened by path string
+- normal packages such as `game/` imported as `import game` or
+  `from game.loader import ...`
+- dependencies installed with `requirements.txt` or `[project].dependencies`
+
+**Add another `python-path` entry when you import loose modules from a folder
+that is not a package**, for example:
+
+```text
+my-game/
+  main.py
+  src/
+    gameplay.py
+  lib/
+    helpers.py
+```
+
+```python
+# main.py
+from gameplay import run
+from helpers import load_level
+```
+
+If those imports work locally only because you run with `PYTHONPATH=src:lib`,
+mirror that in `pyproject.toml`:
+
+```toml
+[tool.pygodide]
+python-path = [".", "src", "lib"]
+```
+
+Each entry is relative to the project root. `"."` should stay first for typical
+layouts.
+
+**Prefer fixing imports over growing `python-path`:** if `lib/helpers.py` can be
+imported as `from lib.helpers import load_level` instead, add `lib/__init__.py`
+(or make `lib` a regular package) and keep the default `python-path = ["."]`.
+
+**`src/` layouts:** if your game code lives under `src/` and imports assume that
+directory is on the path, add `"src"` rather than moving files around.
+
 ### `pyproject.toml` reference
 
 Recommended when your project already has a `pyproject.toml`:
@@ -197,7 +271,7 @@ include = ["main.py", "sprites/**", "sounds/**"]
 title = "My Game"
 canvas-width = 800
 canvas-height = 600
-python-path = [".", "vendor"]
+# python-path = [".", "src", "lib"]  # only when imports need extra roots
 dependencies = ["pyyaml"]
 dependency-groups = ["web"]
 ```
@@ -209,7 +283,7 @@ dependency-groups = ["web"]
 | `include` | Files to stage into the build. If omitted, pygodide auto-discovers files (excluding `.venv`, `build`, `pyproject.toml`, etc.). |
 | `title` | HTML page title. Defaults to the project directory name. |
 | `canvas-width`, `canvas-height` | Canvas size in pixels. Default `800`×`600`. |
-| `python-path` | Entries added to `sys.path` before importing your app. |
+| `python-path` | Folders added to `sys.path` for imports. Defaults to `["."]`. See [Python path](#python-path). |
 | `dependencies` | Extra browser-only packages not listed under `[project]`. |
 | `dependency-groups` | Named dependency groups to include in the web build. |
 
