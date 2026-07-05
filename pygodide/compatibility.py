@@ -14,8 +14,9 @@ from typing import Any
 
 import yaml
 
+from pygodide.app_builder import build_app
 from pygodide.building import build_output_dir
-from pygodide.cli.main import DEFAULT_READY_LOG, build_app
+from pygodide.rendering import DEFAULT_READY_LOG
 
 MANIFEST_FILENAME = "testing_manifest.yaml"
 DEFAULT_SMOKE_PATH = "/"

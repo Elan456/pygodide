@@ -17,17 +17,13 @@ Thanks to Pyodide, pygodide supports far more Python packages than just Pygame.
 pip install pygodide
 ```
 
-```bash
-git clone https://github.com/Elan456/pygodide.git
-cd pygodide
-uv sync --dev
-```
-
 ## Quick Start
 
 ```bash
 pygodide build /path/to/your/pygame/project --serve
 ```
+
+> If you are in your project's directory, just run `pygodide build . --serve`
 
 That's it! Open http://localhost:8000 in a web browser to see your app running.
 Currently only supports flat projects. The vision is to support any arbitrary 
@@ -43,7 +39,7 @@ pygodide build /path/to/your/pygame/project \
 
 ## Dependency Sources
 
-`pygodide build` now merges dependencies from these sources:
+Pygodide will automatically detect your project's dependencies by reading the following sources:
 
 1. `requirements.txt`
 2. `[project].dependencies`
@@ -72,7 +68,22 @@ dependencies = ["fastquadtree"]
 dependency-groups = ["web"]
 ```
 
-## Development
+## Entry Point
+
+By default pygodide will hook into a `main.py`'s `main` function. If that's not the case for your app, use the `--app` argument to configure a different one. 
+
+For example, `pygodide build . --app game:start` will find `game.py` and run the `start` function. 
+
+## Contribution
+
+### Environment Setup
+
+
+```bash
+git clone https://github.com/Elan456/pygodide.git
+cd pygodide
+uv sync --dev
+```
 
 Install the local hooks once after cloning:
 

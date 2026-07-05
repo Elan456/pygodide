@@ -3,13 +3,15 @@ import typer
 from typer.testing import CliRunner
 
 from pygodide.cli.main import (
-    ReusableTCPServer,
-    _build_startup_python_code,
     app,
     build,
+)
+from pygodide.rendering import (
+    build_startup_python_code,
     render_boot_js,
     render_index_html,
 )
+from pygodide.serving import ReusableTCPServer
 
 runner = CliRunner()
 
@@ -44,7 +46,9 @@ def test_build_command_creates_expected_output(tmp_path):
     assert "Resolved dependencies: none" in result.output
 
     output_dir = source_dir / "build"
+    build_log = output_dir / "pygodide-build.log"
     assert output_dir.is_dir()
+    assert build_log.is_file()
     assert (output_dir / "main.py").read_text(encoding="utf-8") == (
         source_dir / "main.py"
     ).read_text(encoding="utf-8")
@@ -66,6 +70,14 @@ def test_build_command_creates_expected_output(tmp_path):
     assert "build/old.py" not in boot_js
     assert "from main import main" in boot_js
 
+    build_log_text = build_log.read_text(encoding="utf-8")
+    assert "Pygodide build log" in build_log_text
+    assert f"Source directory: {source_dir}" in build_log_text
+    assert "Build output:" in build_log_text
+    assert "App entrypoint: main:main (default)" in build_log_text
+    assert "Resolved dependencies: none" in build_log_text
+    assert "Result: success" in build_log_text
+
 
 def test_build_command_rejects_empty_source_dir(tmp_path):
     empty_dir = tmp_path / "empty"
@@ -73,6 +85,14 @@ def test_build_command_rejects_empty_source_dir(tmp_path):
 
     with pytest.raises(typer.BadParameter, match="does not contain any files to build"):
         build(empty_dir)
+
+    build_log_text = (empty_dir / "build" / "pygodide-build.log").read_text(
+        encoding="utf-8"
+    )
+    assert "Result: failure" in build_log_text
+    assert "ValueError" in build_log_text
+    assert "does not contain any files to build" in build_log_text
+    assert "Traceback:" in build_log_text
 
 
 def test_build_command_uses_tool_pygodide_config(tmp_path):
@@ -199,7 +219,7 @@ def test_build_command_accepts_requirements_txt_and_dep_flags(tmp_path):
 
 
 def test_template_renderers_include_configured_values():
-    startup_code = _build_startup_python_code(
+    startup_code = build_startup_python_code(
         entry_module="demo.main",
         entry_function="start",
         python_path_entries=["/", "/vendor"],
