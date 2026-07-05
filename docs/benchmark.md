@@ -66,7 +66,7 @@ for 5 seconds of warmup plus 20 seconds of measurement, and writes:
 
 - `benchmarks/results/latest.json`
 - `benchmarks/output/benchmark-chart.html`
-- `docs/assets/benchmark-chart.html` (copied for the docs site and README)
+- `docs/assets/benchmark-chart.html` (copied for the docs site)
 
 Regenerate only the chart from saved JSON:
 

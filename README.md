@@ -18,18 +18,8 @@ for details.
 ## Performance
 
 Cross-runtime FPS on the [`perf_bench`](test_targets/perf_bench) workload
-(headed browser, Linux reference machine):
-
-<div align="center" style="background:#1a1b26;border-radius:8px;overflow:hidden;max-width:100%;">
-  <iframe
-    src="docs/assets/benchmark-chart.html"
-    title="FPS benchmark"
-    width="100%"
-    height="460"
-    frameborder="0"
-    style="display:block;border:0;"
-  ></iframe>
-</div>
+(headed browser, Linux reference machine).
+[Interactive chart](https://elan456.github.io/pygodide/benchmark/).
 
 | Runtime | Mean FPS |
 | --- | ---: |
