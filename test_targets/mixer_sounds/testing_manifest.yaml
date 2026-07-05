@@ -1,0 +1,5 @@
+name: mixer-sounds
+description: Interactive demo that exercises pygame.mixer music and sound effects.
+smoke:
+  path: /
+  timeout-ms: 15000

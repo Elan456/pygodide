@@ -42,16 +42,23 @@ def render_index_html(
 
 
 def build_startup_python_code(
-    *, entry_module: str, entry_function: str, python_path_entries: list[str]
+    *,
+    entry_module: str,
+    entry_function: str,
+    python_path_entries: list[str],
+    virtual_fs_root: str = "/",
 ) -> str:
     lines = [
         "import inspect",
+        "import os",
         "import sys",
     ]
 
     for entry in python_path_entries:
         lines.append(f"if {entry!r} not in sys.path:")
         lines.append(f"    sys.path.append({entry!r})")
+
+    lines.append(f"os.chdir({virtual_fs_root!r})")
 
     lines.extend(
         [
@@ -107,6 +114,7 @@ def render_boot_js(
         entry_module=entry_module,
         entry_function=entry_function,
         python_path_entries=resolved_python_path_entries,
+        virtual_fs_root=virtual_fs_root,
     )
 
     return template.render(

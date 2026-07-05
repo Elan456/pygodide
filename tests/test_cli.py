@@ -243,6 +243,8 @@ def test_template_renderers_include_configured_values():
     assert 'data-state="active"' in index_html
     assert "background: #090c17;" in index_html
     assert "border-radius" not in index_html
+    assert "import os" in startup_code
+    assert "os.chdir('/')" in startup_code
     assert "from demo.main import start" in startup_code
     assert "'/vendor'" in startup_code
     assert '"ball.py"' in boot_js
@@ -254,6 +256,7 @@ def test_template_renderers_include_configured_values():
     assert "ModuleNotFoundError" in boot_js
     assert "Add '${suggestedPackageName}' to [project].dependencies" in boot_js
     assert 'pygame: "pygame-ce"' in boot_js
+    assert "os.chdir(\\u0027/\\u0027)" in boot_js
     assert "from demo.main import start" in boot_js
     assert "/vendor" in boot_js
     assert "await asyncio.sleep(0)" in boot_js

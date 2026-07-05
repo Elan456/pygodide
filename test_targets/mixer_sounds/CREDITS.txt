@@ -1,0 +1,13 @@
+Background music:
+- "Cropped Dirt Rhodes" by Kevin MacLeod (https://incompetech.com)
+  Licensed under Creative Commons: By Attribution 4.0
+  http://creativecommons.org/licenses/by/4.0/
+  File: sounds/cropped-dirt-rhodes-by-kevin-macleod.mp3
+
+Sound effects from Kenney (https://kenney.nl), licensed under CC0 1.0.
+See sounds/KENNEY_LICENSE.txt for the full license text.
+
+Files used:
+- sounds/click.ogg (Interface Sounds, click_001.ogg)
+- sounds/confirm.ogg (Interface Sounds, confirmation_001.ogg)
+- sounds/bounce.ogg (Interface Sounds, bong_001.ogg)
