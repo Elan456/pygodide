@@ -336,6 +336,32 @@ def main():
     assert "Auto async: disabled" in build_log
 
 
+def test_build_command_creates_itch_zip(tmp_path):
+    source_dir = tmp_path / "demo_app"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n", encoding="utf-8"
+    )
+
+    result = runner.invoke(app, ["build", str(source_dir), "--zip"])
+
+    assert result.exit_code == 0, result.output
+    assert f"Created itch.io ZIP: {source_dir / 'demo_app.zip'}" in result.output
+
+    zip_path = source_dir / "demo_app.zip"
+    assert zip_path.is_file()
+
+    import zipfile
+
+    with zipfile.ZipFile(zip_path) as archive:
+        names = archive.namelist()
+
+    assert "index.html" in names
+    assert "boot.js" in names
+    assert all(not name.startswith("build/") for name in names)
+    assert "pygodide-build.log" not in names
+
+
 def test_smoke_command_can_run_single_app_build_only(tmp_path):
     source_dir = tmp_path / "demo_app"
     source_dir.mkdir(parents=True)

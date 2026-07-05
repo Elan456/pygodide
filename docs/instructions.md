@@ -217,3 +217,16 @@ The [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets
 example uses `[project].dependencies` for `numpy`, `pygame-ce`, and
 `fastquadtree`, plus `app = "main:web_main"` for a separate browser entry
 function.
+
+## Publishing to itch.io
+
+Once your build works locally, you can package it for
+[itch.io](https://itch.io) HTML uploads:
+
+```bash
+pygodide build . --zip
+```
+
+This builds your project and writes `<project-name>.zip` in the project
+directory, with `index.html` at the archive root. Upload that ZIP as an HTML
+game on itch.io. Use `--zip-output path/to/game.zip` to pick a different path.

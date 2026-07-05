@@ -44,6 +44,7 @@ See the **[Instructions](instructions.md)** guide for:
 | `pygodide smoke .` | Build and test in a headless browser |
 | `pygodide build . --app game:start` | Use a different entry function |
 | `pygodide build . --dep numpy` | Add an extra dependency for this build |
+| `pygodide build . --zip` | Build and create an itch.io-ready ZIP |
 
 Build output is logged to `build/pygodide-build.log`. Smoke tests also write
 `build/pygodide-smoke.log`.

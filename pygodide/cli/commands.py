@@ -13,6 +13,7 @@ from pygodide.build_logging import (
     write_build_log_success,
 )
 from pygodide.building import build_output_dir
+from pygodide.packaging import create_itch_zip, default_itch_zip_path
 from pygodide.serving import serve_directory_forever
 
 
@@ -23,6 +24,8 @@ def run_build_command(
     app_spec: str | None,
     deps: list[str] | None,
     auto_async: bool | None = None,
+    create_zip: bool = False,
+    zip_output: Path | None = None,
 ) -> None:
     source_dir = path.resolve()
     resolved_auto_async, auto_async_source = resolve_auto_async(
@@ -56,6 +59,13 @@ def run_build_command(
         raise
 
     write_build_log_success(build_log_path)
+
+    if create_zip:
+        resolved_zip_path = create_itch_zip(
+            output_dir,
+            zip_output or default_itch_zip_path(source_dir),
+        )
+        typer.echo(f"Created itch.io ZIP: {resolved_zip_path}")
 
     if serve:
         serve_directory_forever(output_dir)

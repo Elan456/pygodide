@@ -53,6 +53,23 @@ def build(
             ),
         ),
     ] = None,
+    create_zip: Annotated[
+        bool,
+        typer.Option(
+            "--zip",
+            help=(
+                "Create an itch.io-ready ZIP of the build output. "
+                "Defaults to <project-dir>/<project-name>.zip."
+            ),
+        ),
+    ] = False,
+    zip_output: Annotated[
+        Path | None,
+        typer.Option(
+            "--zip-output",
+            help="Path for the itch.io ZIP. Only used with --zip.",
+        ),
+    ] = None,
 ):
     """
     Bundle a Pygame app and generate the HTML and JS files needed to run it in the
@@ -64,6 +81,8 @@ def build(
         app_spec=app_spec,
         deps=deps,
         auto_async=auto_async,
+        create_zip=create_zip,
+        zip_output=zip_output,
     )
 
 
