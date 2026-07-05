@@ -1,6 +1,5 @@
 name: My project didn't convert
 description: Something went wrong turning your Pygame project into a web app
-title: ""
 labels:
   - conversion-failure
 body:
