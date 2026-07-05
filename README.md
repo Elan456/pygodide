@@ -105,10 +105,4 @@ uv run pygodide smoke /path/to/your/pygame/project
 The repository also maintains fixtures under `test_targets/`, each with a
 `testing_manifest.yaml`. Run the full fixture suite with:
 
-```bash
-uv run playwright install chromium
-./scripts/smoke
-```
-
-Use `./scripts/smoke --build-only` to validate builds without a browser, or
-`./scripts/smoke --target ball-bouncing` for a single fixture.
+`uv run pygodide smoke test_targets --suite`

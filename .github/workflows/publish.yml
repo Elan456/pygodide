@@ -9,13 +9,39 @@ on:
 jobs:
   verify:
     uses: ./.github/workflows/ci.yml
-    with:
-      run_smoke: true
+
+  smoke:
+    name: Smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Install Playwright browsers
+        run: uv run playwright install chromium
+
+      - name: Run smoke target suite
+        run: uv run pygodide smoke test_targets --suite
 
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    needs: verify
+    needs:
+      - verify
+      - smoke
     permissions:
       contents: read
       id-token: write
