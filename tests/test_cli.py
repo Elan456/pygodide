@@ -252,6 +252,7 @@ def test_template_renderers_include_configured_values():
     assert 'const pyodidePackages = ["pygame-ce"];' in boot_js
     assert 'const micropipPackages = ["fastquadtree", "numpy\\u003e=1.26"];' in boot_js
     assert 'const declaredPackageNames = ["pygame-ce", "numpy"];' in boot_js
+    assert "function extractPythonErrorText(error)" in boot_js
     assert "function formatPyodideError(error)" in boot_js
     assert "ModuleNotFoundError" in boot_js
     assert "Add '${suggestedPackageName}' to [project].dependencies" in boot_js

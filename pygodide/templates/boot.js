@@ -44,10 +44,37 @@ function normalizePackageName(name) {
   return name.toLowerCase().replace(/_/g, "-");
 }
 
+function extractPythonErrorText(error) {
+  if (!error || typeof error.message !== "string") {
+    return null;
+  }
+
+  const message = error.message.trim();
+  if (!message) {
+    return null;
+  }
+
+  if (message.includes("Traceback")) {
+    return message;
+  }
+
+  if (error.name === "PythonError") {
+    return message;
+  }
+
+  return null;
+}
+
 function errorToString(error) {
+  const pythonError = extractPythonErrorText(error);
+  if (pythonError) {
+    return pythonError;
+  }
+
   if (error instanceof Error && error.stack) {
     return error.stack;
   }
+
   return String(error);
 }
 
