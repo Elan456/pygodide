@@ -1,0 +1,5 @@
+name: not-async
+description: Synchronous pygame loop that passes smoke testing after auto-asyncification.
+smoke:
+  path: /
+  timeout-ms: 12000

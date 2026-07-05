@@ -1,0 +1,5 @@
+name: sync-running-loop
+description: Sync pygame loop using a running flag instead of while True.
+smoke:
+  path: /
+  timeout-ms: 12000

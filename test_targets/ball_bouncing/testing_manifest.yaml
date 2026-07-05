@@ -2,4 +2,4 @@ name: ball-bouncing
 description: Small pygame app with a bouncing ball and keyboard input.
 smoke:
   path: /
-  timeout-ms: 120000
+  timeout-ms: 12000

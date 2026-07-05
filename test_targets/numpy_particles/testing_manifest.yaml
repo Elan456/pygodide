@@ -2,4 +2,4 @@ name: numpy-particles
 description: Pygame particle field that exercises numpy and a PyPI dependency.
 smoke:
   path: /
-  timeout-ms: 180000
+  timeout-ms: 12000

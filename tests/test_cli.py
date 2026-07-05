@@ -266,6 +266,74 @@ def test_template_renderers_include_configured_values():
     assert 'url.searchParams.set("_pygodide", assetRequestCacheBuster)' in boot_js
 
 
+def test_build_command_auto_asyncifies_sync_pygame_loop(tmp_path):
+    source_dir = tmp_path / "sync_app"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        """
+import pygame
+
+def main():
+    clock = pygame.time.Clock()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return
+        pygame.display.update()
+        clock.tick(60)
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["build", str(source_dir)])
+
+    assert result.exit_code == 0, result.output
+    assert "Auto async: transformed main.py, inserted await asyncio.sleep(0)" in (
+        result.output
+    )
+
+    built_main = (source_dir / "build" / "main.py").read_text(encoding="utf-8")
+    assert "async def main():" in built_main
+    assert "await asyncio.sleep(0)" in built_main
+
+    build_log = (source_dir / "build" / "pygodide-build.log").read_text(
+        encoding="utf-8"
+    )
+    assert "Auto async: transformed main.py, inserted await asyncio.sleep(0)" in (
+        build_log
+    )
+    assert "Auto async transformed source (main.py):" in build_log
+    assert "await asyncio.sleep(0)" in build_log
+
+
+def test_build_command_no_auto_async_leaves_sync_source(tmp_path):
+    source_dir = tmp_path / "sync_app"
+    source_dir.mkdir(parents=True)
+    source_text = """
+import pygame
+
+def main():
+    while True:
+        pygame.display.flip()
+""".lstrip()
+    (source_dir / "main.py").write_text(source_text, encoding="utf-8")
+
+    result = runner.invoke(app, ["build", str(source_dir), "--no-auto-async"])
+
+    assert result.exit_code == 0, result.output
+    assert "Auto async: disabled" in result.output
+
+    built_main = (source_dir / "build" / "main.py").read_text(encoding="utf-8")
+    assert built_main == (source_dir / "main.py").read_text(encoding="utf-8")
+    assert "async def main" not in built_main
+
+    build_log = (source_dir / "build" / "pygodide-build.log").read_text(
+        encoding="utf-8"
+    )
+    assert "Auto-async: False" in build_log
+    assert "Auto async: disabled" in build_log
+
+
 def test_smoke_command_can_run_single_app_build_only(tmp_path):
     source_dir = tmp_path / "demo_app"
     source_dir.mkdir(parents=True)
@@ -279,9 +347,19 @@ def test_smoke_command_can_run_single_app_build_only(tmp_path):
     )
 
     assert result.exit_code == 0, result.output
-    assert f"Building {source_dir}" in result.output
+    assert f"Building {source_dir}" not in result.output
     assert "Smoke testing" not in result.output
     assert (source_dir / "build" / "index.html").is_file()
+
+    smoke_log = source_dir / "build" / "pygodide-smoke.log"
+    assert smoke_log.is_file()
+    smoke_log_text = smoke_log.read_text(encoding="utf-8")
+    assert "Pygodide smoke log" in smoke_log_text
+    assert f"Source directory: {source_dir}" in smoke_log_text
+    assert "Build only: True" in smoke_log_text
+    assert "Build output:" in smoke_log_text
+    assert "App entrypoint: main:main (default)" in smoke_log_text
+    assert "Result: build-only success" in smoke_log_text
 
 
 def test_smoke_command_can_run_target_suite_build_only(tmp_path):
@@ -302,10 +380,30 @@ def test_smoke_command_can_run_target_suite_build_only(tmp_path):
     )
 
     assert result.exit_code == 0, result.output
-    assert "Discovered 1 target(s)." in result.output
-    assert "[demo-target] building" in result.output
+    assert "Discovered 1 target(s)." not in result.output
+    assert "[demo-target] Smoke log:" not in result.output
+    assert "[demo-target] Building" not in result.output
     assert "[demo-target] passed" in result.output
     assert (target_dir / "build" / "index.html").is_file()
+    assert (target_dir / "build" / "pygodide-smoke.log").is_file()
+
+
+def test_smoke_command_verbose_prints_build_details(tmp_path):
+    source_dir = tmp_path / "demo_app"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "def main():\n    return None\n", encoding="utf-8"
+    )
+
+    result = runner.invoke(
+        app,
+        ["smoke", str(source_dir), "--build-only", "--verbose"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Smoke log:" in result.output
+    assert f"Building {source_dir}" in result.output
+    assert "App entrypoint: main:main (default)" in result.output
 
 
 def test_compatibility_command_is_not_registered():

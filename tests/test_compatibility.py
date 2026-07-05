@@ -10,8 +10,10 @@ from pygodide.compatibility import (
     SmokeConfig,
     TargetManifest,
     _assert_ready_status_hidden,
+    _remaining_timeout_ms,
     discover_targets,
     load_target_manifest,
+    resolve_smoke_config,
     run_compatibility_suite,
 )
 
@@ -134,6 +136,70 @@ def test_run_compatibility_suite_reports_target_failures(tmp_path):
     assert len(results) == 1
     assert results[0].success is False
     assert results[0].error == "demo-target build failed"
+
+
+def test_load_target_manifest_reads_build_auto_async(tmp_path):
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    (target_dir / MANIFEST_FILENAME).write_text(
+        """
+name: demo-target
+build:
+  auto-async: false
+""".strip(),
+        encoding="utf-8",
+    )
+
+    manifest = load_target_manifest(target_dir)
+
+    assert manifest.auto_async is False
+
+
+def test_resolve_smoke_config_uses_manifest_defaults(tmp_path):
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    (target_dir / MANIFEST_FILENAME).write_text(
+        """
+name: demo-target
+smoke:
+  path: /index.html
+  timeout-ms: 180000
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = resolve_smoke_config(target_dir)
+
+    assert config == SmokeConfig(path="/index.html", timeout_ms=180000)
+
+
+def test_resolve_smoke_config_keeps_explicit_cli_overrides(tmp_path):
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    (target_dir / MANIFEST_FILENAME).write_text(
+        """
+name: demo-target
+smoke:
+  timeout-ms: 180000
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = resolve_smoke_config(
+        target_dir,
+        smoke=SmokeConfig(timeout_ms=45000),
+    )
+
+    assert config.timeout_ms == 45000
+
+
+def test_remaining_timeout_ms_uses_deadline_budget():
+    import time
+
+    deadline = time.monotonic() + 2.5
+    remaining = _remaining_timeout_ms(deadline)
+
+    assert 2000 <= remaining <= 2500
 
 
 def test_ready_status_must_hide_after_ready_log():

@@ -11,6 +11,7 @@ from pathlib import Path
 from pygodide.building import build_output_dir
 
 BUILD_LOG_FILENAME = "pygodide-build.log"
+SMOKE_LOG_FILENAME = "pygodide-smoke.log"
 
 
 def initialize_build_log(
@@ -19,6 +20,7 @@ def initialize_build_log(
     app_spec: str | None,
     deps: list[str] | None,
     serve: bool,
+    auto_async: bool,
 ) -> Path:
     build_log_path = _build_log_path_for_source(source_dir)
     build_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -36,6 +38,7 @@ def initialize_build_log(
                 f"Serve after build: {serve}",
                 f"CLI app override: {app_spec or '(none)'}",
                 f"CLI dependencies: {_format_cli_dependencies(deps)}",
+                f"Auto-async: {auto_async}",
                 "",
                 "Build output:",
             ]
@@ -46,28 +49,113 @@ def initialize_build_log(
     return build_log_path
 
 
-def build_log_tee(
-    build_log_path: Path, log: Callable[[str], None]
+def log_tee(
+    log_path: Path,
+    log: Callable[[str], None] | None = None,
 ) -> Callable[[str], None]:
     def write(message: str) -> None:
-        log(message)
-        append_build_log(build_log_path, message)
+        if log is not None:
+            log(message)
+        append_log(log_path, message)
 
     return write
 
 
+def build_log_tee(
+    build_log_path: Path, log: Callable[[str], None]
+) -> Callable[[str], None]:
+    return log_tee(build_log_path, log)
+
+
+def smoke_log_tee(
+    smoke_log_path: Path, log: Callable[[str], None] | None = None
+) -> Callable[[str], None]:
+    return log_tee(smoke_log_path, log)
+
+
 def write_build_log_success(build_log_path: Path) -> None:
-    append_build_log(
-        build_log_path,
+    _write_log_success(build_log_path)
+
+
+def write_build_log_failure(build_log_path: Path, exc: BaseException) -> None:
+    _write_log_failure(build_log_path, exc)
+
+
+def initialize_smoke_log(
+    source_dir: Path,
+    *,
+    app_spec: str | None,
+    deps: list[str] | None,
+    auto_async: bool,
+    auto_async_source: str,
+    smoke_path: str,
+    ready_log: str,
+    timeout_ms: int,
+    post_ready_ms: int,
+    build_only: bool,
+) -> Path:
+    smoke_log_path = _smoke_log_path_for_source(source_dir)
+    smoke_log_path.parent.mkdir(parents=True, exist_ok=True)
+    smoke_log_path.write_text(
+        "\n".join(
+            [
+                "Pygodide smoke log",
+                f"Started: {_utc_timestamp()}",
+                f"Pygodide version: {_pygodide_version()}",
+                f"Python: {sys.version.splitlines()[0]}",
+                f"Platform: {platform.platform()}",
+                f"Working directory: {Path.cwd()}",
+                f"Source directory: {source_dir}",
+                f"Output directory: {smoke_log_path.parent}",
+                f"Build only: {build_only}",
+                f"CLI app override: {app_spec or '(none)'}",
+                f"CLI dependencies: {_format_cli_dependencies(deps)}",
+                f"Auto-async: {auto_async} ({auto_async_source})",
+                f"Smoke path: {smoke_path}",
+                f"Ready log: {ready_log}",
+                f"Smoke timeout: {timeout_ms} ms",
+                f"Post-ready listen: {post_ready_ms} ms",
+                "",
+                "Build output:",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return smoke_log_path
+
+
+def write_smoke_log_success(smoke_log_path: Path, *, build_only: bool) -> None:
+    result = "build-only success" if build_only else "success"
+    _write_log_success(smoke_log_path, result=result)
+
+
+def write_smoke_log_failure(smoke_log_path: Path, exc: BaseException) -> None:
+    _write_log_failure(smoke_log_path, exc)
+
+
+def append_build_log(build_log_path: Path, *lines: str) -> None:
+    append_log(build_log_path, *lines)
+
+
+def append_log(log_path: Path, *lines: str) -> None:
+    with log_path.open("a", encoding="utf-8") as log_file:
+        for line in lines:
+            log_file.write(f"{line}\n")
+
+
+def _write_log_success(log_path: Path, *, result: str = "success") -> None:
+    append_log(
+        log_path,
         "",
-        "Result: success",
+        f"Result: {result}",
         f"Finished: {_utc_timestamp()}",
     )
 
 
-def write_build_log_failure(build_log_path: Path, exc: BaseException) -> None:
-    append_build_log(
-        build_log_path,
+def _write_log_failure(log_path: Path, exc: BaseException) -> None:
+    append_log(
+        log_path,
         "",
         "Result: failure",
         f"Finished: {_utc_timestamp()}",
@@ -76,12 +164,6 @@ def write_build_log_failure(build_log_path: Path, exc: BaseException) -> None:
         "Traceback:",
         "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)).rstrip(),
     )
-
-
-def append_build_log(build_log_path: Path, *lines: str) -> None:
-    with build_log_path.open("a", encoding="utf-8") as log_file:
-        for line in lines:
-            log_file.write(f"{line}\n")
 
 
 def log_build_choices(
@@ -121,6 +203,12 @@ def _build_log_path_for_source(source_dir: Path) -> Path:
     if source_dir.is_dir():
         return build_output_dir(source_dir) / BUILD_LOG_FILENAME
     return Path.cwd() / BUILD_LOG_FILENAME
+
+
+def _smoke_log_path_for_source(source_dir: Path) -> Path:
+    if source_dir.is_dir():
+        return build_output_dir(source_dir) / SMOKE_LOG_FILENAME
+    return Path.cwd() / SMOKE_LOG_FILENAME
 
 
 def _format_cli_dependencies(deps: list[str] | None) -> str:

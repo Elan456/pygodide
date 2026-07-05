@@ -1,0 +1,5 @@
+name: sync-helper-loop
+description: Sync pygame loop in a helper function; requires one-hop auto-asyncification.
+smoke:
+  path: /
+  timeout-ms: 12000

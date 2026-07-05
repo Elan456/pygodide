@@ -1,0 +1,100 @@
+name: Conversion failure
+description: Report trouble converting a Pygame project to a web app with pygodide
+title: "[Conversion] "
+labels:
+  - conversion-failure
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a conversion issue. The details below help us reproduce failures, improve pygodide, and—when possible—turn your case into a regression test in [`test_targets/`](https://github.com/Elan456/pygodide/tree/main/test_targets) so future users benefit.
+
+        **Before filing**, check the [documentation](https://elan456.github.io/pygodide/) for async compatibility, entry points, and dependency setup.
+
+        The build log is the main artifact we need. It already records pygodide version, Python/platform, working directory, CLI flags (`--app`, `--dep`, `--serve`, auto-async), entry point, dependencies, install strategy, and any traceback. Please paste it in full rather than re-entering that information here.
+
+  - type: dropdown
+    id: failure-stage
+    attributes:
+      label: Where does it fail?
+      description: Pick the stage that best matches what you see.
+      options:
+        - Build fails (CLI error before or during `pygodide build`)
+        - Build succeeds but the page will not load
+        - Page loads but the app crashes, hangs, or shows a blank canvas
+        - Page loads but behavior differs from desktop Pygame
+        - Dependency or package install problem
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: build-log
+    attributes:
+      label: Build log
+      description: |
+        Paste the full contents of `build/pygodide-build.log` (or `build/pygodide-smoke.log` if you ran `pygodide smoke`).
+        Do not summarize — include the entire file.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: browser-console
+    attributes:
+      label: Browser console output
+      description: |
+        Only for failures that happen in the browser after the build succeeds.
+        Open DevTools (F12) → Console and paste errors or warnings. Include your browser name and version here too — those are not recorded in the build log.
+      render: shell
+
+  - type: dropdown
+    id: works-locally
+    attributes:
+      label: Does the project run locally with Pygame?
+      options:
+        - "Yes"
+        - "No"
+        - Partially / not tested
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: |
+        Link to a public repo, gist, or zip with the smallest project that still fails.
+        If you cannot share the full game, a stripped-down version with the same failure is ideal.
+      placeholder: https://github.com/you/my-game-repro
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-vs-actual
+    attributes:
+      label: Expected vs actual behavior
+      description: What should happen, and what happens instead?
+      placeholder: |
+        Expected: Game canvas appears and responds to keyboard input.
+        Actual: Build completes but browser shows "Loading..." forever.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: maintainer-use
+    attributes:
+      label: Help us improve pygodide for everyone
+      description: Optional — lets maintainers turn your case into docs, CLI hints, or a regression test.
+      options:
+        - label: I can provide or link to a minimal reproduction that maintainers may add to `test_targets/` as a regression test.
+          required: false
+        - label: I am willing to license a minimal reproduction under the pygodide MIT license for inclusion in the repository.
+          required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Anything else?
+      description: Screenshots, workarounds you tried, or related issues.

@@ -1,0 +1,5 @@
+name: sync-flip-loop
+description: Sync pygame loop that uses display.flip instead of display.update.
+smoke:
+  path: /
+  timeout-ms: 12000

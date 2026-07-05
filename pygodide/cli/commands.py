@@ -5,6 +5,7 @@ from pathlib import Path
 import typer
 
 from pygodide.app_builder import build_app
+from pygodide.asyncify import resolve_auto_async
 from pygodide.build_logging import (
     build_log_tee,
     initialize_build_log,
@@ -21,21 +22,30 @@ def run_build_command(
     serve: bool,
     app_spec: str | None,
     deps: list[str] | None,
+    auto_async: bool | None = None,
 ) -> None:
     source_dir = path.resolve()
+    resolved_auto_async, auto_async_source = resolve_auto_async(
+        source_dir,
+        cli_auto_async=auto_async,
+    )
     build_log_path = initialize_build_log(
         source_dir,
         app_spec=app_spec,
         deps=deps,
         serve=serve,
+        auto_async=resolved_auto_async,
     )
     typer.echo(f"Build log: {build_log_path}")
+    if auto_async_source != "default":
+        typer.echo(f"Auto-async setting: {resolved_auto_async} ({auto_async_source})")
 
     try:
         output_dir = build_app(
             source_dir,
             app_spec=app_spec,
             deps=deps,
+            auto_async=resolved_auto_async,
             log=build_log_tee(build_log_path, typer.echo),
         )
     except ValueError as exc:
@@ -71,9 +81,12 @@ def run_smoke_command(
     post_ready_ms: int,
     ready_log: str,
     build_only: bool,
+    auto_async: bool | None = None,
+    verbose: bool = False,
 ) -> None:
     from pygodide.compatibility import (
         SmokeConfig,
+        resolve_smoke_config,
         run_compatibility_suite,
         smoke_test_app,
     )
@@ -84,6 +97,7 @@ def run_smoke_command(
             target_names=targets,
             build_only=build_only,
             echo=typer.echo,
+            verbose=verbose,
         )
         failures = [result for result in results if not result.success]
 
@@ -105,14 +119,21 @@ def run_smoke_command(
             path,
             app_spec=app_spec,
             deps=deps,
-            smoke=SmokeConfig(
-                path=smoke_path,
-                ready_log=ready_log,
-                timeout_ms=timeout_ms,
-                post_ready_ms=post_ready_ms,
+            auto_async=auto_async,
+            smoke=resolve_smoke_config(
+                path,
+                smoke=SmokeConfig(
+                    path=smoke_path,
+                    ready_log=ready_log,
+                    timeout_ms=timeout_ms,
+                    post_ready_ms=post_ready_ms,
+                ),
             ),
             build_only=build_only,
-            echo=typer.echo,
+            echo=typer.echo if verbose else None,
+            verbose=verbose,
         )
+        if not verbose and not build_only:
+            typer.echo("Smoke test passed")
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc

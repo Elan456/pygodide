@@ -1,0 +1,5 @@
+name: sync-event-pump
+description: Sync pygame loop that uses pygame.event.pump as its frame signal.
+smoke:
+  path: /
+  timeout-ms: 12000

@@ -23,6 +23,7 @@ class PygodideProjectConfig:
     python_path: list[str] | None = None
     dependencies: list[str] | None = None
     dependency_groups: list[str] | None = None
+    auto_async: bool | None = None
 
 
 def parse_app_spec(app_spec: str) -> AppEntrypoint:
@@ -89,6 +90,11 @@ def load_pygodide_project_config(
             key="dependency-groups",
             pyproject_path=pyproject_path,
         ),
+        auto_async=_parse_optional_bool(
+            raw_config,
+            key="auto-async",
+            pyproject_path=pyproject_path,
+        ),
     )
 
 
@@ -118,6 +124,19 @@ def _parse_optional_string(
     if not isinstance(value, str):
         raise ValueError(
             f"{pyproject_path} has a non-string [tool.pygodide].{key} value: {value!r}"
+        )
+    return value
+
+
+def _parse_optional_bool(
+    raw_config: dict[str, Any], *, key: str, pyproject_path: Path
+) -> bool | None:
+    value = raw_config.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, bool):
+        raise ValueError(
+            f"{pyproject_path} has a non-boolean [tool.pygodide].{key} value: {value!r}"
         )
     return value
 

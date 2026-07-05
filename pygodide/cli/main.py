@@ -42,6 +42,17 @@ def build(
             "multiple dependencies.",
         ),
     ] = None,
+    auto_async: Annotated[
+        bool | None,
+        typer.Option(
+            "--auto-async/--no-auto-async",
+            help=(
+                "Automatically adapt simple synchronous Pygame loops to yield "
+                "to the browser event loop. Overrides [tool.pygodide].auto-async "
+                "when provided."
+            ),
+        ),
+    ] = None,
 ):
     """
     Bundle a Pygame app and generate the HTML and JS files needed to run it in the
@@ -52,6 +63,7 @@ def build(
         serve=serve,
         app_spec=app_spec,
         deps=deps,
+        auto_async=auto_async,
     )
 
 
@@ -122,7 +134,7 @@ def smoke(
         int,
         typer.Option(
             "--timeout-ms",
-            help="Milliseconds to wait for the generated app ready log.",
+            help="Milliseconds to wait for the ready log and loading status to clear.",
         ),
     ] = 120_000,
     post_ready_ms: Annotated[
@@ -146,6 +158,24 @@ def smoke(
             help="Build without launching Playwright.",
         ),
     ] = False,
+    auto_async: Annotated[
+        bool | None,
+        typer.Option(
+            "--auto-async/--no-auto-async",
+            help=(
+                "Automatically adapt simple synchronous Pygame loops before "
+                "smoke testing. Overrides [tool.pygodide].auto-async when provided."
+            ),
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Print build and smoke details to the console.",
+        ),
+    ] = False,
 ):
     """
     Build and smoke-test an app in a headless browser.
@@ -161,6 +191,8 @@ def smoke(
         post_ready_ms=post_ready_ms,
         ready_log=ready_log,
         build_only=build_only,
+        auto_async=auto_async,
+        verbose=verbose,
     )
 
 

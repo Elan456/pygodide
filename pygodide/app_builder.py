@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
+from pygodide.asyncify import AsyncifyResult, asyncify_entrypoint
 from pygodide.build_logging import log_build_choices
 from pygodide.building import build_plan_for_source, copy_staged_files
 from pygodide.dep_handling.pyodide_resolution import (
@@ -17,6 +18,7 @@ def build_app(
     *,
     app_spec: str | None = None,
     deps: list[str] | None = None,
+    auto_async: bool = True,
     log: Callable[[str], None] | None = print,
 ) -> Path:
     build_plan = build_plan_for_source(source_dir, app_spec=app_spec)
@@ -40,6 +42,12 @@ def build_app(
         output_dir=output_dir,
         staged_files=build_plan.staged_files,
     )
+    if auto_async:
+        asyncify_result = asyncify_entrypoint(build_plan, output_dir)
+        if log is not None:
+            _log_asyncify_result(asyncify_result, output_dir, log)
+    elif log is not None:
+        log("Auto async: disabled")
 
     boot_script_name = "boot.js"
     index_html = render_index_html(
@@ -67,3 +75,19 @@ def build_app(
     boot_output_path.write_text(boot_js, encoding="utf-8")
 
     return output_dir
+
+
+def _log_asyncify_result(
+    result: AsyncifyResult,
+    output_dir: Path,
+    log: Callable[[str], None],
+) -> None:
+    log(result.message)
+    for warning in result.warnings:
+        log(warning)
+    if not result.changed or result.relative_path is None:
+        return
+
+    transformed_path = output_dir / result.relative_path
+    log(f"Auto async transformed source ({result.relative_path}):")
+    log(transformed_path.read_text(encoding="utf-8").rstrip())
