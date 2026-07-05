@@ -19,7 +19,10 @@ from pygodide.dep_handling.pyodide_resolution import (
     collect_requirements,
 )
 
-app = typer.Typer(name="Pygodide CLI", help="Bundle your pygame app and run it in the browser with Pyodide.")
+app = typer.Typer(
+    name="Pygodide CLI",
+    help="Bundle your pygame app and run it in the browser with Pyodide.",
+)
 
 DEFAULT_PYODIDE_PACKAGES = ["pygame-ce"]
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
@@ -239,7 +242,8 @@ def build(
     ] = None,
 ):
     """
-    Bundle a Pygame app and generate the HTML and JS files needed to run it in the browser with Pyodide.
+    Bundle a Pygame app and generate the HTML and JS files needed to run it in the
+    browser with Pyodide.
     """
     source_dir = path.resolve()
     try:
