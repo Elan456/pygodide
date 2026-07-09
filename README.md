@@ -1,6 +1,6 @@
 # pygodide
 
-**BETA — everything is subject to change**
+**BETA: everything is subject to change**
 
 Pronounced "pie-go-died", **pygodide** turns Pygame projects into browser apps
 using [Pyodide](https://pyodide.org/). It bundles your code and assets, installs
@@ -9,8 +9,8 @@ to run your game on the web.
 
 **Documentation**: [https://elan456.github.io/pygodide/](https://elan456.github.io/pygodide/)
 
-Already have a Pygame project? You can put it in the browser and share a link —
-or upload to [itch.io](https://itch.io) as an HTML game with `pygodide build . --zip`.
+Already have a Pygame project? You can put it in the browser and share a link, or
+upload to [itch.io](https://itch.io) as an HTML game with `pygodide build . --zip`.
 No rewrite required for most small games. See the
 [instructions](https://elan456.github.io/pygodide/instructions/#publishing-to-itchio)
 for details.
@@ -85,9 +85,9 @@ Build output is logged to `build/pygodide-build.log`. Smoke tests also write
 Sample projects live under
 [`test_targets/`](https://github.com/Elan456/pygodide/tree/main/test_targets):
 
-- [ball bouncing](https://github.com/Elan456/pygodide/tree/main/test_targets/ball_bouncing) — minimal async Pygame game
-- [not async](https://github.com/Elan456/pygodide/tree/main/test_targets/not_async) — sync loop converted automatically at build time
-- [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles) — larger game with extra dependencies
+- [ball bouncing](https://github.com/Elan456/pygodide/tree/main/test_targets/ball_bouncing): minimal async Pygame game
+- [not async](https://github.com/Elan456/pygodide/tree/main/test_targets/not_async): sync loop converted automatically at build time
+- [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles): larger game with extra dependencies
 
 Try one locally:
 

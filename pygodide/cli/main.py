@@ -16,7 +16,7 @@ app = typer.Typer(
 )
 
 
-@app.command()
+@app.command(short_help="Package a Pygame app to run in the browser.")
 def build(
     path: Annotated[
         Path,
@@ -66,7 +66,7 @@ def build(
             "--zip",
             help=(
                 "Create an itch.io-ready ZIP of the build output. "
-                "Defaults to <project-dir>/<project-name>.zip. "
+                "Defaults to PROJECT_DIR/PROJECT_NAME.zip. "
                 "Implies --clean."
             ),
         ),
@@ -95,7 +95,7 @@ def build(
     )
 
 
-@app.command()
+@app.command(short_help="Serve a built app locally over HTTP.")
 def serve(
     path: Annotated[
         Path,
@@ -118,7 +118,7 @@ def serve(
     run_serve_command(path, port=port)
 
 
-@app.command("smoke")
+@app.command("smoke", short_help="Build and verify an app in a headless browser.")
 def smoke(
     path: Annotated[
         Path,
@@ -232,14 +232,6 @@ def smoke(
         auto_async=auto_async,
         verbose=verbose,
     )
-
-
-@app.command()
-def hello(name: str):
-    """
-    Print a greeting message to the specified name.
-    """
-    print(f"Hello, {name}!")
 
 
 if __name__ == "__main__":

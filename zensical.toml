@@ -11,6 +11,7 @@ extra_css = ["styles/overrides.css"]
 nav = [
   {"Home" = "index.md"},
   {"Instructions" = "instructions.md"},
+  {"CLI reference" = "cli.md"},
   {"Benchmarks" = "benchmark.md"},
 ]
 
@@ -39,6 +40,7 @@ accent = "deep orange"
 [project.markdown_extensions.def_list]
 [project.markdown_extensions.footnotes]
 [project.markdown_extensions.md_in_html]
+[project.markdown_extensions.tables]
 [project.markdown_extensions.toc]
 permalink = true
 [project.markdown_extensions.pymdownx.highlight]
@@ -51,6 +53,9 @@ pygments_lang_class = true
 [project.markdown_extensions.pymdownx.details]
 [project.markdown_extensions.pymdownx.tabbed]
 alternate_style = true
+[project.markdown_extensions."mkdocs_typer2.markdown:makeExtension"]
+pretty = true
+engine = "native"
 
 [[project.extra.social]]
 icon = "fontawesome/brands/github"

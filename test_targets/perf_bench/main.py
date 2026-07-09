@@ -21,7 +21,7 @@ BACKGROUND_STAR_COUNT = 48
 
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Perf Bench — Dodge Arena")
+pygame.display.set_caption("Perf Bench - Dodge Arena")
 font = pygame.font.Font(None, 28)
 small_font = pygame.font.Font(None, 22)
 

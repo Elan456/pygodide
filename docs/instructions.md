@@ -129,16 +129,16 @@ if __name__ == "__main__":
 
 Larger examples:
 
-- [ball bouncing](https://github.com/Elan456/pygodide/blob/main/test_targets/ball_bouncing/main.py) — already-async game
-- [not async](https://github.com/Elan456/pygodide/blob/main/test_targets/not_async/main.py) — sync loop that auto-asyncifies at build time
-- [numpy particles](https://github.com/Elan456/pygodide/blob/main/test_targets/numpy_particles/main.py) — custom entry point and extra dependencies
+- [ball bouncing](https://github.com/Elan456/pygodide/blob/main/test_targets/ball_bouncing/main.py): already-async game
+- [not async](https://github.com/Elan456/pygodide/blob/main/test_targets/not_async/main.py): sync loop that auto-asyncifies at build time
+- [numpy particles](https://github.com/Elan456/pygodide/blob/main/test_targets/numpy_particles/main.py): custom entry point and extra dependencies
 
 ## Configure your project
 
 ### Entry point
 
 If your game does not start at `main()` in `main.py`, tell pygodide which
-function to run. The value uses `module:callable` format — a Python import path,
+function to run. The value uses `module:callable` format: a Python import path,
 not a filename:
 
 ```toml
@@ -192,7 +192,7 @@ directory to the project root before your app starts, so `sounds/...` and
 
 `python-path` does **not** affect asset loading. It only changes where Python
 looks for modules to `import`. If an image or sound fails to load, fix the file
-path or make sure the file is included in the build — do not add its folder to
+path or make sure the file is included in the build; do not add its folder to
 `python-path`.
 
 The [asset maze](https://github.com/Elan456/pygodide/tree/main/test_targets/asset_maze)
@@ -314,12 +314,12 @@ using the **My project didn't convert** template.
 
 That format keeps reports easy to act on. Please include:
 
-1. **What happened?** — what you ran, what you expected, and what you saw
+1. **What happened?**: what you ran, what you expected, and what you saw
    instead (browser behavior, error overlay text, and so on)
-2. **Build log** — the full contents of `build/pygodide-build.log` (or
+2. **Build log**: the full contents of `build/pygodide-build.log` (or
    `build/pygodide-smoke.log` if the failure came from `pygodide smoke`)
-3. **Link to your project** (optional) — a repo, gist, or zip so we can reproduce
-4. **Anything else** (optional) — browser console errors (F12 → Console),
+3. **Link to your project** (optional): a repo, gist, or zip so we can reproduce
+4. **Anything else** (optional): browser console errors (F12 → Console),
    screenshots, or a smaller repro case
 
 Run `pygodide smoke . --verbose` before filing if you have not already; the

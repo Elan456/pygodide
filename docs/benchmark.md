@@ -1,7 +1,7 @@
 # Performance benchmarks
 
 Cross-runtime FPS comparison for the [`perf_bench`](../test_targets/perf_bench)
-workload — a small async Pygame game used to measure sustained frame rate on
+workload: a small async Pygame game used to measure sustained frame rate on
 **local desktop**, **pygodide**, and **pygbag**.
 
 <div class="benchmark-chart-frame" markdown="0">

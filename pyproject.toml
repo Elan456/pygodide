@@ -27,6 +27,7 @@ dev = [
     "numpy>=2.4.0",
     "zensical>=0.0.46",
     "pygbag",
+    "mkdocs-typer2[zensical]>=0.4.1",
 ]
 
 [project.urls]

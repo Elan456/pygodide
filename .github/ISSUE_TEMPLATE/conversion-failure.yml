@@ -16,7 +16,7 @@ body:
     id: what-happened
     attributes:
       label: What happened?
-      description: In your own words — what did you try, and what did you see instead?
+      description: In your own words: what did you try, and what did you see instead?
       placeholder: |
         I ran `pygodide build . --serve` on my snake game. The build finished, but the browser stays on "Loading..." and never shows the game.
     validations:
@@ -42,5 +42,5 @@ body:
     id: anything-else
     attributes:
       label: Anything else? (optional)
-      description: Browser console errors (F12 → Console), screenshots, or a link to a smaller repro — only if you have them handy.
+      description: Browser console errors (F12 → Console), screenshots, or a link to a smaller repro (only if you have them handy).
       placeholder: Firefox console says "micropip install failed for ..."
