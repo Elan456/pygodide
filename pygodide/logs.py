@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from importlib import metadata
 from pathlib import Path
 
-from pygodide.building import build_output_dir
+from pygodide.builder.plan import build_output_dir
 
 BUILD_LOG_FILENAME = "pygodide-build.log"
 SMOKE_LOG_FILENAME = "pygodide-smoke.log"
@@ -175,8 +175,8 @@ def log_build_choices(
         f"({build_plan.app_source})"
     )
     log(
-        f"Staged files: {len(build_plan.staged_files)} "
-        f"({build_plan.staged_files_source})"
+        f"Package files: {len(build_plan.package_files)} "
+        f"({build_plan.package_files_source})"
     )
 
     if dependency_collection.sources:

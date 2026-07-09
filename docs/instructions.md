@@ -39,23 +39,40 @@ Build details are written to `build/pygodide-build.log`.
 ## Check your build with a smoke test
 
 `pygodide smoke` builds your app and opens it in a headless browser. Use it to
-catch problems before you debug in a real browser:
+catch load/startup failures before you debug in a real browser.
+
+### Install for smoke tests (pip)
+
+You need two things: the `smoke` extra (Playwright Python package) and a
+Chromium browser binary for Playwright.
+
+```bash
+# 1. Install pygodide with Playwright support
+pip install 'pygodide[smoke]'
+
+# 2. Download the Chromium binary Playwright uses (once per machine/env)
+playwright install chromium
+```
+
+### Run a smoke test
+
+From your game project root:
 
 ```bash
 pygodide smoke .
 ```
 
-By default you only see pass/fail on the console. For full build and smoke
-output:
+Recommended when something looks wrong:
 
 ```bash
 pygodide smoke . --verbose
 ```
 
-Either way, the full log is saved to `build/pygodide-smoke.log`. Look there for
-dependency resolution, auto-async status, and smoke-test errors.
+By default the console only shows pass/fail. The full log is always written to
+`build/pygodide-smoke.log` (dependency resolution, auto-async status, browser
+errors).
 
-To validate without launching a browser:
+Build only, without launching a browser (no Chromium needed):
 
 ```bash
 pygodide smoke . --build-only --verbose

@@ -34,6 +34,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        # dev group includes pygodide[smoke] (Playwright package). Unit tests do
+        # not launch browsers, so no "playwright install chromium" here.
         run: uv sync --dev
 
       - name: Check formatting
@@ -51,5 +53,6 @@ jobs:
       - name: Smoke test installed CLI
         run: |
           python -m venv .wheel-smoke
-          .wheel-smoke/bin/pip install dist/*.whl
+          .wheel-smoke/bin/pip install "$(echo dist/*.whl)[smoke]"
           .wheel-smoke/bin/pygodide --help
+          .wheel-smoke/bin/python -c "import playwright; print('smoke extra ok')"

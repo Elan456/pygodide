@@ -26,6 +26,18 @@ pygbag (headed Chromium; local desktop **950 FPS**).
 pip install pygodide
 ```
 
+For `pygodide smoke` (headless browser check), install the smoke extra and
+Chromium once:
+
+```bash
+pip install 'pygodide[smoke]'
+playwright install chromium
+```
+
+Then run `pygodide smoke .` from your game project. See
+[smoke testing](instructions.md#check-your-build-with-a-smoke-test) for the full
+flow.
+
 ## Get started in 30 seconds
 
 From your project root:

@@ -4,17 +4,17 @@ from pathlib import Path
 
 import pytest
 
-from pygodide.compatibility import (
+from pygodide.smoke import (
     MANIFEST_FILENAME,
     DiscoveredTarget,
     SmokeConfig,
     TargetManifest,
-    _assert_ready_status_hidden,
-    _remaining_timeout_ms,
+    assert_ready_status_hidden,
     discover_targets,
     load_target_manifest,
+    remaining_timeout_ms,
     resolve_smoke_config,
-    run_compatibility_suite,
+    run_smoke_suite,
 )
 
 
@@ -101,7 +101,7 @@ def test_discover_targets_filters_by_manifest_name(tmp_path):
     assert [target.manifest.name for target in targets] == ["second-target"]
 
 
-def test_run_compatibility_suite_uses_injected_build_and_smoke_runners(tmp_path):
+def test_run_smoke_suite_uses_injected_build_and_smoke_runners(tmp_path):
     target_dir = _write_target_manifest(tmp_path / "demo", "demo-target")
     calls: list[tuple[str, str]] = []
 
@@ -115,7 +115,7 @@ def test_run_compatibility_suite_uses_injected_build_and_smoke_runners(tmp_path)
         assert build_dir == target_dir / "build"
         calls.append(("smoke", target.manifest.name))
 
-    results = run_compatibility_suite(
+    results = run_smoke_suite(
         tmp_path,
         build_runner=build_runner,
         smoke_runner=smoke_runner,
@@ -125,13 +125,13 @@ def test_run_compatibility_suite_uses_injected_build_and_smoke_runners(tmp_path)
     assert calls == [("build", "demo-target"), ("smoke", "demo-target")]
 
 
-def test_run_compatibility_suite_reports_target_failures(tmp_path):
+def test_run_smoke_suite_reports_target_failures(tmp_path):
     _write_target_manifest(tmp_path / "demo", "demo-target")
 
     def build_runner(target: DiscoveredTarget) -> Path:
         raise RuntimeError(f"{target.manifest.name} build failed")
 
-    results = run_compatibility_suite(tmp_path, build_runner=build_runner)
+    results = run_smoke_suite(tmp_path, build_runner=build_runner)
 
     assert len(results) == 1
     assert results[0].success is False
@@ -197,7 +197,7 @@ def test_remaining_timeout_ms_uses_deadline_budget():
     import time
 
     deadline = time.monotonic() + 2.5
-    remaining = _remaining_timeout_ms(deadline)
+    remaining = remaining_timeout_ms(deadline)
 
     assert 2000 <= remaining <= 2500
 
@@ -218,7 +218,7 @@ def test_ready_status_must_hide_after_ready_log():
     page = StuckPage()
 
     with pytest.raises(RuntimeError, match="did not hide the loading status"):
-        _assert_ready_status_hidden(
+        assert_ready_status_hidden(
             page,
             timeout_ms=0,
             timeout_error=FakeTimeoutError,

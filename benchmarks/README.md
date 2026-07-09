@@ -10,7 +10,8 @@ on three runtimes and writes reproducible JSON results plus a Plotly bar chart.
 | **pygbag** | `pygbag --build` + headed Chromium window; parses pygbag xterm output |
 
 This harness is intentionally **not** part of the `pygodide` CLI. Install its
-dependencies via the repository dev group (`plotly`, `playwright`, `pygbag`).
+dependencies via the repository dev group (`plotly`, `pygbag`, and Playwright
+through `pygodide[smoke]`).
 
 ## Prerequisites
 

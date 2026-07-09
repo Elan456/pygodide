@@ -4,16 +4,16 @@ from pathlib import Path
 
 import typer
 
-from pygodide.app_builder import build_app
 from pygodide.asyncify import resolve_auto_async
-from pygodide.build_logging import (
+from pygodide.builder import build_app
+from pygodide.builder.plan import build_output_dir, clean_build_dir
+from pygodide.builder.zip import create_itch_zip, default_itch_zip_path
+from pygodide.logs import (
     build_log_tee,
     initialize_build_log,
     write_build_log_failure,
     write_build_log_success,
 )
-from pygodide.building import build_output_dir, clean_build_dir
-from pygodide.packaging import create_itch_zip, default_itch_zip_path
 from pygodide.serving import serve_directory_forever
 
 
@@ -98,15 +98,15 @@ def run_smoke_command(
     auto_async: bool | None = None,
     verbose: bool = False,
 ) -> None:
-    from pygodide.compatibility import (
+    from pygodide.smoke import (
         SmokeConfig,
         resolve_smoke_config,
-        run_compatibility_suite,
+        run_smoke_suite,
         smoke_test_app,
     )
 
     if suite:
-        results = run_compatibility_suite(
+        results = run_smoke_suite(
             path,
             target_names=targets,
             build_only=build_only,

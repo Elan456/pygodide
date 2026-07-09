@@ -4,7 +4,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 
 DEFAULT_PYODIDE_PACKAGES = ["pygame-ce"]
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
-DEFAULT_STAGED_FILES = ["main.py"]
+DEFAULT_PACKAGE_FILES = ["main.py"]
 DEFAULT_READY_LOG = "[pygodide] ready"
 
 
@@ -78,8 +78,7 @@ def render_boot_js(
     pyodide_packages: list[str] | None = None,
     micropip_packages: list[str] | None = None,
     declared_package_names: list[str] | None = None,
-    staged_files: list[str] | None = None,
-    python_files: list[str] | None = None,
+    package_files: list[str] | None = None,
     python_path_entries: list[str] | None = None,
     asset_base_path: str = "./",
     virtual_fs_root: str = "/",
@@ -88,7 +87,7 @@ def render_boot_js(
     startup_python_code: str | None = None,
     starting_pyodide_status_text: str = "Starting Pyodide...",
     loading_packages_status_text: str = "Loading Python packages...",
-    staging_files_status_text: str = "Staging app files...",
+    loading_files_status_text: str = "Loading app files...",
     loading_app_status_text: str = "Loading Python app...",
     loading_app_hint_text: str = (
         "If the page stays here, your app is probably blocking the browser "
@@ -103,12 +102,8 @@ def render_boot_js(
         resolved_python_path_entries = DEFAULT_PYTHON_PATH_ENTRIES
     else:
         resolved_python_path_entries = python_path_entries
-    resolved_staged_files = (
-        staged_files
-        if staged_files is not None
-        else python_files
-        if python_files is not None
-        else DEFAULT_STAGED_FILES
+    resolved_package_files = (
+        package_files if package_files is not None else DEFAULT_PACKAGE_FILES
     )
     resolved_startup_python_code = startup_python_code or build_startup_python_code(
         entry_module=entry_module,
@@ -129,13 +124,13 @@ def render_boot_js(
         declared_package_names=(
             declared_package_names if declared_package_names is not None else []
         ),
-        staged_files=resolved_staged_files,
+        package_files=resolved_package_files,
         asset_base_path=asset_base_path,
         virtual_fs_root=virtual_fs_root,
         startup_python_code=resolved_startup_python_code,
         starting_pyodide_status_text=starting_pyodide_status_text,
         loading_packages_status_text=loading_packages_status_text,
-        staging_files_status_text=staging_files_status_text,
+        loading_files_status_text=loading_files_status_text,
         loading_app_status_text=loading_app_status_text,
         loading_app_hint_text=loading_app_hint_text,
         running_status_text=running_status_text,

@@ -24,11 +24,11 @@ IGNORED_PATH_PARTS = {".venv", "__pycache__", "build"}
 class BuildPlan:
     source_dir: Path
     output_dir: Path
-    staged_files: list[str]
+    package_files: list[str]
     entry_module: str
     entry_function: str
     app_source: str
-    staged_files_source: str
+    package_files_source: str
     title: str
     canvas_width: int
     canvas_height: int
@@ -48,11 +48,11 @@ def build_plan_for_source(
     resolved_app, app_source = _resolve_app_entrypoint(
         project_config, app_spec=app_spec
     )
-    staged_files = discover_staged_files(
+    package_files = discover_package_files(
         resolved_source_dir,
         include_patterns=project_config.include if project_config else None,
     )
-    if not staged_files:
+    if not package_files:
         raise ValueError(f"{resolved_source_dir} does not contain any files to build")
 
     raw_python_path_entries = (
@@ -64,11 +64,11 @@ def build_plan_for_source(
     return BuildPlan(
         source_dir=resolved_source_dir,
         output_dir=build_output_dir(resolved_source_dir),
-        staged_files=staged_files,
+        package_files=package_files,
         entry_module=resolved_app.module,
         entry_function=resolved_app.callable_name,
         app_source=app_source,
-        staged_files_source=(
+        package_files_source=(
             "[tool.pygodide].include"
             if project_config and project_config.include
             else "auto-discovery"
@@ -106,21 +106,21 @@ def clean_build_dir(path: str | Path) -> Path:
     return output_dir
 
 
-def copy_staged_files(
-    *, source_dir: str | Path, output_dir: str | Path, staged_files: list[str]
+def copy_package_files(
+    *, source_dir: str | Path, output_dir: str | Path, package_files: list[str]
 ) -> None:
     resolved_source_dir = Path(source_dir).resolve()
     resolved_output_dir = Path(output_dir).resolve()
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
 
-    for relative_path in staged_files:
+    for relative_path in package_files:
         source_path = resolved_source_dir / relative_path
         destination_path = resolved_output_dir / relative_path
         destination_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_path, destination_path)
 
 
-def discover_staged_files(
+def discover_package_files(
     source_dir: str | Path, *, include_patterns: list[str] | None = None
 ) -> list[str]:
     resolved_source_dir = Path(source_dir).resolve()

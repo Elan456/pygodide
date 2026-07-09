@@ -697,9 +697,13 @@ source = { editable = "." }
 dependencies = [
     { name = "jinja2" },
     { name = "packaging" },
-    { name = "pygame-ce" },
     { name = "pyyaml" },
     { name = "typer" },
+]
+
+[package.optional-dependencies]
+smoke = [
+    { name = "playwright" },
 ]
 
 [package.dev-dependencies]
@@ -707,10 +711,11 @@ dev = [
     { name = "hatchling" },
     { name = "mkdocs-typer2", extra = ["zensical"] },
     { name = "numpy" },
-    { name = "playwright" },
     { name = "plotly" },
     { name = "pre-commit" },
+    { name = "pygame-ce" },
     { name = "pygbag" },
+    { name = "pygodide", extra = ["smoke"] },
     { name = "pytest" },
     { name = "ruff" },
     { name = "zensical" },
@@ -720,20 +725,22 @@ dev = [
 requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "packaging", specifier = ">=23.1" },
-    { name = "pygame-ce" },
+    { name = "playwright", marker = "extra == 'smoke'", specifier = ">=1.57.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "typer", specifier = ">=0.26.7" },
 ]
+provides-extras = ["smoke"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "hatchling", specifier = ">=1.17.0" },
     { name = "mkdocs-typer2", extras = ["zensical"], specifier = ">=0.4.1" },
     { name = "numpy", specifier = ">=2.4.0" },
-    { name = "playwright", specifier = ">=1.57.0" },
     { name = "plotly", specifier = ">=6.0.0" },
     { name = "pre-commit", specifier = ">=4.3.0" },
+    { name = "pygame-ce" },
     { name = "pygbag" },
+    { name = "pygodide", extras = ["smoke"] },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "ruff", specifier = ">=0.15.18" },
     { name = "zensical", specifier = ">=0.0.46" },

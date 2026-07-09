@@ -10,7 +10,6 @@ authors = [
 ]
 dependencies = [
     "jinja2>=3.1.6",
-    "pygame-ce",
     "typer>=0.26.7",
     "packaging>=23.1",
     "pyyaml>=6.0.3",
@@ -19,7 +18,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "hatchling>=1.17.0",
-    "playwright>=1.57.0",
     "plotly>=6.0.0",
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
@@ -28,7 +26,12 @@ dev = [
     "zensical>=0.0.46",
     "pygbag",
     "mkdocs-typer2[zensical]>=0.4.1",
+    "pygame-ce",
+    "pygodide[smoke]"
 ]
+
+[project.optional-dependencies]
+smoke = ["playwright>=1.57.0"]
 
 [project.urls]
 Homepage = "https://github.com/Elan456/pygodide"

@@ -1,6 +1,6 @@
 import zipfile
 
-from pygodide.packaging import create_itch_zip, default_itch_zip_path
+from pygodide.builder.zip import create_itch_zip, default_itch_zip_path
 
 
 def test_default_itch_zip_path_uses_project_name(tmp_path):

@@ -43,7 +43,7 @@ def test_build_command_creates_expected_output(tmp_path):
     assert result.exit_code == 0, result.output
     assert "Building" in result.output
     assert "App entrypoint: main:main (default)" in result.output
-    assert "Staged files: 3 (auto-discovery)" in result.output
+    assert "Package files: 3 (auto-discovery)" in result.output
     assert "Dependency sources: none" in result.output
     assert "Resolved dependencies: none" in result.output
 
@@ -132,7 +132,7 @@ dependencies = ["fastquadtree"]
 
     assert result.exit_code == 0, result.output
     assert "App entrypoint: main:web_main ([tool.pygodide].app)" in result.output
-    assert "Staged files: 2 ([tool.pygodide].include)" in result.output
+    assert "Package files: 2 ([tool.pygodide].include)" in result.output
     assert "[project].dependencies: pygame-ce" in result.output
     assert "[tool.pygodide].dependencies: fastquadtree" in result.output
     assert "pyodide.loadPackage: pygame-ce" in result.output
@@ -231,7 +231,7 @@ def test_template_renderers_include_configured_values():
         pyodide_packages=["pygame-ce"],
         micropip_packages=["fastquadtree", "numpy>=1.26"],
         declared_package_names=["pygame-ce", "numpy"],
-        staged_files=["main.py", "ball.py", "assets/theme.ogg"],
+        package_files=["main.py", "ball.py", "assets/theme.ogg"],
         python_path_entries=["/", "/vendor"],
         entry_module="demo.main",
         entry_function="start",
@@ -480,13 +480,6 @@ def test_smoke_command_verbose_prints_build_details(tmp_path):
     assert "App entrypoint: main:main (default)" in result.output
 
 
-def test_compatibility_command_is_not_registered():
-    result = runner.invoke(app, ["compatibility", "test_targets"])
-
-    assert result.exit_code != 0
-    assert "No such command 'compatibility'" in result.output
-
-
 def test_serve_command_accepts_custom_port(tmp_path, monkeypatch):
     source_dir = tmp_path / "demo"
     build_dir = source_dir / "build"
@@ -498,7 +491,7 @@ def test_serve_command_accepts_custom_port(tmp_path, monkeypatch):
         calls.append((directory, port))
 
     monkeypatch.setattr(
-        "pygodide.cli.commands.serve_directory_forever",
+        "pygodide.cli.runners.serve_directory_forever",
         fake_serve,
     )
 

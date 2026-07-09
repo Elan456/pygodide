@@ -36,6 +36,27 @@ Cross-runtime FPS on the [`perf_bench`](test_targets/perf_bench) workload
 pip install pygodide
 ```
 
+### Install for smoke tests
+
+`pygodide smoke` needs the optional `smoke` extra (Playwright) and a Chromium
+binary:
+
+```bash
+pip install 'pygodide[smoke]'
+playwright install chromium
+```
+
+Then from your game project:
+
+```bash
+pygodide smoke .
+# or, with full logs on the console:
+pygodide smoke . --verbose
+```
+
+Quote `'pygodide[smoke]'` so the shell does not expand the brackets. Details:
+[smoke testing in the instructions](https://elan456.github.io/pygodide/instructions/#check-your-build-with-a-smoke-test).
+
 ## Quick start
 
 From your project root:
@@ -102,8 +123,13 @@ pygodide serve test_targets/ball_bouncing
 git clone https://github.com/Elan456/pygodide.git
 cd pygodide
 uv sync --dev
+uv run playwright install chromium
 uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
+
+The `dev` group includes `pygodide[smoke]`, so Playwright is installed with
+`uv sync --dev`. You still need `playwright install chromium` once for browser
+binaries.
 
 Run the same checks as CI:
 
@@ -113,17 +139,13 @@ uv run ruff check .
 uv run pytest
 ```
 
-### Smoke tests
-
-`pygodide smoke` builds an app and launches it in headless Chromium. End-user
-projects do not need any extra manifest file.
+### Smoke tests (from this repo)
 
 ```bash
-uv run playwright install chromium
+uv run playwright install chromium   # once
 uv run pygodide smoke /path/to/your/pygame/project
+uv run pygodide smoke test_targets --suite
 ```
 
-The repository also maintains fixtures under `test_targets/`, each with a
-`testing_manifest.yaml`. Run the full fixture suite with:
-
-`uv run pygodide smoke test_targets --suite`
+End-user projects do not need a `testing_manifest.yaml`; that file is only for
+the fixture suite under `test_targets/`.

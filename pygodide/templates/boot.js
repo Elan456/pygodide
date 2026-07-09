@@ -4,7 +4,7 @@ const canvas = document.getElementById({{ canvas_element_id | tojson }});
 const pyodidePackages = {{ pyodide_packages | tojson }};
 const micropipPackages = {{ micropip_packages | tojson }};
 const declaredPackageNames = {{ declared_package_names | tojson }};
-const stagedFiles = {{ staged_files | tojson }};
+const packageFiles = {{ package_files | tojson }};
 const assetBasePath = {{ asset_base_path | tojson }};
 const virtualFsRoot = {{ virtual_fs_root | tojson }};
 const startupPythonCode = {{ startup_python_code | tojson }};
@@ -16,7 +16,7 @@ const knownImportPackageAliases = {
 const statusText = {
   startingPyodide: {{ starting_pyodide_status_text | tojson }},
   loadingPackages: {{ loading_packages_status_text | tojson }},
-  stagingFiles: {{ staging_files_status_text | tojson }},
+  loadingFiles: {{ loading_files_status_text | tojson }},
   loadingApp: {{ loading_app_status_text | tojson }},
   loadingAppHint: {{ loading_app_hint_text | tojson }},
   running: {{ running_status_text | tojson }},
@@ -192,7 +192,7 @@ async function fetchAssetBytes(filename) {
 }
 
 async function stageAppFiles(runtime) {
-  for (const filename of stagedFiles) {
+  for (const filename of packageFiles) {
     const source = await fetchAssetBytes(filename);
     const targetPath = joinVirtualPath(virtualFsRoot, filename);
     ensureParentDir(runtime, targetPath);
@@ -222,7 +222,7 @@ async function boot() {
     await micropip.install(micropipPackages);
   }
 
-  setStatus(statusText.stagingFiles);
+  setStatus(statusText.loadingFiles);
   await waitForNextPaint();
   await stageAppFiles(runtime);
 

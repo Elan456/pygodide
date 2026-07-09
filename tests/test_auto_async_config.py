@@ -7,7 +7,7 @@ from pygodide.asyncify import (
     format_smoke_async_warnings,
     resolve_auto_async,
 )
-from pygodide.building import build_plan_for_source
+from pygodide.builder.plan import build_plan_for_source
 from pygodide.cli.main import app
 from pygodide.project_config import load_pygodide_project_config
 

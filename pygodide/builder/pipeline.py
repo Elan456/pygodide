@@ -4,12 +4,12 @@ from collections.abc import Callable
 from pathlib import Path
 
 from pygodide.asyncify import AsyncifyResult, asyncify_entrypoint
-from pygodide.build_logging import log_build_choices
-from pygodide.building import build_plan_for_source, copy_staged_files
+from pygodide.builder.plan import build_plan_for_source, copy_package_files
 from pygodide.dep_handling.pyodide_resolution import (
     build_install_plan,
     collect_requirements,
 )
+from pygodide.logs import log_build_choices
 from pygodide.rendering import render_boot_js, render_index_html
 
 
@@ -37,10 +37,10 @@ def build_app(
         )
 
     output_dir = build_plan.output_dir
-    copy_staged_files(
+    copy_package_files(
         source_dir=build_plan.source_dir,
         output_dir=output_dir,
-        staged_files=build_plan.staged_files,
+        package_files=build_plan.package_files,
     )
     if auto_async:
         asyncify_result = asyncify_entrypoint(build_plan, output_dir)
@@ -61,7 +61,7 @@ def build_app(
     index_output_path.write_text(index_html, encoding="utf-8")
 
     boot_js = render_boot_js(
-        staged_files=build_plan.staged_files,
+        package_files=build_plan.package_files,
         pyodide_packages=install_plan.pyodide_packages,
         micropip_packages=install_plan.micropip_packages,
         declared_package_names=[pkg.name for pkg in dependency_collection.packages],

@@ -1,11 +1,11 @@
 from pathlib import Path
 
 from pygodide.asyncify import asyncify_entrypoint
-from pygodide.building import BuildPlan
+from pygodide.builder.plan import BuildPlan
 
 
 def test_asyncify_leaves_async_entrypoint_unchanged(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         "async def main():\n    return None\n",
     )
@@ -20,7 +20,7 @@ def test_asyncify_leaves_async_entrypoint_unchanged(tmp_path):
 
 
 def test_asyncify_converts_simple_pygame_while_loop(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 import pygame
@@ -51,7 +51,7 @@ def main():
 
 
 def test_asyncify_does_not_duplicate_asyncio_import(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 import asyncio
@@ -70,7 +70,7 @@ def main():
 
 
 def test_asyncify_inserts_only_one_asyncio_sleep(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 import pygame
@@ -89,7 +89,7 @@ def main():
 
 
 def test_asyncify_skips_sync_entrypoint_without_safe_loop(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 def main():
@@ -108,7 +108,7 @@ def main():
 
 
 def test_asyncify_skips_when_helper_has_no_recognizable_loop(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 def main():
@@ -126,7 +126,7 @@ def prepare():
 
 
 def test_asyncify_converts_helper_game_loop_one_hop(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 import pygame
@@ -157,7 +157,7 @@ def run_game():
 
 
 def test_asyncify_skips_when_multiple_helper_loops_are_called(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 import pygame
@@ -184,7 +184,7 @@ def run_right():
 
 
 def test_asyncify_converts_loop_that_uses_event_pump(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 import pygame
@@ -205,7 +205,7 @@ def main():
 
 
 def test_asyncify_warns_about_module_level_asyncio_run(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 import asyncio
@@ -226,7 +226,7 @@ asyncio.run(main())
 
 
 def test_asyncify_warns_about_blocking_calls_in_game_loop(tmp_path):
-    build_plan = _write_staged_app(
+    build_plan = _write_package_app(
         tmp_path,
         """
 import pygame
@@ -246,18 +246,30 @@ def main():
     assert any("time.sleep" in warning for warning in result.warnings)
 
 
-def test_asyncify_skips_when_entrypoint_module_file_is_not_staged(tmp_path):
-    build_plan = _build_plan(tmp_path, staged_files=["helpers.py"])
+def test_asyncify_skips_when_entrypoint_module_file_is_not_found(tmp_path):
+    build_plan = _build_plan(tmp_path, package_files=["helpers.py"])
 
     result = asyncify_entrypoint(build_plan, tmp_path)
 
     assert result.changed is False
     assert result.status == "skipped"
-    assert "entrypoint module file is not staged" in result.message
+    assert "entrypoint module file was not found" in result.message
     assert result.relative_path == "main.py"
 
 
-def _write_staged_app(
+def test_asyncify_skips_when_entrypoint_module_file_is_not_in_package(tmp_path):
+    (tmp_path / "main.py").write_text("def main():\n    pass\n", encoding="utf-8")
+    build_plan = _build_plan(tmp_path, package_files=["helpers.py"])
+
+    result = asyncify_entrypoint(build_plan, tmp_path)
+
+    assert result.changed is False
+    assert result.status == "skipped"
+    assert "not included in the build package" in result.message
+    assert result.relative_path == "main.py"
+
+
+def _write_package_app(
     output_dir: Path,
     source: str,
     *,
@@ -266,18 +278,18 @@ def _write_staged_app(
     output_path = output_dir / relative_path
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(source, encoding="utf-8")
-    return _build_plan(output_dir, staged_files=[relative_path])
+    return _build_plan(output_dir, package_files=[relative_path])
 
 
-def _build_plan(output_dir: Path, *, staged_files: list[str]) -> BuildPlan:
+def _build_plan(output_dir: Path, *, package_files: list[str]) -> BuildPlan:
     return BuildPlan(
         source_dir=output_dir,
         output_dir=output_dir,
-        staged_files=staged_files,
+        package_files=package_files,
         entry_module="main",
         entry_function="main",
         app_source="default",
-        staged_files_source="test",
+        package_files_source="test",
         title="Test App",
         canvas_width=800,
         canvas_height=600,

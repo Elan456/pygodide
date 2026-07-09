@@ -3,7 +3,7 @@ from typing import Annotated
 
 import typer
 
-from pygodide.cli.commands import (
+from pygodide.cli.runners import (
     run_build_command,
     run_serve_command,
     run_smoke_command,
