@@ -7,7 +7,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Pygodide Mixer Test")
+pygame.display.set_caption("Pygodide Audio Test")
 font = pygame.font.Font(None, 30)
 
 pygame.mixer.music.load("sounds/cropped-dirt-rhodes-by-kevin-macleod.mp3")
@@ -36,11 +36,11 @@ SFX_RECTS = {
     )
     for index, key in enumerate(SFX_KEYS)
 }
-FLASH_MS = 180
+FLASH_MS = 90
 
 HELP_LINES = [
-    "Mixer test",
-    "SPACE or click: play / pause music",
+    "Pygodide Audio test",
+    "SPACE: play / pause music",
     "1 / 2 / 3: sound effects",
     "S: stop music",
 ]
@@ -62,9 +62,7 @@ async def main():
             if event.type == pygame.QUIT:
                 return
 
-            if event.type == pygame.MOUSEBUTTONDOWN or (
-                event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE
-            ):
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 if music_state == "off":
                     pygame.mixer.music.play(-1)
                     music_state = "playing"
