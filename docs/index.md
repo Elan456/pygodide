@@ -82,6 +82,7 @@ For the full flag list generated from the CLI source, see the
 | `pygodide smoke .` | Build and test in a headless browser |
 | `pygodide build . --app game:start` | Use a different entry function |
 | `pygodide build . --dep numpy` | Add an extra dependency for this build |
+| `pygodide build . --canvas-width 1280 --canvas-height 720` | Fixed HTML canvas size (default: fill the viewport) |
 | `pygodide build . --zip` | Build and create an itch.io-ready ZIP |
 
 Build output is logged to `build/pygodide-build.log`. Smoke tests also write

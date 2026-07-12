@@ -17,7 +17,21 @@ DEFAULT_CANVAS_HEIGHT = 600
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_RELATIVE_PYTHON_PATH_ENTRIES = ["."]
 DEFAULT_EXCLUDED_FILENAMES = {"pyproject.toml", "testing_manifest.yaml", "uv.lock"}
-IGNORED_PATH_PARTS = {".venv", "__pycache__", "build"}
+# Directory names skipped anywhere in a relative path during auto-discovery.
+IGNORED_PATH_PARTS = {
+    ".git",
+    ".hg",
+    ".svn",
+    ".venv",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".tox",
+    ".nox",
+    "build",
+    "node_modules",
+}
 
 
 @dataclass(frozen=True)
@@ -30,8 +44,9 @@ class BuildPlan:
     app_source: str
     package_files_source: str
     title: str
-    canvas_width: int
-    canvas_height: int
+    # None means fill the browser viewport at boot time.
+    canvas_width: int | None
+    canvas_height: int | None
     python_path_entries: list[str]
 
 
@@ -39,6 +54,8 @@ def build_plan_for_source(
     source_dir: str | Path,
     *,
     app_spec: str | None = None,
+    canvas_width: int | None = None,
+    canvas_height: int | None = None,
 ) -> BuildPlan:
     resolved_source_dir = Path(source_dir).resolve()
     if not resolved_source_dir.is_dir():
@@ -60,6 +77,11 @@ def build_plan_for_source(
         if project_config and project_config.python_path
         else DEFAULT_RELATIVE_PYTHON_PATH_ENTRIES
     )
+    resolved_width, resolved_height = resolve_canvas_size(
+        project_config,
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
+    )
 
     return BuildPlan(
         source_dir=resolved_source_dir,
@@ -78,18 +100,52 @@ def build_plan_for_source(
             if project_config and project_config.title
             else default_title(resolved_source_dir)
         ),
-        canvas_width=(
-            project_config.canvas_width
-            if project_config and project_config.canvas_width is not None
-            else DEFAULT_CANVAS_WIDTH
-        ),
-        canvas_height=(
-            project_config.canvas_height
-            if project_config and project_config.canvas_height is not None
-            else DEFAULT_CANVAS_HEIGHT
-        ),
+        canvas_width=resolved_width,
+        canvas_height=resolved_height,
         python_path_entries=resolve_python_path_entries(raw_python_path_entries),
     )
+
+
+def resolve_canvas_size(
+    project_config: PygodideProjectConfig | None,
+    *,
+    canvas_width: int | None = None,
+    canvas_height: int | None = None,
+) -> tuple[int | None, int | None]:
+    """Resolve canvas size.
+
+    Priority: CLI overrides project config. If neither side is set for either
+    dimension, return ``(None, None)`` so the browser fills the viewport.
+    If only one dimension is set, the other falls back to the fixed defaults.
+    """
+    width = (
+        canvas_width
+        if canvas_width is not None
+        else (
+            project_config.canvas_width
+            if project_config and project_config.canvas_width is not None
+            else None
+        )
+    )
+    height = (
+        canvas_height
+        if canvas_height is not None
+        else (
+            project_config.canvas_height
+            if project_config and project_config.canvas_height is not None
+            else None
+        )
+    )
+    if width is None and height is None:
+        return None, None
+
+    resolved_width = DEFAULT_CANVAS_WIDTH if width is None else width
+    resolved_height = DEFAULT_CANVAS_HEIGHT if height is None else height
+    if resolved_width <= 0 or resolved_height <= 0:
+        raise ValueError(
+            f"Canvas size must be positive (got {resolved_width}x{resolved_height})"
+        )
+    return resolved_width, resolved_height
 
 
 def build_output_dir(path: str | Path) -> Path:

@@ -27,6 +27,8 @@ def run_build_command(
     clean: bool = False,
     create_zip: bool = False,
     zip_output: Path | None = None,
+    canvas_width: int | None = None,
+    canvas_height: int | None = None,
 ) -> None:
     source_dir = path.resolve()
     if clean or create_zip:
@@ -42,6 +44,8 @@ def run_build_command(
         deps=deps,
         serve=serve,
         auto_async=resolved_auto_async,
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
     )
     typer.echo(f"Build log: {build_log_path}")
     if auto_async_source != "default":
@@ -53,6 +57,8 @@ def run_build_command(
             app_spec=app_spec,
             deps=deps,
             auto_async=resolved_auto_async,
+            canvas_width=canvas_width,
+            canvas_height=canvas_height,
             log=build_log_tee(build_log_path, typer.echo),
         )
     except ValueError as exc:
@@ -96,6 +102,8 @@ def run_smoke_command(
     ready_log: str,
     build_only: bool,
     auto_async: bool | None = None,
+    canvas_width: int | None = None,
+    canvas_height: int | None = None,
     verbose: bool = False,
 ) -> None:
     from pygodide.smoke import (
@@ -134,6 +142,8 @@ def run_smoke_command(
             app_spec=app_spec,
             deps=deps,
             auto_async=auto_async,
+            canvas_width=canvas_width,
+            canvas_height=canvas_height,
             smoke=resolve_smoke_config(
                 path,
                 smoke=SmokeConfig(

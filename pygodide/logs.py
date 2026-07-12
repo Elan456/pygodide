@@ -21,6 +21,8 @@ def initialize_build_log(
     deps: list[str] | None,
     serve: bool,
     auto_async: bool,
+    canvas_width: int | None = None,
+    canvas_height: int | None = None,
 ) -> Path:
     build_log_path = _build_log_path_for_source(source_dir)
     build_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -38,6 +40,14 @@ def initialize_build_log(
                 f"Serve after build: {serve}",
                 f"CLI app override: {app_spec or '(none)'}",
                 f"CLI dependencies: {_format_cli_dependencies(deps)}",
+                (
+                    "CLI canvas-width: "
+                    f"{canvas_width if canvas_width is not None else '(none)'}"
+                ),
+                (
+                    "CLI canvas-height: "
+                    f"{canvas_height if canvas_height is not None else '(none)'}"
+                ),
                 f"Auto-async: {auto_async}",
                 "",
                 "Build output:",
@@ -174,6 +184,10 @@ def log_build_choices(
         f"App entrypoint: {build_plan.entry_module}:{build_plan.entry_function} "
         f"({build_plan.app_source})"
     )
+    if build_plan.canvas_width is None or build_plan.canvas_height is None:
+        log("Canvas: auto (fill viewport)")
+    else:
+        log(f"Canvas: {build_plan.canvas_width}x{build_plan.canvas_height}")
     log(
         f"Package files: {len(build_plan.package_files)} "
         f"({build_plan.package_files_source})"

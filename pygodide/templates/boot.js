@@ -9,10 +9,13 @@ const assetBasePath = {{ asset_base_path | tojson }};
 const virtualFsRoot = {{ virtual_fs_root | tojson }};
 const startupPythonCode = {{ startup_python_code | tojson }};
 const readyLogMessage = {{ ready_log | tojson }};
+const canvasAutoSize = {{ canvas_auto | tojson }};
 const assetRequestCacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const knownImportPackageAliases = {
   pygame: "pygame-ce",
 };
+// Keep in sync with .pygodide-shell padding (20px each side).
+const CANVAS_VIEWPORT_PADDING = 40;
 const statusText = {
   startingPyodide: {{ starting_pyodide_status_text | tojson }},
   loadingPackages: {{ loading_packages_status_text | tojson }},
@@ -200,6 +203,16 @@ function waitForNextPaint() {
   });
 }
 
+function sizeCanvasToViewport(canvasEl) {
+  // Largest integer buffer that fits the current browser viewport.
+  const width = Math.max(1, Math.floor(window.innerWidth - CANVAS_VIEWPORT_PADDING));
+  const height = Math.max(1, Math.floor(window.innerHeight - CANVAS_VIEWPORT_PADDING));
+  canvasEl.width = width;
+  canvasEl.height = height;
+  canvasEl.style.width = `${width}px`;
+  canvasEl.style.height = `${height}px`;
+}
+
 function joinVirtualPath(root, relativePath) {
   const normalizedRoot = root.startsWith("/") ? root : `/${root}`;
   const trimmedRoot = normalizedRoot.replace(/\/+$/, "");
@@ -241,6 +254,10 @@ async function stageAppFiles(runtime) {
 async function boot() {
   const requiredCanvas = requireElement(canvas, {{ canvas_element_id | tojson }});
   requireElement(status, {{ status_element_id | tojson }});
+
+  if (canvasAutoSize) {
+    sizeCanvasToViewport(requiredCanvas);
+  }
 
   setStatus(statusText.startingPyodide);
 

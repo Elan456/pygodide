@@ -301,9 +301,9 @@ dependency-groups = ["web"]
 | --- | --- |
 | `app` | Entry function (`module:callable`). Defaults to `main:main`. |
 | `auto-async` | Enable/disable automatic game-loop conversion. Defaults to `true`. |
-| `include` | Files to stage into the build. If omitted, pygodide auto-discovers files (excluding `.venv`, `build`, `pyproject.toml`, etc.). |
+| `include` | Files to stage into the build. If omitted, pygodide auto-discovers files (excluding `.git`, `.venv`, `build`, `pyproject.toml`, and similar tooling dirs). |
 | `title` | HTML page title. Defaults to the project directory name. |
-| `canvas-width`, `canvas-height` | Canvas size in pixels. Default `800`×`600`. |
+| `canvas-width`, `canvas-height` | Fixed HTML canvas size in pixels. If **both** are omitted (and not passed on the CLI), the canvas fills the browser viewport at boot. Override with `pygodide build . --canvas-width W --canvas-height H`. |
 | `python-path` | Folders added to `sys.path` for imports. Defaults to `["."]`. See [Python path](#python-path). |
 | `dependencies` | Extra browser-only packages not listed under `[project]`. |
 | `dependency-groups` | Named dependency groups to include in the web build. |

@@ -1,3 +1,4 @@
+from importlib import metadata
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,13 @@ from pygodide.rendering import (
 from pygodide.serving import ReusableTCPServer
 
 runner = CliRunner()
+
+
+def test_version_option_matches_package_metadata():
+    result = runner.invoke(app, ["--version"])
+
+    assert result.exit_code == 0, result.output
+    assert result.output.strip() == f"pygodide {metadata.version('pygodide')}"
 
 
 def test_build_command_creates_expected_output(tmp_path):
@@ -37,6 +45,11 @@ def test_build_command_creates_expected_output(tmp_path):
     venv_dir = source_dir / ".venv" / "bin"
     venv_dir.mkdir(parents=True)
     (venv_dir / "python").write_text("not a real interpreter\n", encoding="utf-8")
+    git_objects = source_dir / ".git" / "objects" / "ab"
+    git_objects.mkdir(parents=True)
+    git_object = git_objects / "cdef"
+    git_object.write_bytes(b"fake-git-object")
+    git_object.chmod(0o444)
 
     result = runner.invoke(app, ["build", str(source_dir)])
 
@@ -59,6 +72,7 @@ def test_build_command_creates_expected_output(tmp_path):
     ).read_text(encoding="utf-8")
     assert (output_dir / "assets" / "sprite.bin").read_bytes() == b"\x00\x01\x02"
     assert not (output_dir / ".venv").exists()
+    assert not (output_dir / ".git").exists()
 
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
     boot_js = (output_dir / "boot.js").read_text(encoding="utf-8")
@@ -87,6 +101,68 @@ def test_build_command_creates_expected_output(tmp_path):
     assert "App entrypoint: main:main (default)" in build_log_text
     assert "Resolved dependencies: none" in build_log_text
     assert "Result: success" in build_log_text
+
+
+def test_build_command_defaults_to_auto_canvas_size(tmp_path):
+    source_dir = tmp_path / "auto_canvas"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["build", str(source_dir)])
+
+    assert result.exit_code == 0, result.output
+    assert "Canvas: auto (fill viewport)" in result.output
+    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
+    assert 'data-canvas-auto="true"' in index_html
+    assert "const canvasAutoSize = true;" in boot_js
+    assert "sizeCanvasToViewport" in boot_js
+
+
+def test_build_command_cli_canvas_size_overrides_project_config(tmp_path):
+    source_dir = tmp_path / "canvas_app"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n",
+        encoding="utf-8",
+    )
+    (source_dir / "pyproject.toml").write_text(
+        """
+[project]
+name = "canvas-app"
+version = "0.1.0"
+
+[tool.pygodide]
+canvas-width = 1024
+canvas-height = 768
+""".strip(),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "build",
+            str(source_dir),
+            "--canvas-width",
+            "1280",
+            "--canvas-height",
+            "720",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Canvas: 1280x720" in result.output
+    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
+    assert 'width="1280"' in index_html
+    assert 'height="720"' in index_html
+    assert 'width="1024"' not in index_html
+    assert "data-canvas-auto" not in index_html
+    assert "const canvasAutoSize = false;" in boot_js
 
 
 def test_build_command_uses_project_root_favicon(tmp_path):
@@ -275,6 +351,8 @@ def test_template_renderers_include_configured_values():
     assert "background: #090c17;" in index_html
     assert "border-radius" not in index_html
     assert "import os" in startup_code
+    assert "import warnings" in startup_code
+    assert "never awaited" in startup_code
     assert "os.chdir('/')" in startup_code
     assert "from demo.main import start" in startup_code
     assert "'/vendor'" in startup_code

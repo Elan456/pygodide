@@ -3,6 +3,7 @@ from typing import Annotated
 
 import typer
 
+from pygodide import __version__
 from pygodide.cli.runners import (
     run_build_command,
     run_serve_command,
@@ -13,7 +14,29 @@ from pygodide.rendering import DEFAULT_READY_LOG
 app = typer.Typer(
     name="Pygodide CLI",
     help="Bundle your pygame app and run it in the browser with Pyodide.",
+    no_args_is_help=True,
 )
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"pygodide {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            help="Show the version and exit.",
+            callback=_version_callback,
+            is_eager=True,
+        ),
+    ] = False,
+) -> None:
+    """Bundle your pygame app and run it in the browser with Pyodide."""
 
 
 @app.command(short_help="Package a Pygame app to run in the browser.")
@@ -78,6 +101,28 @@ def build(
             help="Path for the itch.io ZIP. Only used with --zip.",
         ),
     ] = None,
+    canvas_width: Annotated[
+        int | None,
+        typer.Option(
+            "--canvas-width",
+            min=1,
+            help=(
+                "HTML canvas width in pixels. Overrides "
+                "[tool.pygodide].canvas-width when provided."
+            ),
+        ),
+    ] = None,
+    canvas_height: Annotated[
+        int | None,
+        typer.Option(
+            "--canvas-height",
+            min=1,
+            help=(
+                "HTML canvas height in pixels. Overrides "
+                "[tool.pygodide].canvas-height when provided."
+            ),
+        ),
+    ] = None,
 ):
     """
     Bundle a Pygame app and generate the HTML and JS files needed to run it in the
@@ -92,6 +137,8 @@ def build(
         clean=clean,
         create_zip=create_zip,
         zip_output=zip_output,
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
     )
 
 
@@ -206,6 +253,28 @@ def smoke(
             ),
         ),
     ] = None,
+    canvas_width: Annotated[
+        int | None,
+        typer.Option(
+            "--canvas-width",
+            min=1,
+            help=(
+                "HTML canvas width in pixels. Overrides "
+                "[tool.pygodide].canvas-width when provided."
+            ),
+        ),
+    ] = None,
+    canvas_height: Annotated[
+        int | None,
+        typer.Option(
+            "--canvas-height",
+            min=1,
+            help=(
+                "HTML canvas height in pixels. Overrides "
+                "[tool.pygodide].canvas-height when provided."
+            ),
+        ),
+    ] = None,
     verbose: Annotated[
         bool,
         typer.Option(
@@ -230,6 +299,8 @@ def smoke(
         ready_log=ready_log,
         build_only=build_only,
         auto_async=auto_async,
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
         verbose=verbose,
     )
 

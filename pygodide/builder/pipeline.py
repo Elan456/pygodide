@@ -25,9 +25,16 @@ def build_app(
     app_spec: str | None = None,
     deps: list[str] | None = None,
     auto_async: bool = True,
+    canvas_width: int | None = None,
+    canvas_height: int | None = None,
     log: Callable[[str], None] | None = print,
 ) -> Path:
-    build_plan = build_plan_for_source(source_dir, app_spec=app_spec)
+    build_plan = build_plan_for_source(
+        source_dir,
+        app_spec=app_spec,
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
+    )
     dependency_collection = collect_requirements(
         source_dir,
         extra_dependencies=deps,
@@ -60,6 +67,7 @@ def build_app(
     favicon = resolve_favicon(build_plan.source_dir)
     if log is not None:
         log(f"Favicon: {favicon.source_label}")
+    canvas_auto = build_plan.canvas_width is None or build_plan.canvas_height is None
     index_html = render_index_html(
         title=build_plan.title,
         canvas_width=build_plan.canvas_width,
@@ -83,6 +91,7 @@ def build_app(
         python_path_entries=build_plan.python_path_entries,
         entry_module=build_plan.entry_module,
         entry_function=build_plan.entry_function,
+        canvas_auto=canvas_auto,
     )
 
     boot_output_path = output_dir / boot_script_name

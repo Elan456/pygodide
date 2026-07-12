@@ -110,6 +110,8 @@ def smoke_test_app(
     smoke: SmokeConfig | None = None,
     auto_async: bool | None = None,
     manifest_auto_async: bool | None = None,
+    canvas_width: int | None = None,
+    canvas_height: int | None = None,
     build_only: bool = False,
     clean_build: bool = True,
     echo: Echo | None = None,
@@ -117,7 +119,12 @@ def smoke_test_app(
 ) -> Path:
     resolved_source_dir = Path(source_dir).resolve()
     smoke_config = resolve_smoke_config(resolved_source_dir, smoke=smoke)
-    build_plan = build_plan_for_source(resolved_source_dir, app_spec=app_spec)
+    build_plan = build_plan_for_source(
+        resolved_source_dir,
+        app_spec=app_spec,
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
+    )
     resolved_auto_async, auto_async_source = resolve_auto_async(
         resolved_source_dir,
         cli_auto_async=auto_async,
@@ -160,6 +167,8 @@ def smoke_test_app(
             app_spec=app_spec,
             deps=deps,
             auto_async=resolved_auto_async,
+            canvas_width=canvas_width,
+            canvas_height=canvas_height,
             log=log,
         )
 

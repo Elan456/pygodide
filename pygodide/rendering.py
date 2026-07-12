@@ -139,14 +139,15 @@ def render_index_html(
     status_text: str = "Loading...",
     status_element_id: str = "status",
     canvas_element_id: str = "canvas",
-    canvas_width: int = 800,
-    canvas_height: int = 600,
+    canvas_width: int | None = None,
+    canvas_height: int | None = None,
     pyodide_url: str = "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js",
     boot_script_path: str = "./boot.js",
     favicon_path: str = f"./{DEFAULT_FAVICON_NAME}",
     favicon_type: str = DEFAULT_FAVICON_MEDIA_TYPE,
     logo_path: str = f"./{DEFAULT_LOGO_NAME}",
 ) -> str:
+    canvas_auto = canvas_width is None or canvas_height is None
     template = _template_environment().get_template("index.html")
     return template.render(
         title=title,
@@ -156,6 +157,7 @@ def render_index_html(
         canvas_element_id=canvas_element_id,
         canvas_width=canvas_width,
         canvas_height=canvas_height,
+        canvas_auto=canvas_auto,
         pyodide_url=pyodide_url,
         boot_script_path=boot_script_path,
         favicon_path=favicon_path,
@@ -172,9 +174,25 @@ def build_startup_python_code(
     virtual_fs_root: str = "/",
 ) -> str:
     lines = [
+        "import gc",
         "import inspect",
         "import os",
         "import sys",
+        "import warnings",
+        "",
+        # Capture RuntimeWarnings (including "coroutine was never awaited") so we
+        # can surface them in the page UI instead of only the F12 console.
+        "_pygodide_runtime_warnings = []",
+        "",
+        "def _pygodide_showwarning("
+        "message, category, filename, lineno, file=None, line=None"
+        "):",
+        "    text = warnings.formatwarning(message, category, filename, lineno, line)",
+        "    _pygodide_runtime_warnings.append(text)",
+        "    print(text, file=sys.stderr, end='')",
+        "",
+        "warnings.showwarning = _pygodide_showwarning",
+        "warnings.simplefilter('always', RuntimeWarning)",
     ]
 
     for entry in python_path_entries:
@@ -189,6 +207,22 @@ def build_startup_python_code(
             f"_pygodide_entrypoint = {entry_function}()",
             "if inspect.isawaitable(_pygodide_entrypoint):",
             "    await _pygodide_entrypoint",
+            # Let finalizers run so "never awaited" warnings fire for coroutines
+            # created during startup and then discarded.
+            "await __import__('asyncio').sleep(0)",
+            "gc.collect()",
+            "gc.collect()",
+            "_never_awaited = [",
+            "    warning for warning in _pygodide_runtime_warnings",
+            "    if 'never awaited' in warning",
+            "]",
+            "if _never_awaited:",
+            "    raise RuntimeError(",
+            "        'A coroutine was never awaited. In the browser entrypoint, '",
+            "        'use `await your_async_function()` (for example '",
+            "        '`await game.start()`), not a bare call. Details:\\n\\n'",
+            "        + ''.join(_never_awaited)",
+            "    )",
         ]
     )
     return "\n".join(lines)
@@ -219,6 +253,7 @@ def render_boot_js(
     ),
     running_status_text: str = "Running",
     ready_log: str = DEFAULT_READY_LOG,
+    canvas_auto: bool = True,
 ) -> str:
     template = _template_environment().get_template("boot.js")
     if python_path_entries is None:
@@ -238,6 +273,7 @@ def render_boot_js(
     return template.render(
         status_element_id=status_element_id,
         canvas_element_id=canvas_element_id,
+        canvas_auto=canvas_auto,
         pyodide_packages=(
             pyodide_packages
             if pyodide_packages is not None
