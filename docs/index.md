@@ -96,3 +96,4 @@ directory on GitHub, including:
 - [ball bouncing](https://github.com/Elan456/pygodide/tree/main/test_targets/ball_bouncing): minimal async Pygame game
 - [not async](https://github.com/Elan456/pygodide/tree/main/test_targets/not_async): sync loop converted automatically at build time
 - [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles): larger game with extra dependencies
+- [save slots](https://github.com/Elan456/pygodide/tree/main/test_targets/save_slots): create and load JSON save files from the game

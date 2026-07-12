@@ -29,6 +29,9 @@ function requireElement(element, id) {
   return element;
 }
 
+// Keep in sync with #pygodide-brand opacity transition in index.html.
+const LOADING_UI_FADE_MS = 150;
+
 function setStatus(message, state = "active") {
   if (status) {
     status.textContent = message;
@@ -36,9 +39,39 @@ function setStatus(message, state = "active") {
   }
   const brand = document.getElementById("pygodide-brand");
   if (brand) {
-    // Keep the mark visible while loading or on error; hide once the game runs.
+    // Visible while loading or on error; hidden before the game starts drawing.
     brand.dataset.state = state === "hidden" ? "hidden" : "active";
   }
+}
+
+function hideLoadingUi() {
+  setStatus("", "hidden");
+  const brand = document.getElementById("pygodide-brand");
+  if (!brand) {
+    return Promise.resolve();
+  }
+
+  // Ensure the browser applies the "active" styles before transitioning out.
+  void brand.offsetWidth;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      brand.removeEventListener("transitionend", onEnd);
+      resolve();
+    };
+    const onEnd = (event) => {
+      if (event.target === brand && event.propertyName === "opacity") {
+        finish();
+      }
+    };
+    brand.addEventListener("transitionend", onEnd);
+    window.setTimeout(finish, LOADING_UI_FADE_MS + 80);
+  });
 }
 
 function getLoadingAppStatusMessage() {
@@ -234,10 +267,14 @@ async function boot() {
   console.warn(getLoadingAppStatusMessage());
   setStatus(getLoadingAppStatusMessage());
   await waitForNextPaint();
+
+  // Dismiss the logo/status fully before the game paints its first frames.
+  await hideLoadingUi();
+  await waitForNextPaint();
+
   const appPromise = runtime.runPythonAsync(startupPythonCode);
   console.info(readyLogMessage);
   await waitForNextPaint();
-  setStatus("", "hidden");
 
   await appPromise;
 }

@@ -10,20 +10,28 @@ DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_PACKAGE_FILES = ["main.py"]
 DEFAULT_READY_LOG = "[pygodide] ready"
 DEFAULT_FAVICON_NAME = "favicon.svg"
+DEFAULT_LOGO_NAME = "pygodide-logo.svg"
 # Canonical artwork lives in the docs site tree (also used for editable checkouts).
-_REPO_FAVICON = (
-    Path(__file__).resolve().parents[1]
-    / "docs"
-    / "assets"
-    / "images"
-    / DEFAULT_FAVICON_NAME
-)
+_DOCS_IMAGES = Path(__file__).resolve().parents[1] / "docs" / "assets" / "images"
+_REPO_FAVICON = _DOCS_IMAGES / DEFAULT_FAVICON_NAME
+_REPO_LOGO = _DOCS_IMAGES / DEFAULT_LOGO_NAME
 
 
 def _template_environment() -> Environment:
     return Environment(
         loader=PackageLoader("pygodide", "templates"),
         autoescape=select_autoescape(["html", "xml"]),
+    )
+
+
+def _package_svg(repo_path: Path, bundled_name: str) -> str:
+    """Load SVG from the docs tree (editable) or the bundled wheel copy."""
+    if repo_path.is_file():
+        return repo_path.read_text(encoding="utf-8")
+    return (
+        files("pygodide")
+        .joinpath("templates", bundled_name)
+        .read_text(encoding="utf-8")
     )
 
 
@@ -34,19 +42,30 @@ def package_favicon_svg() -> str:
     read that file directly; installed wheels use the copy bundled into the
     package via hatch ``force-include``.
     """
-    if _REPO_FAVICON.is_file():
-        return _REPO_FAVICON.read_text(encoding="utf-8")
-    return (
-        files("pygodide")
-        .joinpath("templates", DEFAULT_FAVICON_NAME)
-        .read_text(encoding="utf-8")
-    )
+    return _package_svg(_REPO_FAVICON, DEFAULT_FAVICON_NAME)
+
+
+def package_logo_svg() -> str:
+    """Return the full wordmark SVG shown on the loading screen.
+
+    Source of truth is ``docs/assets/images/pygodide-logo.svg``. Editable
+    checkouts read that file directly; installed wheels use the copy bundled
+    into the package via hatch ``force-include``.
+    """
+    return _package_svg(_REPO_LOGO, DEFAULT_LOGO_NAME)
 
 
 def write_favicon(output_dir: Path, *, filename: str = DEFAULT_FAVICON_NAME) -> Path:
     """Write the package favicon into a build output directory."""
     destination = output_dir / filename
     destination.write_text(package_favicon_svg(), encoding="utf-8")
+    return destination
+
+
+def write_logo(output_dir: Path, *, filename: str = DEFAULT_LOGO_NAME) -> Path:
+    """Write the package loading logo into a build output directory."""
+    destination = output_dir / filename
+    destination.write_text(package_logo_svg(), encoding="utf-8")
     return destination
 
 
@@ -62,6 +81,7 @@ def render_index_html(
     pyodide_url: str = "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js",
     boot_script_path: str = "./boot.js",
     favicon_path: str = f"./{DEFAULT_FAVICON_NAME}",
+    logo_path: str = f"./{DEFAULT_LOGO_NAME}",
 ) -> str:
     template = _template_environment().get_template("index.html")
     return template.render(
@@ -75,6 +95,7 @@ def render_index_html(
         pyodide_url=pyodide_url,
         boot_script_path=boot_script_path,
         favicon_path=favicon_path,
+        logo_path=logo_path,
     )
 
 

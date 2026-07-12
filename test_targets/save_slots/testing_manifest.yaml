@@ -1,0 +1,5 @@
+name: save-slots
+description: Drag colored boxes and persist positions to three file-backed save slots.
+smoke:
+  path: /
+  timeout-ms: 15000

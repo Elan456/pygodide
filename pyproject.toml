@@ -64,9 +64,10 @@ testpaths = ["tests"]
 [tool.hatch.build.targets.wheel]
 packages = ["pygodide"]
 
-# Ship the docs-site favicon with the package (docs/ is the source of truth).
+# Ship docs-site artwork with the package (docs/ is the source of truth).
 [tool.hatch.build.targets.wheel.force-include]
 "docs/assets/images/favicon.svg" = "pygodide/templates/favicon.svg"
+"docs/assets/images/pygodide-logo.svg" = "pygodide/templates/pygodide-logo.svg"
 
 [build-system]
 requires = ["hatchling"]

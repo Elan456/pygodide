@@ -127,6 +127,13 @@ Build-time AST rewrite for simple sync game loops (yield with
 unsafe transforms should skip with a clear message pointing at manual async
 guidance.
 
+### Writing a test_target
+
+- Use an FPS of 120 to ensure it feels smooth.
+- Write at the edge of pygodide's support so the fixtures act as good regression tests.
+- Keep the code simple and easy to follow so users can read them as examples.
+- Avoid writing for pygodide; write primarily for the local case to imitate what most real-world target Python projects will look like. Pygodide should bend to the project, not the other way around.
+
 ## What "done" looks like
 
 - Behavior matches the product goals (build/serve/smoke stay reliable).
