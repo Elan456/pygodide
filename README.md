@@ -2,6 +2,15 @@
   <img src="docs/assets/images/pygodide-logo.svg" alt="pygodide" width="440">
 </h1>
 
+[![PyPI](https://img.shields.io/pypi/v/pygodide.svg)](https://pypi.org/project/pygodide/)
+[![Python versions](https://img.shields.io/pypi/pyversions/pygodide.svg)](https://pypi.org/project/pygodide/)
+[![Downloads](https://static.pepy.tech/personalized-badge/pygodide?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=BLUE&left_text=Total%20Downloads)](https://pepy.tech/projects/pygodide)
+[![CI](https://github.com/Elan456/pygodide/actions/workflows/ci.yml/badge.svg)](https://github.com/Elan456/pygodide/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/pypi/l/pygodide.svg)](LICENSE)
+
+[![Docs](https://img.shields.io/badge/docs-online-brightgreen)](https://elan456.github.io/pygodide/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 **BETA: everything is subject to change**
 
 **pygodide** turns Pygame projects into browser apps
