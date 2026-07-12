@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
 
@@ -10,11 +12,39 @@ DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_PACKAGE_FILES = ["main.py"]
 DEFAULT_READY_LOG = "[pygodide] ready"
 DEFAULT_FAVICON_NAME = "favicon.svg"
+DEFAULT_FAVICON_MEDIA_TYPE = "image/svg+xml"
 DEFAULT_LOGO_NAME = "pygodide-logo.svg"
+# Prefer common root-level names; first match wins.
+PROJECT_FAVICON_CANDIDATES = (
+    "favicon.svg",
+    "favicon.png",
+    "favicon.ico",
+    "favicon.webp",
+    "favicon.jpg",
+    "favicon.jpeg",
+)
+FAVICON_MEDIA_TYPES = {
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".ico": "image/x-icon",
+    ".webp": "image/webp",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+}
 # Canonical artwork lives in the docs site tree (also used for editable checkouts).
 _DOCS_IMAGES = Path(__file__).resolve().parents[1] / "docs" / "assets" / "images"
 _REPO_FAVICON = _DOCS_IMAGES / DEFAULT_FAVICON_NAME
 _REPO_LOGO = _DOCS_IMAGES / DEFAULT_LOGO_NAME
+
+
+@dataclass(frozen=True)
+class ResolvedFavicon:
+    """Favicon chosen for a build (project root file or bundled default)."""
+
+    filename: str
+    media_type: str
+    source_path: Path | None
+    source_label: str
 
 
 def _template_environment() -> Environment:
@@ -62,6 +92,39 @@ def write_favicon(output_dir: Path, *, filename: str = DEFAULT_FAVICON_NAME) -> 
     return destination
 
 
+def resolve_favicon(source_dir: Path) -> ResolvedFavicon:
+    """Pick a project-root favicon if present, else the bundled default."""
+    for filename in PROJECT_FAVICON_CANDIDATES:
+        candidate = source_dir / filename
+        if not candidate.is_file():
+            continue
+        media_type = FAVICON_MEDIA_TYPES.get(
+            candidate.suffix.lower(),
+            "application/octet-stream",
+        )
+        return ResolvedFavicon(
+            filename=filename,
+            media_type=media_type,
+            source_path=candidate,
+            source_label=f"project ({filename})",
+        )
+    return ResolvedFavicon(
+        filename=DEFAULT_FAVICON_NAME,
+        media_type=DEFAULT_FAVICON_MEDIA_TYPE,
+        source_path=None,
+        source_label="bundled default",
+    )
+
+
+def ensure_favicon(output_dir: Path, favicon: ResolvedFavicon) -> Path:
+    """Write the resolved favicon into the build output directory."""
+    destination = output_dir / favicon.filename
+    if favicon.source_path is not None:
+        shutil.copy2(favicon.source_path, destination)
+        return destination
+    return write_favicon(output_dir, filename=favicon.filename)
+
+
 def write_logo(output_dir: Path, *, filename: str = DEFAULT_LOGO_NAME) -> Path:
     """Write the package loading logo into a build output directory."""
     destination = output_dir / filename
@@ -81,6 +144,7 @@ def render_index_html(
     pyodide_url: str = "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js",
     boot_script_path: str = "./boot.js",
     favicon_path: str = f"./{DEFAULT_FAVICON_NAME}",
+    favicon_type: str = DEFAULT_FAVICON_MEDIA_TYPE,
     logo_path: str = f"./{DEFAULT_LOGO_NAME}",
 ) -> str:
     template = _template_environment().get_template("index.html")
@@ -95,6 +159,7 @@ def render_index_html(
         pyodide_url=pyodide_url,
         boot_script_path=boot_script_path,
         favicon_path=favicon_path,
+        favicon_type=favicon_type,
         logo_path=logo_path,
     )
 

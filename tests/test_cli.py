@@ -89,6 +89,29 @@ def test_build_command_creates_expected_output(tmp_path):
     assert "Result: success" in build_log_text
 
 
+def test_build_command_uses_project_root_favicon(tmp_path):
+    source_dir = tmp_path / "icon_app"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n",
+        encoding="utf-8",
+    )
+    project_icon = b"\x89PNG\r\n\x1a\ncustom-favicon"
+    (source_dir / "favicon.png").write_bytes(project_icon)
+
+    result = runner.invoke(app, ["build", str(source_dir)])
+
+    assert result.exit_code == 0, result.output
+    assert "Favicon: project (favicon.png)" in result.output
+
+    output_dir = source_dir / "build"
+    index_html = (output_dir / "index.html").read_text(encoding="utf-8")
+    assert 'rel="icon" href="./favicon.png"' in index_html
+    assert 'type="image/png"' in index_html
+    assert (output_dir / "favicon.png").read_bytes() == project_icon
+    assert not (output_dir / "favicon.svg").exists()
+
+
 def test_build_command_rejects_empty_source_dir(tmp_path):
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()

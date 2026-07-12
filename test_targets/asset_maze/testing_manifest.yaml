@@ -1,5 +1,7 @@
 name: asset-maze
-description: Multi-module app that loads assets through messy but realistic relative paths.
+description: >-
+  Multi-module app that loads assets through messy but realistic relative paths,
+  including a project-root favicon.svg.
 smoke:
   path: /
   timeout-ms: 20000

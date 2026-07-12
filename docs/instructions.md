@@ -207,6 +207,10 @@ Pygodide stages those files into the browser build and sets the working
 directory to the project root before your app starts, so `sounds/...` and
 `assets/...` usually work without extra configuration.
 
+If your project root contains a favicon file (`favicon.svg`, `favicon.png`,
+`favicon.ico`, and a few other common names), the build uses it for the hosted
+app tab icon. Otherwise pygodide ships a small default favicon.
+
 `python-path` does **not** affect asset loading. It only changes where Python
 looks for modules to `import`. If an image or sound fails to load, fix the file
 path or make sure the file is included in the build; do not add its folder to

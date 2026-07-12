@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="asset maze">
+  <!--
+    Asset Maze favicon: mini maze with a nested path and a glowing marker.
+    Distinct from the default pygodide snake icon so builds that pick up a
+    project-root favicon are easy to spot in the browser tab.
+  -->
+  <defs>
+    <linearGradient id="floor" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1A2740"/>
+      <stop offset="100%" stop-color="#0E1628"/>
+    </linearGradient>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5EEAD4"/>
+      <stop offset="100%" stop-color="#14B8A6"/>
+    </linearGradient>
+    <linearGradient id="path" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <radialGradient id="marker" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#FDA4AF"/>
+      <stop offset="55%" stop-color="#F43F5E"/>
+      <stop offset="100%" stop-color="#9F1239"/>
+    </radialGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded tile background -->
+  <rect x="4" y="4" width="120" height="120" rx="22" ry="22" fill="url(#floor)"/>
+  <rect x="4" y="4" width="120" height="120" rx="22" ry="22" fill="none" stroke="#334155" stroke-width="3"/>
+
+  <!-- Maze walls (thick teal corridors) -->
+  <g fill="none" stroke="url(#wall)" stroke-width="10" stroke-linecap="square" stroke-linejoin="miter">
+    <!-- outer ring -->
+    <path d="M28 28 H100 V100 H28 Z"/>
+    <!-- inner walls -->
+    <path d="M28 52 H64"/>
+    <path d="M64 28 V76"/>
+    <path d="M64 76 H100"/>
+    <path d="M40 76 V100"/>
+    <path d="M40 64 H28"/>
+    <path d="M76 52 V28"/>
+    <path d="M76 52 H100"/>
+  </g>
+
+  <!-- Yellow path crumbs through the maze -->
+  <g fill="url(#path)">
+    <circle cx="40" cy="40" r="4"/>
+    <circle cx="52" cy="40" r="3.5"/>
+    <circle cx="52" cy="52" r="3.5"/>
+    <circle cx="52" cy="64" r="3.5"/>
+    <circle cx="64" cy="64" r="3.5"/>
+    <circle cx="76" cy="64" r="3.5"/>
+    <circle cx="88" cy="64" r="3.5"/>
+    <circle cx="88" cy="76" r="3.5"/>
+    <circle cx="88" cy="88" r="3.5"/>
+  </g>
+
+  <!-- Nested "deep asset" marker at the goal -->
+  <g filter="url(#glow)" transform="translate(88 88)">
+    <circle r="11" fill="url(#marker)"/>
+    <circle r="5" fill="#FFF1F2"/>
+    <path d="M0 -7 L2 -1 L8 -1 L3 2.5 L5 8.5 L0 5 L-5 8.5 L-3 2.5 L-8 -1 L-2 -1 Z"
+          fill="#F43F5E" transform="scale(0.45)"/>
+  </g>
+</svg>

@@ -11,9 +11,10 @@ from pygodide.dep_handling.pyodide_resolution import (
 )
 from pygodide.logs import log_build_choices
 from pygodide.rendering import (
+    ensure_favicon,
     render_boot_js,
     render_index_html,
-    write_favicon,
+    resolve_favicon,
     write_logo,
 )
 
@@ -55,20 +56,23 @@ def build_app(
         log("Auto async: disabled")
 
     boot_script_name = "boot.js"
-    favicon_name = "favicon.svg"
     logo_name = "pygodide-logo.svg"
+    favicon = resolve_favicon(build_plan.source_dir)
+    if log is not None:
+        log(f"Favicon: {favicon.source_label}")
     index_html = render_index_html(
         title=build_plan.title,
         canvas_width=build_plan.canvas_width,
         canvas_height=build_plan.canvas_height,
         boot_script_path=f"./{boot_script_name}",
-        favicon_path=f"./{favicon_name}",
+        favicon_path=f"./{favicon.filename}",
+        favicon_type=favicon.media_type,
         logo_path=f"./{logo_name}",
     )
 
     index_output_path = output_dir / "index.html"
     index_output_path.write_text(index_html, encoding="utf-8")
-    write_favicon(output_dir, filename=favicon_name)
+    ensure_favicon(output_dir, favicon)
     write_logo(output_dir, filename=logo_name)
 
     boot_js = render_boot_js(
