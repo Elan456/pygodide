@@ -67,3 +67,22 @@
   background: #1a1b26;
 }
 
+/* Official itch.io game cards (https://itch.io/embed/<game_id>). */
+.itch-demo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 1rem 0 1.75rem;
+  max-width: 100%;
+}
+
+.itch-demo-list iframe {
+  display: block;
+  width: min(552px, 100%);
+  height: 167px;
+  border: 0;
+  border-radius: 0.35rem;
+  overflow: hidden;
+  background: transparent;
+}
+

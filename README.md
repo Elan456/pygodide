@@ -63,6 +63,7 @@ Sample projects live under
 
 Numpy particles demo: https://elan456.itch.io/pygodide-test-project  
 Audio demo: https://elan456.itch.io/pygodide-audio-demo  
+Arcade performance benchmark: https://elan456.itch.io/pygodide-performance-benchmark
 
 Try one locally:
 

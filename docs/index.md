@@ -97,3 +97,34 @@ directory on GitHub, including:
 - [not async](https://github.com/Elan456/pygodide/tree/main/test_targets/not_async): sync loop converted automatically at build time
 - [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles): larger game with extra dependencies
 - [save slots](https://github.com/Elan456/pygodide/tree/main/test_targets/save_slots): create and load JSON save files from the game
+
+## Live demos
+
+A few of those fixtures are also hosted on [itch.io](https://elan456.itch.io):
+
+<div class="itch-demo-list" markdown="0">
+  <iframe
+    frameborder="0"
+    src="https://itch.io/embed/4748245"
+    width="552"
+    height="167"
+    loading="lazy"
+    title="Pygodide Numpy + Fastquadtree Test"
+  ><a href="https://elan456.itch.io/pygodide-test-project">Pygodide Numpy + Fastquadtree Test by Elan456</a></iframe>
+  <iframe
+    frameborder="0"
+    src="https://itch.io/embed/4759303"
+    width="552"
+    height="167"
+    loading="lazy"
+    title="Pygodide Audio Demo"
+  ><a href="https://elan456.itch.io/pygodide-audio-demo">Pygodide Audio Demo by Elan456</a></iframe>
+  <iframe
+    frameborder="0"
+    src="https://itch.io/embed/4772138"
+    width="552"
+    height="167"
+    loading="lazy"
+    title="Pygodide Performance Benchmark"
+  ><a href="https://elan456.itch.io/pygodide-performance-benchmark">Pygodide Performance Benchmark by Elan456</a></iframe>
+</div>
