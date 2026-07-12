@@ -2,113 +2,56 @@
 
 **BETA: everything is subject to change**
 
-Pronounced "pie-go-died", **pygodide** turns Pygame projects into browser apps
-using [Pyodide](https://pyodide.org/). It bundles your code and assets, installs
-Python dependencies in the browser, and generates the HTML and JavaScript needed
-to run your game on the web.
+**pygodide** turns Pygame projects into browser apps
+using [Pyodide](https://pyodide.org/) with one command, no edits to your source code, and acheiving [2.4x more fps than pygbag](https://elan456.github.io/pygodide/benchmark/).
+
+> Pronounced "pie-go-died"
+
+If anything doesn't work out-of-the-box, pygodide offers tons of configuration options to adapt to your needs.
 
 **Documentation**: [https://elan456.github.io/pygodide/](https://elan456.github.io/pygodide/)
 
-Already have a Pygame project? You can put it in the browser and share a link, or
-upload to [itch.io](https://itch.io) as an HTML game with `pygodide build . --zip`.
-No rewrite required for most small games. See the
-[instructions](https://elan456.github.io/pygodide/instructions/#publishing-to-itchio)
-for details.
+## Quick Start
 
-## Performance
+While in your project's root directory, run the following commands:
 
-Cross-runtime FPS on the [`perf_bench`](test_targets/perf_bench) workload
-(headed browser, Linux reference machine).
-[Interactive chart](https://elan456.github.io/pygodide/benchmark/).
-
-| Runtime | Mean FPS |
-| --- | ---: |
-| Local (pygame-ce) | 950 |
-| pygodide | 433 |
-| pygbag | 180 |
-
-[Benchmark docs](https://elan456.github.io/pygodide/benchmark/) ·
-[Reproduce](benchmarks/README.md)
-
-## Install
+### Install
 
 ```bash
+# Or add to your pyproject.toml and `uv sync`
 pip install pygodide
 ```
 
-### Install for smoke tests
-
-`pygodide smoke` needs the optional `smoke` extra (Playwright) and a Chromium
-binary:
+### Build
 
 ```bash
-pip install 'pygodide[smoke]'
-playwright install chromium
-```
-
-Then from your game project:
-
-```bash
-pygodide smoke .
-# or, with full logs on the console:
-pygodide smoke . --verbose
-```
-
-Quote `'pygodide[smoke]'` so the shell does not expand the brackets. Details:
-[smoke testing in the instructions](https://elan456.github.io/pygodide/instructions/#check-your-build-with-a-smoke-test).
-
-## Quick start
-
-From your project root:
-
-```bash
+# Produces the web-hostable build/ directory
 pygodide build .
+
+# For an Itch.io zip file
+pygodide build . --zip
+```
+
+### Serve
+
+```bash
+# Hosts the build/ directory locally
 pygodide serve .
 ```
 
 Open [http://localhost:8000](http://localhost:8000) in your browser.
 
-By default, pygodide looks for `main()` in `main.py`, reads dependencies from
-`requirements.txt` or `pyproject.toml`, and auto-converts simple synchronous game
-loops for the browser.
+### Troubleshooting
 
-You can also build and serve in one step:
+If anything went wrong, head over to the [instructions](https://elan456.github.io/pygodide/instructions/) page for more details and troubleshooting guidance.
 
-```bash
-pygodide build . --serve
-```
-
-Use a different port with `pygodide serve . --port 3000`.
-
-## Full guide
-
-The [instructions](https://elan456.github.io/pygodide/instructions/) cover
-troubleshooting, custom entry points, dependencies, manual async conversion, and
-smoke testing.
-
-## Common commands
-
-| Command | What it does |
-| --- | --- |
-| `pygodide build .` | Bundle your project into `build/` |
-| `pygodide serve .` | Serve the built app locally (default port `8000`) |
-| `pygodide smoke .` | Build and test in a headless browser |
-| `pygodide smoke . --verbose` | Show full build and smoke output on the console |
-| `pygodide build . --app game:start` | Use a different entry function |
-| `pygodide build . --dep numpy` | Add an extra dependency for this build |
-| `pygodide build . --no-auto-async` | Disable automatic game-loop conversion |
-
-Build output is logged to `build/pygodide-build.log`. Smoke tests also write
-`build/pygodide-smoke.log`.
-
-## Examples
+## Examples and Live Demos
 
 Sample projects live under
-[`test_targets/`](https://github.com/Elan456/pygodide/tree/main/test_targets):
+[`test_targets/`](https://github.com/Elan456/pygodide/tree/main/test_targets) and a few of them are uploaded to `itch.io`.
 
-- [ball bouncing](https://github.com/Elan456/pygodide/tree/main/test_targets/ball_bouncing): minimal async Pygame game
-- [not async](https://github.com/Elan456/pygodide/tree/main/test_targets/not_async): sync loop converted automatically at build time
-- [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles): larger game with extra dependencies
+Numpy particles demo: https://elan456.itch.io/pygodide-test-project  
+Audio demo: https://elan456.itch.io/pygodide-audio-demo  
 
 Try one locally:
 
@@ -117,7 +60,9 @@ pygodide build test_targets/ball_bouncing
 pygodide serve test_targets/ball_bouncing
 ```
 
-## Developing
+Before every release, each target under `test_targets/` is automatically verified using a headless browser to catch regressions. All features shown in the test targets are maintained as first-class features.
+
+## Contributing
 
 ```bash
 git clone https://github.com/Elan456/pygodide.git
@@ -147,5 +92,4 @@ uv run pygodide smoke /path/to/your/pygame/project
 uv run pygodide smoke test_targets --suite
 ```
 
-End-user projects do not need a `testing_manifest.yaml`; that file is only for
-the fixture suite under `test_targets/`.
+Be sure to read the `AGENTS.md` it's written for both human contributors as well as AI tools.
