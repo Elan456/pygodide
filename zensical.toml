@@ -1,6 +1,6 @@
 [project]
 site_name = "pygodide"
-site_description = "Modern replacement for pygbag that leverages pyodide for running pygame in the web"
+site_description = "Turn Pygame projects into browser apps with Pyodide"
 site_url = "https://elan456.github.io/pygodide/"
 repo_url = "https://github.com/Elan456/pygodide"
 repo_name = "Elan456/pygodide"
