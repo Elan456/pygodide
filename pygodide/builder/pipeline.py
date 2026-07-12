@@ -10,7 +10,7 @@ from pygodide.dep_handling.pyodide_resolution import (
     collect_requirements,
 )
 from pygodide.logs import log_build_choices
-from pygodide.rendering import render_boot_js, render_index_html
+from pygodide.rendering import render_boot_js, render_index_html, write_favicon
 
 
 def build_app(
@@ -50,15 +50,18 @@ def build_app(
         log("Auto async: disabled")
 
     boot_script_name = "boot.js"
+    favicon_name = "favicon.svg"
     index_html = render_index_html(
         title=build_plan.title,
         canvas_width=build_plan.canvas_width,
         canvas_height=build_plan.canvas_height,
         boot_script_path=f"./{boot_script_name}",
+        favicon_path=f"./{favicon_name}",
     )
 
     index_output_path = output_dir / "index.html"
     index_output_path.write_text(index_html, encoding="utf-8")
+    write_favicon(output_dir, filename=favicon_name)
 
     boot_js = render_boot_js(
         package_files=build_plan.package_files,

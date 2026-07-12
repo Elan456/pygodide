@@ -62,9 +62,14 @@ def test_build_command_creates_expected_output(tmp_path):
 
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
     boot_js = (output_dir / "boot.js").read_text(encoding="utf-8")
+    favicon_svg = (output_dir / "favicon.svg").read_text(encoding="utf-8")
 
     assert "<title>demo_app Pyodide App</title>" in index_html
     assert '<script type="module" src="./boot.js"></script>' in index_html
+    assert 'rel="icon" href="./favicon.svg"' in index_html
+    assert 'id="pygodide-brand"' in index_html
+    assert "pygodide-brand" in boot_js
+    assert "viewBox" in favicon_svg
     assert '"assets/sprite.bin"' in boot_js
     assert '"helpers.py"' in boot_js
     assert '"main.py"' in boot_js

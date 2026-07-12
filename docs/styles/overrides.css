@@ -2,6 +2,20 @@
   --md-typeset-font-size: 0.98rem;
 }
 
+/* Keep multi-color brand mark crisp in the header / drawer */
+.md-header__button.md-logo img,
+.md-nav__title .md-nav__button.md-logo img {
+  height: 1.9rem;
+  width: auto;
+}
+
+.md-typeset h1 .pygodide-hero-logo {
+  display: inline-block;
+  max-width: min(420px, 100%);
+  height: auto;
+  margin: 0.15rem 0 0.35rem;
+}
+
 .md-typeset {
   line-height: 1.65;
   letter-spacing: 0.001em;

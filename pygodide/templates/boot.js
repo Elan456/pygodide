@@ -34,6 +34,11 @@ function setStatus(message, state = "active") {
     status.textContent = message;
     status.dataset.state = state;
   }
+  const brand = document.getElementById("pygodide-brand");
+  if (brand) {
+    // Keep the mark visible while loading or on error; hide once the game runs.
+    brand.dataset.state = state === "hidden" ? "hidden" : "active";
+  }
 }
 
 function getLoadingAppStatusMessage() {

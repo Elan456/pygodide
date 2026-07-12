@@ -1,6 +1,6 @@
 # AGENTS.md
 
-The contents of this file is for human contributors as well as the AI tools
+The contents of this file are for human contributors as well as the AI tools
 leveraged by those human contributors for working on this project.
 
 This file is mostly handwritten and should act as the north star for
@@ -8,31 +8,31 @@ guiding the project.
 
 ## Project
 
-For an overview of the project, read the `README.md` and the `docs/index.md`
+For an overview of the project, read the `README.md` and the `docs/index.md`.
 
 The goal of the project is to create a dead-simple tool for beginner Python developers to publish their games easily while also exposing options for more experienced developers to cater the tool to their needs.
 
 ## AI-Rules
 
 - Always acknowledge that you have read this file with "I've read the AGENTS.md" at the start of any chat or task involving the project.
-- Never edit this file (AGENTS.md) even if told to do so explicity.
+- Never edit this file (AGENTS.md) even if told to do so explicitly.
     - Exception: Running a grammar pass (don't change any semantics)
-- Never use any `git` commands. 
+- Never use any `git` commands.
 
 ### Backwards-Compatibility
 
 The project follows [semver](https://semver.org/) versioning rules, but those rules only apply to the
-user-facing CLI. In practice, it means that every minor and patch release must not introduce breaking
+user-facing CLI. In practice, this means that every minor and patch release must not introduce breaking
 changes to the user-facing CLI but can change anything around the internal interfaces.
 
-**NOTE** The project is still **beta**, so backwards compatibility is entirely irrelevant. 
+**NOTE** The project is still **beta**, so backwards compatibility is entirely irrelevant.
 Do not waste any time trying to maintain backwards compatibility anywhere at all.
 
 ### User-facing CLI
 
 | Command | Role |
 | --- | --- |
-| `pygodide build` | Bundle their project into a webapp, resolve deps, optional auto-async, render `index.html` / `boot.js` |
+| `pygodide build` | Bundle a project into a webapp, resolve deps, optional auto-async, render `index.html` / `boot.js` |
 | `pygodide serve` | Serve a built app |
 | `pygodide smoke` | Build (and optionally browser-test) an app or suite of apps |
 
@@ -44,7 +44,7 @@ and the docs site CLI reference (`mkdocs-typer2` + Zensical).
 ```text
 pygodide/
   cli/           # Typer surface (main.py) + runners (runners.py)
-  builder/       # plan, pipeline, zip  (not named "build": that is the output dir)
+  builder/       # plan, pipeline, zip (not named "build": that is the output dir)
   asyncify/      # AST transform of simple sync Pygame loops
   smoke/         # manifests, suite, Playwright
   dep_handling/  # collect requirements + Pyodide/micropip install plan
@@ -131,5 +131,5 @@ guidance.
 
 - Behavior matches the product goals (build/serve/smoke stay reliable).
 - Names and messages stay clear to game authors, not only to us.
-- Docs/README/`test_targets` guidance updated when behavior contributors need
-  to know about changes.
+- Docs/README/`test_targets` guidance updated when contributors need to know
+  about behavior changes.

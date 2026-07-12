@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="pygodide">
+  <!--
+    Square mark for favicons / app icons.
+    Same language as pygodide-logo.svg: Linux window + abstract Snake.
+    Tuned to stay readable when scaled down to 16–32px.
+  -->
+  <defs>
+    <linearGradient id="pf" x1="0" y1="0" x2="0.15" y2="1">
+      <stop offset="0%" stop-color="#3A74A8"/>
+      <stop offset="100%" stop-color="#275A86"/>
+    </linearGradient>
+    <linearGradient id="seg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFE94A"/>
+      <stop offset="100%" stop-color="#E8C200"/>
+    </linearGradient>
+    <linearGradient id="head" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF06A"/>
+      <stop offset="100%" stop-color="#F0D020"/>
+    </linearGradient>
+    <linearGradient id="apple" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#6AF02A"/>
+      <stop offset="100%" stop-color="#2DB010"/>
+    </linearGradient>
+    <clipPath id="win-clip">
+      <rect x="10" y="10" width="108" height="108" rx="12" ry="12"/>
+    </clipPath>
+    <style>
+      .chrome { fill: #DCE1E8; }
+      .win-bg { fill: #FFFFFF; }
+      .win-stroke { stroke: #A8B0BC; }
+      .icon { fill: none; stroke: #4A5563; }
+      .icon-fill { fill: #4A5563; }
+      @media (prefers-color-scheme: dark) {
+        .chrome { fill: #2B3340; }
+        .win-bg { fill: #1A2332; }
+        .win-stroke { stroke: #4A5568; }
+        .icon { stroke: #C5CDD8; }
+        .icon-fill { fill: #C5CDD8; }
+      }
+    </style>
+  </defs>
+
+  <!-- Window shell (fills the square with modest padding) -->
+  <rect x="10" y="10" width="108" height="108" rx="12" ry="12"
+        class="win-bg win-stroke" fill="#FFFFFF" stroke="#A8B0BC" stroke-width="3"/>
+
+  <g clip-path="url(#win-clip)">
+    <!-- Title bar -->
+    <rect x="10" y="10" width="108" height="26" class="chrome" fill="#DCE1E8"/>
+    <line x1="10" y1="36" x2="118" y2="36" class="win-stroke" stroke="#A8B0BC" stroke-width="1.5"/>
+
+    <!-- Menu button (left) -->
+    <rect x="18" y="16" width="14" height="14" rx="2.5" class="win-stroke" fill="none" stroke="#A8B0BC" stroke-width="1.5"/>
+    <rect x="21" y="19.5" width="8" height="1.8" class="icon-fill" fill="#4A5563"/>
+    <rect x="21" y="22.6" width="8" height="1.8" class="icon-fill" fill="#4A5563"/>
+    <rect x="21" y="25.7" width="5" height="1.8" class="icon-fill" fill="#4A5563"/>
+
+    <!-- Window controls (right), inset like the full logo -->
+    <line x1="72" y1="23" x2="82" y2="23" class="icon" stroke="#4A5563" stroke-width="2.2" stroke-linecap="round"/>
+    <rect x="88" y="18" width="10" height="10" rx="1" class="icon" fill="none" stroke="#4A5563" stroke-width="2"/>
+    <line x1="104" y1="18.5" x2="113" y2="27.5" class="icon" stroke="#4A5563" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="113" y1="18.5" x2="104" y2="27.5" class="icon" stroke="#4A5563" stroke-width="2.2" stroke-linecap="round"/>
+
+    <!-- Playfield -->
+    <rect x="18" y="44" width="92" height="66" rx="6" ry="6" fill="url(#pf)"/>
+
+    <!--
+      8×5 board, 11px cells, 9px segments centered (inset 1).
+      Origin top-left of grid: (21, 48)
+    -->
+    <g transform="translate(21, 48)">
+      <!-- Grid -->
+      <g stroke="#1E4A72" stroke-opacity="0.3" stroke-width="0.9">
+        <line x1="0" y1="11" x2="88" y2="11"/>
+        <line x1="0" y1="22" x2="88" y2="22"/>
+        <line x1="0" y1="33" x2="88" y2="33"/>
+        <line x1="0" y1="44" x2="88" y2="44"/>
+        <line x1="11" y1="0" x2="11" y2="55"/>
+        <line x1="22" y1="0" x2="22" y2="55"/>
+        <line x1="33" y1="0" x2="33" y2="55"/>
+        <line x1="44" y1="0" x2="44" y2="55"/>
+        <line x1="55" y1="0" x2="55" y2="55"/>
+        <line x1="66" y1="0" x2="66" y2="55"/>
+        <line x1="77" y1="0" x2="77" y2="55"/>
+      </g>
+
+      <!-- Snake body: same path as the wide logo -->
+      <g fill="url(#seg)">
+        <rect x="12" y="34" width="9" height="9" rx="1.8"/>
+        <rect x="12" y="23" width="9" height="9" rx="1.8"/>
+        <rect x="12" y="12" width="9" height="9" rx="1.8"/>
+        <rect x="23" y="12" width="9" height="9" rx="1.8"/>
+        <rect x="34" y="12" width="9" height="9" rx="1.8"/>
+        <rect x="45" y="12" width="9" height="9" rx="1.8"/>
+        <rect x="45" y="23" width="9" height="9" rx="1.8"/>
+        <rect x="56" y="23" width="9" height="9" rx="1.8"/>
+      </g>
+      <!-- Head -->
+      <rect x="67" y="23" width="9" height="9" rx="1.8" fill="url(#head)"/>
+      <circle cx="69.8" cy="25.8" r="1.05" fill="#1A1A1A"/>
+      <circle cx="73.2" cy="25.8" r="1.05" fill="#1A1A1A"/>
+      <!-- Apple -->
+      <rect x="67" y="1" width="9" height="9" rx="1.8" fill="url(#apple)"/>
+    </g>
+  </g>
+
+  <!-- Outer stroke on top so clip doesn't mute it -->
+  <rect x="10" y="10" width="108" height="108" rx="12" ry="12"
+        fill="none" class="win-stroke" stroke="#A8B0BC" stroke-width="3"/>
+</svg>

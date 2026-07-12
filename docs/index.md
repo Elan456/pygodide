@@ -1,4 +1,6 @@
-# pygodide
+<h1 align="left" markdown="0">
+  <img src="assets/images/pygodide-logo.svg" alt="pygodide" class="pygodide-hero-logo">
+</h1>
 
 **pygodide** turns Pygame projects into browser apps using [Pyodide](https://pyodide.org/).
 It bundles your code and assets, installs Python dependencies in the browser, and

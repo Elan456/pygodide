@@ -16,6 +16,8 @@ nav = [
 ]
 
 [project.theme]
+logo = "assets/images/logo.svg"
+favicon = "assets/images/favicon.svg"
 features = [
   "navigation.tracking",
   "navigation.indexes",

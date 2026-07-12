@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+from importlib.resources import files
+from pathlib import Path
+
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 DEFAULT_PYODIDE_PACKAGES = ["pygame-ce"]
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_PACKAGE_FILES = ["main.py"]
 DEFAULT_READY_LOG = "[pygodide] ready"
+DEFAULT_FAVICON_NAME = "favicon.svg"
+# Canonical artwork lives in the docs site tree (also used for editable checkouts).
+_REPO_FAVICON = (
+    Path(__file__).resolve().parents[1]
+    / "docs"
+    / "assets"
+    / "images"
+    / DEFAULT_FAVICON_NAME
+)
 
 
 def _template_environment() -> Environment:
@@ -13,6 +25,29 @@ def _template_environment() -> Environment:
         loader=PackageLoader("pygodide", "templates"),
         autoescape=select_autoescape(["html", "xml"]),
     )
+
+
+def package_favicon_svg() -> str:
+    """Return the browser-icon SVG used for built apps.
+
+    Source of truth is ``docs/assets/images/favicon.svg``. Editable checkouts
+    read that file directly; installed wheels use the copy bundled into the
+    package via hatch ``force-include``.
+    """
+    if _REPO_FAVICON.is_file():
+        return _REPO_FAVICON.read_text(encoding="utf-8")
+    return (
+        files("pygodide")
+        .joinpath("templates", DEFAULT_FAVICON_NAME)
+        .read_text(encoding="utf-8")
+    )
+
+
+def write_favicon(output_dir: Path, *, filename: str = DEFAULT_FAVICON_NAME) -> Path:
+    """Write the package favicon into a build output directory."""
+    destination = output_dir / filename
+    destination.write_text(package_favicon_svg(), encoding="utf-8")
+    return destination
 
 
 def render_index_html(
@@ -26,6 +61,7 @@ def render_index_html(
     canvas_height: int = 600,
     pyodide_url: str = "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js",
     boot_script_path: str = "./boot.js",
+    favicon_path: str = f"./{DEFAULT_FAVICON_NAME}",
 ) -> str:
     template = _template_environment().get_template("index.html")
     return template.render(
@@ -38,6 +74,7 @@ def render_index_html(
         canvas_height=canvas_height,
         pyodide_url=pyodide_url,
         boot_script_path=boot_script_path,
+        favicon_path=favicon_path,
     )
 
 

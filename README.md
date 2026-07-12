@@ -1,4 +1,6 @@
-# pygodide
+<h1 align="left">
+  <img src="docs/assets/images/pygodide-logo.svg" alt="pygodide" width="440">
+</h1>
 
 **BETA: everything is subject to change**
 
