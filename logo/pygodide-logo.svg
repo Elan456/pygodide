@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120" width="100%" height="100%" role="img" aria-label="pygodide">
+  <defs>
+    <linearGradient id="playfield" x1="0" y1="0" x2="0.15" y2="1">
+      <stop offset="0%" stop-color="#3A74A8"/>
+      <stop offset="100%" stop-color="#275A86"/>
+    </linearGradient>
+    <linearGradient id="snake-seg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFE94A"/>
+      <stop offset="100%" stop-color="#E8C200"/>
+    </linearGradient>
+    <linearGradient id="snake-head" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF06A"/>
+      <stop offset="100%" stop-color="#F0D020"/>
+    </linearGradient>
+    <linearGradient id="apple" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#6AF02A"/>
+      <stop offset="100%" stop-color="#2DB010"/>
+    </linearGradient>
+    <linearGradient id="pygame-green" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8CFF4A"/>
+      <stop offset="50%" stop-color="#6AF02A"/>
+      <stop offset="100%" stop-color="#08DF1C"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-20%" y="-15%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="#0F172A" flood-opacity="0.22"/>
+    </filter>
+    <clipPath id="window-clip">
+      <rect x="0" y="0" width="100" height="94" rx="8" ry="8"/>
+    </clipPath>
+    <style>
+      .text-dark { fill: #1E293B; }
+      .chrome { fill: #DCE1E8; }
+      .window-bg { fill: #FFFFFF; }
+      .window-stroke { stroke: #A8B0BC; }
+      .subtitle { fill: #64748B; }
+      .chrome-icon { fill: none; stroke: #4A5563; }
+      .chrome-icon-fill { fill: #4A5563; }
+      .grid-line { stroke: #1E4A72; stroke-opacity: 0.35; }
+      @media (prefers-color-scheme: dark) {
+        .text-dark { fill: #F1F5F9; }
+        .chrome { fill: #2B3340; }
+        .window-bg { fill: #1A2332; }
+        .window-stroke { stroke: #4A5568; }
+        .subtitle { fill: #94A3B8; }
+        .chrome-icon { stroke: #C5CDD8; }
+        .chrome-icon-fill { fill: #C5CDD8; }
+      }
+    </style>
+  </defs>
+
+  <!-- Mark: Linux/KDE window running classic Snake -->
+  <g transform="translate(14, 12)" filter="url(#soft-shadow)">
+    <rect x="0" y="0" width="100" height="94" rx="8" ry="8"
+          class="window-bg window-stroke" fill="#FFFFFF" stroke="#A8B0BC" stroke-width="1.75"/>
+
+    <g clip-path="url(#window-clip)">
+      <!-- Title bar -->
+      <rect x="0" y="0" width="100" height="24" class="chrome" fill="#DCE1E8"/>
+      <line x1="0" y1="24" x2="100" y2="24" class="window-stroke" stroke="#A8B0BC" stroke-width="1"/>
+
+      <!-- Menu button (left) -->
+      <rect x="8" y="6" width="12" height="12" rx="2" class="window-stroke" fill="none" stroke="#A8B0BC" stroke-width="1.1"/>
+      <rect x="10.5" y="9.5" width="7" height="1.4" class="chrome-icon-fill" fill="#4A5563"/>
+      <rect x="10.5" y="12.3" width="7" height="1.4" class="chrome-icon-fill" fill="#4A5563"/>
+      <rect x="10.5" y="15.1" width="4.5" height="1.4" class="chrome-icon-fill" fill="#4A5563"/>
+
+      <!-- Window controls (right) -->
+      <line x1="56" y1="12" x2="64" y2="12" class="chrome-icon" stroke="#4A5563" stroke-width="1.6" stroke-linecap="round"/>
+      <rect x="70" y="8" width="8" height="8" rx="0.8" class="chrome-icon" fill="none" stroke="#4A5563" stroke-width="1.5"/>
+      <line x1="84" y1="8.5" x2="92" y2="15.5" class="chrome-icon" stroke="#4A5563" stroke-width="1.6" stroke-linecap="round"/>
+      <line x1="92" y1="8.5" x2="84" y2="15.5" class="chrome-icon" stroke="#4A5563" stroke-width="1.6" stroke-linecap="round"/>
+
+      <!-- Playfield -->
+      <rect x="9" y="32" width="82" height="54" rx="5" ry="5" fill="url(#playfield)"/>
+
+      <!--
+        Abstract Snake game.
+        Cell grid: 8×5, cell 8px, gap 2px, origin (14, 37).
+        Snake turns through the board toward a green apple.
+      -->
+      <!--
+        Shared 10×10 cell grid. Segments are 8×8, so inset (10-8)/2 = 1
+        from each cell edge (col*10+1, row*10+1).
+      -->
+      <g transform="translate(14, 37)">
+        <g class="grid-line" stroke="#1E4A72" stroke-opacity="0.28" stroke-width="0.75">
+          <!-- horizontal lines at every cell boundary -->
+          <line x1="0" y1="10" x2="78" y2="10"/>
+          <line x1="0" y1="20" x2="78" y2="20"/>
+          <line x1="0" y1="30" x2="78" y2="30"/>
+          <line x1="0" y1="40" x2="78" y2="40"/>
+          <!-- vertical lines -->
+          <line x1="10" y1="0" x2="10" y2="50"/>
+          <line x1="20" y1="0" x2="20" y2="50"/>
+          <line x1="30" y1="0" x2="30" y2="50"/>
+          <line x1="40" y1="0" x2="40" y2="50"/>
+          <line x1="50" y1="0" x2="50" y2="50"/>
+          <line x1="60" y1="0" x2="60" y2="50"/>
+          <line x1="70" y1="0" x2="70" y2="50"/>
+        </g>
+
+        <g fill="url(#snake-seg)">
+          <!-- tail → body: cells (1,3) (1,2) (1,1) (2,1) (3,1) (4,1) (4,2) (5,2) -->
+          <rect x="11" y="31" width="8" height="8" rx="1.5"/>
+          <rect x="11" y="21" width="8" height="8" rx="1.5"/>
+          <rect x="11" y="11" width="8" height="8" rx="1.5"/>
+          <rect x="21" y="11" width="8" height="8" rx="1.5"/>
+          <rect x="31" y="11" width="8" height="8" rx="1.5"/>
+          <rect x="41" y="11" width="8" height="8" rx="1.5"/>
+          <rect x="41" y="21" width="8" height="8" rx="1.5"/>
+          <rect x="51" y="21" width="8" height="8" rx="1.5"/>
+        </g>
+        <!-- head cell (6,2) -->
+        <rect x="61" y="21" width="8" height="8" rx="1.5" fill="url(#snake-head)"/>
+        <circle cx="63.6" cy="23.6" r="0.9" fill="#1A1A1A"/>
+        <circle cx="66.6" cy="23.6" r="0.9" fill="#1A1A1A"/>
+
+        <!-- apple cell (6,0) -->
+        <rect x="61" y="1" width="8" height="8" rx="1.5" fill="url(#apple)"/>
+      </g>
+    </g>
+
+    <rect x="0" y="0" width="100" height="94" rx="8" ry="8"
+          fill="none" class="window-stroke" stroke="#A8B0BC" stroke-width="1.75"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="138" y="62"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="50" font-weight="800" letter-spacing="-1.4">
+    <tspan fill="#306998">py</tspan><tspan fill="#3DD018">go</tspan><tspan fill="#E8C200">dide</tspan>
+  </text>
+
+  <!-- Subtitle -->
+  <g transform="translate(138, 76)">
+    <rect x="0" y="2" width="3.2" height="13" rx="1.6" fill="url(#pygame-green)"/>
+    <text x="10" y="13"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+          font-size="12" font-weight="600" letter-spacing="1.15" class="subtitle" fill="#64748B">
+      PYGAME TO THE BROWSER
+    </text>
+  </g>
+</svg>
