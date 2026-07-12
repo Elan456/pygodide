@@ -246,8 +246,8 @@ def _draw_scene(
     pygame.display.flip()
 
 
-def loop(clock, score):
-    dt = clock.tick(60) / 1000.0
+def loop(clock, score: int) -> int:
+    dt = clock.tick(120) / 1000.0
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -267,6 +267,7 @@ def loop(clock, score):
     radii = _particle_radii(now_seconds)
     _rebuild_quadtree()
     _draw_scene(score, now_seconds, radii, collision_count)
+    return score
 
 
 def main():
@@ -278,7 +279,7 @@ async def web_main():
     score = 0
 
     while True:
-        loop(clock, score)
+        score = loop(clock, score)
         await asyncio.sleep(0)
 
 
