@@ -45,7 +45,7 @@ and the docs site CLI reference (`mkdocs-typer2` + Zensical).
 ```text
 pygodide/
   cli/           # Typer surface (main.py) + runners (runners.py)
-  builder/       # plan, pipeline, zip (not named "build": that is the output dir)
+  builder/       # plan, pipeline, zip, display_size (not named "build": that is the output dir)
   asyncify/      # AST transform of simple sync Pygame loops
   smoke/         # manifests, suite, Playwright
   dep_handling/  # collect requirements + Pyodide/micropip install plan
@@ -82,6 +82,7 @@ benchmarks/      # cross-runtime FPS harness (not part of the CLI)
   `uv run zensical build --clean` when verifying the site (Zensical can cache
   pages that do not change on disk).
 - Prefer normal ASCII punctuation in repo prose.
+- Don't overly use **bold** and *italics*
 - Keep contributor-facing docs close to the code they describe (e.g.
   `test_targets/README.md` for the fixture suite).
 
@@ -124,7 +125,7 @@ uv run pytest
 ### Auto-async
 
 Build-time AST rewrite for simple sync game loops (yield with
-`await asyncio.sleep(0)`). Prefer improving detection/transform carefully;
+`await asyncio.sleep(1 / (fps * 2))`). Prefer improving detection/transform carefully;
 unsafe transforms should skip with a clear message pointing at manual async
 guidance.
 

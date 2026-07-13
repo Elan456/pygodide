@@ -46,9 +46,11 @@ async def main():
         screen.blit(fps_text, (10, 10))
 
         pygame.display.update()
+        clock.tick(120)
 
-        # Half a frame budget so the browser paints without undershooting 60 FPS.
-        await asyncio.sleep(1 / (60 * 2))
+        # Yield to the event loop to allow the browser to update the screen
+        # and handle events.
+        await asyncio.sleep(1 / (120 * 2))
 
 
 if __name__ == "__main__":
