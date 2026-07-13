@@ -90,10 +90,14 @@ def test_build_command_creates_expected_output(tmp_path):
     assert 'src="./boot.js?v=' in index_html
     assert 'rel="icon" href="./favicon.svg"' in index_html
     assert 'id="pygodide-brand"' in index_html
+    assert 'id="pygodide-loader"' in index_html
+    assert 'id="pygodide-progress"' in index_html
     assert 'id="pygodide-version"' in index_html
     assert f"pygodide {metadata.version('pygodide')}" in index_html
     assert 'src="./pygodide-logo.svg"' in index_html
-    assert "pygodide-brand" in boot_js
+    assert "pygodide-loader" in boot_js
+    assert "LOADING_PROGRESS" in boot_js
+    assert "setProgress" in boot_js
     assert f'const pygodideVersion = "{metadata.version("pygodide")}";' in boot_js
     assert "viewBox" in favicon_svg
     assert 'viewBox="12 9 326 102"' in logo_svg
@@ -111,6 +115,45 @@ def test_build_command_creates_expected_output(tmp_path):
     assert "App entrypoint: main:main (default)" in build_log_text
     assert "Resolved dependencies: none" in build_log_text
     assert "Result: success" in build_log_text
+
+
+def test_build_command_warns_when_source_looks_like_output_dir(tmp_path):
+    project_dir = tmp_path / "my_game"
+    build_dir = project_dir / "build"
+    build_dir.mkdir(parents=True)
+    (build_dir / "index.html").write_text("<html></html>", encoding="utf-8")
+    (build_dir / "boot.js").write_text("// boot\n", encoding="utf-8")
+    (build_dir / "main.py").write_text(
+        "async def main():\n    return None\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["build", str(build_dir)])
+
+    # Warning only — still attempts the build.
+    combined = f"{result.output}\n{result.stderr}"
+    assert "Warning:" in combined
+    assert "previous pygodide build output" in combined
+    assert "ignore this warning" in combined
+
+
+def test_build_allows_project_directory_named_build(tmp_path):
+    # A game whose folder is literally named "build" should work and not warn
+    # just because of the name.
+    source_dir = tmp_path / "build"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["build", str(source_dir)])
+
+    assert result.exit_code == 0, result.output
+    combined = f"{result.output}\n{result.stderr}"
+    assert "Warning:" not in combined
+    assert (source_dir / "build" / "index.html").is_file()
+    assert (source_dir / "build" / "boot.js").is_file()
 
 
 def test_build_command_defaults_to_auto_canvas_size(tmp_path):
@@ -359,7 +402,7 @@ def test_template_renderers_include_configured_values():
     assert 'class="pygodide-shell"' in index_html
     assert 'data-state="active"' in index_html
     assert "background: #090c17;" in index_html
-    assert "border-radius" not in index_html
+    assert "pygodide-progress" in index_html
     assert "import os" in startup_code
     assert "import warnings" in startup_code
     assert "never awaited" in startup_code

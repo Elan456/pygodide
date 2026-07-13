@@ -8,6 +8,9 @@ from pygodide.builder.plan import (
     clean_build_dir,
     copy_package_files,
     discover_package_files,
+    looks_like_build_directory,
+    looks_like_pygodide_output_dir,
+    warn_if_pygodide_output_dir,
 )
 from pygodide.builder.zip import create_itch_zip, default_itch_zip_path
 
@@ -21,4 +24,7 @@ __all__ = [
     "create_itch_zip",
     "default_itch_zip_path",
     "discover_package_files",
+    "looks_like_build_directory",
+    "looks_like_pygodide_output_dir",
+    "warn_if_pygodide_output_dir",
 ]

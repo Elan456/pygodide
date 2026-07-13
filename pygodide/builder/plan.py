@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
@@ -50,6 +51,50 @@ class BuildPlan:
     canvas_width: int | None
     canvas_height: int | None
     python_path_entries: list[str]
+
+
+def looks_like_pygodide_output_dir(path: str | Path) -> bool:
+    """True when PATH looks like a previous ``pygodide build`` output.
+
+    Detected by the presence of generated ``index.html`` + ``boot.js``, not
+    merely a directory named ``build`` (a game project may be named that).
+    """
+    resolved = Path(path).resolve()
+    if not resolved.is_dir():
+        return False
+    return (resolved / "boot.js").is_file() and (resolved / "index.html").is_file()
+
+
+# Back-compat alias used by callers/tests.
+def looks_like_build_directory(path: str | Path) -> bool:
+    return looks_like_pygodide_output_dir(path)
+
+
+def build_directory_warning_message(source_dir: Path) -> str:
+    project_root = source_dir.parent if source_dir.name == "build" else source_dir
+    return (
+        f"{source_dir} looks like a previous pygodide build output "
+        "(found index.html + boot.js).\n"
+        "You usually want to build from the game project root (the folder with "
+        "your source), not from inside build/.\n"
+        f"If that was unintentional, try:  cd {project_root} && pygodide build .\n"
+        "If this directory really is your project root, you can ignore this warning."
+    )
+
+
+def warn_if_pygodide_output_dir(
+    source_dir: str | Path,
+    *,
+    log: Callable[[str], None] | None = None,
+) -> bool:
+    """Log a warning when SOURCE_DIR looks like build output. Never raises."""
+    resolved = Path(source_dir).resolve()
+    if not looks_like_pygodide_output_dir(resolved):
+        return False
+    message = f"Warning: {build_directory_warning_message(resolved)}"
+    if log is not None:
+        log(message)
+    return True
 
 
 def build_plan_for_source(
@@ -151,14 +196,27 @@ def resolve_canvas_size(
 
 
 def build_output_dir(path: str | Path) -> Path:
+    """Return the directory that holds (or will hold) build output.
+
+    - Project roots → ``<project>/build``
+    - An existing pygodide output tree (has ``index.html`` + ``boot.js``) → itself
+      (so ``pygodide serve path/to/build`` works)
+    - A project whose directory is literally named ``build`` → ``build/build``
+    """
     resolved_path = Path(path).resolve()
-    if resolved_path.name == "build":
+    if looks_like_pygodide_output_dir(resolved_path):
         return resolved_path
     return resolved_path / "build"
 
 
 def clean_build_dir(path: str | Path) -> Path:
     output_dir = build_output_dir(path)
+    # Never delete the source tree when source and output are the same path
+    # (e.g. user pointed build at a previous output directory).
+    if output_dir.resolve() == Path(path).resolve() and looks_like_pygodide_output_dir(
+        output_dir
+    ):
+        return output_dir
     if output_dir.exists():
         shutil.rmtree(output_dir)
     return output_dir
@@ -174,6 +232,9 @@ def copy_package_files(
     for relative_path in package_files:
         source_path = resolved_source_dir / relative_path
         destination_path = resolved_output_dir / relative_path
+        if source_path.resolve() == destination_path.resolve():
+            # Building with source == output (unusual); skip no-op copies.
+            continue
         destination_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_path, destination_path)
 

@@ -33,39 +33,72 @@ function requireElement(element, id) {
   return element;
 }
 
-// Keep in sync with #pygodide-brand opacity transition in index.html.
-const LOADING_UI_FADE_MS = 150;
+// Keep in sync with #pygodide-loader opacity transition in index.html.
+const LOADING_UI_FADE_MS = 180;
+
+// Progress fractions for each boot stage (0–1).
+const LOADING_PROGRESS = {
+  startingPyodide: 0.14,
+  loadingPackages: 0.4,
+  loadingMicropip: 0.55,
+  loadingFiles: 0.72,
+  loadingApp: 0.9,
+  complete: 1,
+};
 
 function setLoadingChromeState(state) {
   // Visible while loading or on error; hidden before the game starts drawing.
   const chromeState = state === "hidden" ? "hidden" : "active";
-  const brand = document.getElementById("pygodide-brand");
-  if (brand) {
-    brand.dataset.state = chromeState;
+  const loader = document.getElementById("pygodide-loader");
+  if (loader) {
+    loader.dataset.state = chromeState;
   }
   const version = document.getElementById("pygodide-version");
   if (version) {
     version.dataset.state = chromeState;
   }
+  const progress = document.getElementById("pygodide-progress");
+  if (progress && state === "hidden") {
+    progress.dataset.state = "hidden";
+  }
 }
 
-function setStatus(message, state = "active") {
+function setProgress(fraction, { error = false } = {}) {
+  const clamped = Math.max(0, Math.min(1, fraction));
+  const fill = document.getElementById("pygodide-progress-fill");
+  const track = document.getElementById("pygodide-progress");
+  if (fill) {
+    fill.style.transform = `scaleX(${clamped})`;
+  }
+  if (track) {
+    track.dataset.state = error ? "error" : "active";
+    track.setAttribute("aria-valuenow", String(Math.round(clamped * 100)));
+  }
+}
+
+function setStatus(message, state = "active", { progress = null } = {}) {
   if (status) {
     status.textContent = message;
     status.dataset.state = state;
+  }
+  if (state === "error") {
+    setProgress(1, { error: true });
+  } else if (typeof progress === "number") {
+    setProgress(progress);
   }
   setLoadingChromeState(state);
 }
 
 function hideLoadingUi() {
+  setProgress(LOADING_PROGRESS.complete);
   setStatus("", "hidden");
-  const brand = document.getElementById("pygodide-brand");
-  if (!brand) {
+  const loader = document.getElementById("pygodide-loader");
+  if (!loader) {
     return Promise.resolve();
   }
 
   // Ensure the browser applies the "active" styles before transitioning out.
-  void brand.offsetWidth;
+  void loader.offsetWidth;
 
   return new Promise((resolve) => {
     let settled = false;
@@ -74,15 +107,15 @@ function hideLoadingUi() {
         return;
       }
       settled = true;
-      brand.removeEventListener("transitionend", onEnd);
+      loader.removeEventListener("transitionend", onEnd);
       resolve();
     };
     const onEnd = (event) => {
-      if (event.target === brand && event.propertyName === "opacity") {
+      if (event.target === loader && event.propertyName === "opacity") {
         finish();
       }
     };
-    brand.addEventListener("transitionend", onEnd);
+    loader.addEventListener("transitionend", onEnd);
     window.setTimeout(finish, LOADING_UI_FADE_MS + 80);
   });
 }
@@ -321,7 +354,9 @@ async function boot() {
   }
 
   console.info(`pygodide ${pygodideVersion}`);
-  setStatus(statusText.startingPyodide);
+  setStatus(statusText.startingPyodide, "active", {
+    progress: LOADING_PROGRESS.startingPyodide,
+  });
 
   const runtime = await loadPyodide();
   runtime._api._skip_unwind_fatal_error = true;
@@ -329,22 +364,31 @@ async function boot() {
   runtime.canvas.setCanvas2D(requiredCanvas);
 
   if (pyodidePackages.length > 0) {
-    setStatus(statusText.loadingPackages);
+    setStatus(statusText.loadingPackages, "active", {
+      progress: LOADING_PROGRESS.loadingPackages,
+    });
     await runtime.loadPackage(pyodidePackages);
   }
 
   if (micropipPackages.length > 0) {
+    setStatus(statusText.loadingPackages, "active", {
+      progress: LOADING_PROGRESS.loadingMicropip,
+    });
     await runtime.loadPackage("micropip");
     const micropip = runtime.pyimport("micropip");
     await micropip.install(micropipPackages);
   }
 
-  setStatus(statusText.loadingFiles);
+  setStatus(statusText.loadingFiles, "active", {
+    progress: LOADING_PROGRESS.loadingFiles,
+  });
   await waitForNextPaint();
   await stageAppFiles(runtime);
 
   console.warn(getLoadingAppStatusMessage());
-  setStatus(getLoadingAppStatusMessage());
+  setStatus(getLoadingAppStatusMessage(), "active", {
+    progress: LOADING_PROGRESS.loadingApp,
+  });
   await waitForNextPaint();
 
   // Dismiss the logo/status fully before the game paints its first frames.

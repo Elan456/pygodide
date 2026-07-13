@@ -6,7 +6,11 @@ import typer
 
 from pygodide.asyncify import resolve_auto_async
 from pygodide.builder import build_app
-from pygodide.builder.plan import build_output_dir, clean_build_dir
+from pygodide.builder.plan import (
+    build_output_dir,
+    clean_build_dir,
+    warn_if_pygodide_output_dir,
+)
 from pygodide.builder.zip import create_itch_zip, default_itch_zip_path
 from pygodide.logs import (
     build_log_tee,
@@ -31,6 +35,11 @@ def run_build_command(
     canvas_height: int | None = None,
 ) -> None:
     source_dir = path.resolve()
+    warn_if_pygodide_output_dir(
+        source_dir,
+        log=lambda message: typer.secho(message, fg=typer.colors.YELLOW, err=True),
+    )
+
     if clean or create_zip:
         clean_build_dir(source_dir)
 
