@@ -18,6 +18,7 @@ The goal of the project is to create a dead-simple tool for beginner Python deve
 - Never edit this file (AGENTS.md) even if told to do so explicitly.
     - Exception: Running a grammar pass (don't change any semantics)
 - Never use any `git` commands.
+    - `git log` and `git diff` are okay
 
 ### Backwards-Compatibility
 

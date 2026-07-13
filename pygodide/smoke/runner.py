@@ -112,6 +112,8 @@ def smoke_test_app(
     manifest_auto_async: bool | None = None,
     canvas_width: int | None = None,
     canvas_height: int | None = None,
+    canvas_fit: bool | None = None,
+    canvas_fill: bool | None = None,
     build_only: bool = False,
     clean_build: bool = True,
     echo: Echo | None = None,
@@ -124,6 +126,8 @@ def smoke_test_app(
         app_spec=app_spec,
         canvas_width=canvas_width,
         canvas_height=canvas_height,
+        canvas_fit=canvas_fit,
+        canvas_fill=canvas_fill,
     )
     resolved_auto_async, auto_async_source = resolve_auto_async(
         resolved_source_dir,
@@ -169,6 +173,8 @@ def smoke_test_app(
             auto_async=resolved_auto_async,
             canvas_width=canvas_width,
             canvas_height=canvas_height,
+            canvas_fit=canvas_fit,
+            canvas_fill=canvas_fill,
             log=log,
         )
 

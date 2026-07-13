@@ -47,7 +47,8 @@ async def main():
 
         pygame.display.update()
 
-        await asyncio.sleep(0)  # Very important, and keep it 0
+        # Half a frame budget so the browser paints without undershooting 60 FPS.
+        await asyncio.sleep(1 / (60 * 2))
 
 
 if __name__ == "__main__":

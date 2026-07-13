@@ -9,7 +9,9 @@ const assetBasePath = {{ asset_base_path | tojson }};
 const virtualFsRoot = {{ virtual_fs_root | tojson }};
 const startupPythonCode = {{ startup_python_code | tojson }};
 const readyLogMessage = {{ ready_log | tojson }};
-const canvasAutoSize = {{ canvas_auto | tojson }};
+const canvasLayout = {{ canvas_layout | tojson }};
+const canvasAspectWidth = {{ canvas_width | tojson }};
+const canvasAspectHeight = {{ canvas_height | tojson }};
 const pygodideVersion = {{ pygodide_version | tojson }};
 const assetRequestCacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const knownImportPackageAliases = {
@@ -274,14 +276,46 @@ function waitForNextPaint() {
   });
 }
 
-function sizeCanvasToViewport(canvasEl) {
-  // Largest integer buffer that fits the current browser viewport.
-  const width = Math.max(1, Math.floor(window.innerWidth - CANVAS_VIEWPORT_PADDING));
-  const height = Math.max(1, Math.floor(window.innerHeight - CANVAS_VIEWPORT_PADDING));
+function viewportMaxSize() {
+  return {
+    width: Math.max(1, Math.floor(window.innerWidth - CANVAS_VIEWPORT_PADDING)),
+    height: Math.max(1, Math.floor(window.innerHeight - CANVAS_VIEWPORT_PADDING)),
+  };
+}
+
+function applyCanvasBufferSize(canvasEl, width, height) {
   canvasEl.width = width;
   canvasEl.height = height;
   canvasEl.style.width = `${width}px`;
   canvasEl.style.height = `${height}px`;
+}
+
+function sizeCanvasToViewport(canvasEl) {
+  // Stretch to the full usable viewport (may change aspect ratio).
+  const { width, height } = viewportMaxSize();
+  applyCanvasBufferSize(canvasEl, width, height);
+}
+
+function sizeCanvasToFitAspect(canvasEl, aspectWidth, aspectHeight) {
+  // Largest integer size that fits the viewport while keeping the game ratio.
+  const { width: maxWidth, height: maxHeight } = viewportMaxSize();
+  const safeAspectWidth = Math.max(1, aspectWidth);
+  const safeAspectHeight = Math.max(1, aspectHeight);
+  const scale = Math.min(maxWidth / safeAspectWidth, maxHeight / safeAspectHeight);
+  const width = Math.max(1, Math.floor(safeAspectWidth * scale));
+  const height = Math.max(1, Math.floor(safeAspectHeight * scale));
+  applyCanvasBufferSize(canvasEl, width, height);
+}
+
+function applyCanvasLayout(canvasEl) {
+  if (canvasLayout === "fill") {
+    sizeCanvasToViewport(canvasEl);
+    return;
+  }
+  if (canvasLayout === "fit") {
+    sizeCanvasToFitAspect(canvasEl, canvasAspectWidth, canvasAspectHeight);
+  }
+  // "fixed" keeps the HTML width/height attributes from index.html.
 }
 
 function joinVirtualPath(root, relativePath) {
@@ -368,8 +402,9 @@ async function boot() {
   const requiredCanvas = requireElement(canvas, {{ canvas_element_id | tojson }});
   requireElement(status, {{ status_element_id | tojson }});
 
-  if (canvasAutoSize) {
-    sizeCanvasToViewport(requiredCanvas);
+  applyCanvasLayout(requiredCanvas);
+  if (canvasLayout === "fit" || canvasLayout === "fill") {
+    window.addEventListener("resize", () => applyCanvasLayout(requiredCanvas));
   }
 
   console.info(`pygodide ${pygodideVersion}`);

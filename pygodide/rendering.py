@@ -157,8 +157,9 @@ def render_index_html(
     status_text: str = "Loading...",
     status_element_id: str = "status",
     canvas_element_id: str = "canvas",
-    canvas_width: int | None = None,
-    canvas_height: int | None = None,
+    canvas_width: int = 800,
+    canvas_height: int = 600,
+    canvas_layout: str = "fixed",
     pyodide_url: str = "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js",
     boot_script_path: str = "./boot.js",
     favicon_path: str = f"./{DEFAULT_FAVICON_NAME}",
@@ -167,7 +168,6 @@ def render_index_html(
     pygodide_version: str | None = None,
     boot_cache_buster: str | None = None,
 ) -> str:
-    canvas_auto = canvas_width is None or canvas_height is None
     resolved_version = (
         package_version() if pygodide_version is None else pygodide_version
     )
@@ -180,7 +180,7 @@ def render_index_html(
         canvas_element_id=canvas_element_id,
         canvas_width=canvas_width,
         canvas_height=canvas_height,
-        canvas_auto=canvas_auto,
+        canvas_layout=canvas_layout,
         pyodide_url=pyodide_url,
         boot_script_path=boot_script_path,
         favicon_path=favicon_path,
@@ -274,11 +274,13 @@ def render_boot_js(
     loading_app_hint_text: str = (
         "If the page stays here, your app is probably blocking the browser "
         "event loop. For Pyodide game loops, make the entrypoint async and "
-        "add await asyncio.sleep(0)."
+        "add await asyncio.sleep(1 / (60 * 2)) once per frame."
     ),
     running_status_text: str = "Running",
     ready_log: str = DEFAULT_READY_LOG,
-    canvas_auto: bool = True,
+    canvas_layout: str = "fixed",
+    canvas_width: int = 800,
+    canvas_height: int = 600,
     pygodide_version: str | None = None,
 ) -> str:
     template = _template_environment().get_template("boot.js")
@@ -302,7 +304,9 @@ def render_boot_js(
     return template.render(
         status_element_id=status_element_id,
         canvas_element_id=canvas_element_id,
-        canvas_auto=canvas_auto,
+        canvas_layout=canvas_layout,
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
         pygodide_version=resolved_version,
         pyodide_packages=(
             pyodide_packages

@@ -81,7 +81,7 @@ pygodide smoke . --build-only --verbose
 ## Make the game async-compatible
 
 Pygame games need to yield to the browser event loop. Pygodide tries to do this
-automatically during `pygodide build` by inserting `await asyncio.sleep(0)` into
+automatically during `pygodide build` by inserting `await asyncio.sleep(1/120)` into
 simple `while` game loops in your entrypoint (or a helper it calls directly).
 
 Check whether that worked:
@@ -105,7 +105,8 @@ auto-async = false
 
 1. `import asyncio`
 2. Change `def main():` to `async def main():`
-3. Add `await asyncio.sleep(0)` once per frame inside the main loop
+3. Add `await asyncio.sleep(1 / (fps * 2))` once per frame inside the main loop
+   (half a frame budget so work + yield can still hit your target FPS)
 4. Keep local runs working with:
 
 ```python
@@ -138,7 +139,8 @@ async def main():
         screen.fill((0, 0, 0))
         pygame.display.update()
         clock.tick(60)
-        await asyncio.sleep(0)
+        # Half a frame budget: yields for paint without always undershooting FPS.
+        await asyncio.sleep(1 / (60 * 2))
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -290,8 +292,10 @@ app = "main:web_main"
 auto-async = true
 include = ["main.py", "sprites/**", "sounds/**"]
 title = "My Game"
-canvas-width = 800
-canvas-height = 600
+# canvas-fit = true   # max size in viewport, keep game aspect
+# canvas-fill = true  # stretch to full viewport (may change aspect)
+# canvas-width = 1280 # fixed box (with canvas-height); default is set_mode as-is
+# canvas-height = 720
 # python-path = [".", "src", "lib"]  # only when imports need extra roots
 dependencies = ["pyyaml"]
 dependency-groups = ["web"]
@@ -303,7 +307,9 @@ dependency-groups = ["web"]
 | `auto-async` | Enable/disable automatic game-loop conversion. Defaults to `true`. |
 | `include` | Files to stage into the build. If omitted, pygodide auto-discovers files (excluding `.git`, `.github`, `.venv`, `build`, `pyproject.toml`, and similar tooling dirs). |
 | `title` | HTML page title. Defaults to the project directory name. |
-| `canvas-width`, `canvas-height` | Fixed HTML canvas size in pixels. If **both** are omitted (and not passed on the CLI), the canvas fills the browser viewport at boot. Override with `pygodide build . --canvas-width W --canvas-height H`. |
+| `canvas-width`, `canvas-height` | Fixed HTML canvas size in pixels. Stretches Pygame output to that box. CLI: `--canvas-width` / `--canvas-height`. |
+| `canvas-fit` | If `true`, scale to the largest size that fits the viewport while keeping the game aspect ratio. CLI: `--canvas-fit`. |
+| `canvas-fill` | If `true`, stretch the canvas to fill the whole browser viewport (may change aspect ratio). CLI: `--canvas-fill`. |
 | `python-path` | Folders added to `sys.path` for imports. Defaults to `["."]`. See [Python path](#python-path). |
 | `dependencies` | Extra browser-only packages not listed under `[project]`. |
 | `dependency-groups` | Named dependency groups to include in the web build. |
@@ -312,6 +318,26 @@ The [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets
 example uses `[project].dependencies` for `numpy`, `pygame-ce`, and
 `fastquadtree`, plus `app = "main:web_main"` for a separate browser entry
 function.
+
+### Canvas size
+
+Canvas options control the **HTML canvas** pygodide creates for the page. They
+do **not** change Pygame's internal resolution from
+`pygame.display.set_mode(...)`. Pygame's surface is stretched (scaled) to
+the canvas box.
+
+By default, pygodide scans for `set_mode((width, height))` (including simple
+named constants like `SCREEN_WIDTH`) and uses that size as-is for the HTML
+canvas. If `set_mode` cannot be found, it assumes **800×600**.
+
+Choose one layout (they are mutually exclusive):
+
+| Setting | What you see |
+| --- | --- |
+| Default | Fixed canvas at the auto-discovered `set_mode` size (as-is). |
+| `--canvas-fit` / `canvas-fit = true` | Largest size in the viewport that keeps the game aspect ratio. |
+| `--canvas-fill` / `canvas-fill = true` | Fill the whole viewport; aspect may change. |
+| `--canvas-width` / `--canvas-height` | Fixed pixel box at that resolution; Pygame output is stretched to it. |
 
 ## Publishing to itch.io
 
@@ -417,25 +443,6 @@ npx gh-pages -d build
 
 Or copy `build/*` onto a `gh-pages` branch manually. CI is usually easier to
 keep up to date.
-
-### Tips
-
-- **Paths**: pygodide uses relative asset URLs (`./boot.js`, and so on), so
-  project pages under `/<repo>/` and **custom domains** work without extra
-  base-path config. A custom DNS name is not a special case.
-- **What gets staged**: auto-discovery should only pick up game assets and
-  source. Tooling trees such as `.git` and `.github` are skipped so the browser
-  does not try to `fetch` CI workflow files that Pages will not serve.
-- **Canvas size**: match `pygame.display.set_mode`, or pass
-  `--canvas-width` / `--canvas-height`, or leave both unset to fill the
-  viewport.
-- **First load**: the browser downloads Pyodide and packages from the CDN; that
-  can take a while and is unrelated to Pages misconfiguration.
-- **Smoke in CI**: optional and heavier (Playwright + Chromium). Many projects
-  run smoke only on pull requests or releases.
-- **Public site**: everything under `build/` is public; do not ship secrets.
-- **itch.io vs Pages**: same `build/` idea. itch uses `pygodide build . --zip`;
-  Pages serves the `build/` directory continuously from git/CI.
 
 ## Still stuck?
 

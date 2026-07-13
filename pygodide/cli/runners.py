@@ -33,6 +33,8 @@ def run_build_command(
     zip_output: Path | None = None,
     canvas_width: int | None = None,
     canvas_height: int | None = None,
+    canvas_fit: bool | None = None,
+    canvas_fill: bool | None = None,
 ) -> None:
     source_dir = path.resolve()
     warn_if_pygodide_output_dir(
@@ -68,6 +70,8 @@ def run_build_command(
             auto_async=resolved_auto_async,
             canvas_width=canvas_width,
             canvas_height=canvas_height,
+            canvas_fit=canvas_fit,
+            canvas_fill=canvas_fill,
             log=build_log_tee(build_log_path, typer.echo),
         )
     except ValueError as exc:
@@ -113,6 +117,8 @@ def run_smoke_command(
     auto_async: bool | None = None,
     canvas_width: int | None = None,
     canvas_height: int | None = None,
+    canvas_fit: bool | None = None,
+    canvas_fill: bool | None = None,
     verbose: bool = False,
 ) -> None:
     from pygodide.smoke import (
@@ -153,6 +159,8 @@ def run_smoke_command(
             auto_async=auto_async,
             canvas_width=canvas_width,
             canvas_height=canvas_height,
+            canvas_fit=canvas_fit,
+            canvas_fill=canvas_fill,
             smoke=resolve_smoke_config(
                 path,
                 smoke=SmokeConfig(

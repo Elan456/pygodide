@@ -106,7 +106,7 @@ async def main():
         )
 
         pygame.display.flip()
-        await asyncio.sleep(0)
+        await asyncio.sleep(1 / (60 * 2))
 
 
 if __name__ == "__main__":

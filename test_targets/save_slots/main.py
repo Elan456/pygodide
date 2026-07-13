@@ -283,7 +283,7 @@ async def main() -> None:
         screen.blit(fps_text, (SCREEN_WIDTH - fps_text.get_width() - 20, 22))
 
         pygame.display.flip()
-        await asyncio.sleep(0)
+        await asyncio.sleep(1 / (60 * 2))
 
 
 if __name__ == "__main__":

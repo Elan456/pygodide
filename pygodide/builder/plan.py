@@ -4,7 +4,14 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+from typing import Literal
 
+from pygodide.builder.display_size import (
+    DEFAULT_DISPLAY_HEIGHT,
+    DEFAULT_DISPLAY_WIDTH,
+    DisplaySizeDetection,
+    detect_display_size,
+)
 from pygodide.project_config import (
     AppEntrypoint,
     PygodideProjectConfig,
@@ -13,8 +20,8 @@ from pygodide.project_config import (
 )
 
 DEFAULT_APP_SPEC = "main:main"
-DEFAULT_CANVAS_WIDTH = 800
-DEFAULT_CANVAS_HEIGHT = 600
+DEFAULT_CANVAS_WIDTH = DEFAULT_DISPLAY_WIDTH
+DEFAULT_CANVAS_HEIGHT = DEFAULT_DISPLAY_HEIGHT
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_RELATIVE_PYTHON_PATH_ENTRIES = ["."]
 DEFAULT_EXCLUDED_FILENAMES = {"pyproject.toml", "testing_manifest.yaml", "uv.lock"}
@@ -36,6 +43,11 @@ IGNORED_PATH_PARTS = {
     "node_modules",
 }
 
+# fixed: exact pixel box (default = auto-discovered set_mode size as-is)
+# fit: largest size in the viewport that keeps the game aspect ratio
+# fill: stretch to the full viewport (may change aspect)
+CanvasLayout = Literal["fit", "fill", "fixed"]
+
 
 @dataclass(frozen=True)
 class BuildPlan:
@@ -47,9 +59,16 @@ class BuildPlan:
     app_source: str
     package_files_source: str
     title: str
-    # None means fill the browser viewport at boot time.
-    canvas_width: int | None
-    canvas_height: int | None
+    # Layout box size (always set). For fit/fill this is the game aspect size;
+    # for fixed it is the discovered or configured pixel box.
+    canvas_width: int
+    canvas_height: int
+    canvas_layout: CanvasLayout
+    # Result of set_mode scanning (fallback 800x600 when not found).
+    canvas_aspect_found: bool
+    canvas_aspect_source: str | None
+    canvas_aspect_width: int
+    canvas_aspect_height: int
     python_path_entries: list[str]
 
 
@@ -103,6 +122,8 @@ def build_plan_for_source(
     app_spec: str | None = None,
     canvas_width: int | None = None,
     canvas_height: int | None = None,
+    canvas_fit: bool | None = None,
+    canvas_fill: bool | None = None,
 ) -> BuildPlan:
     resolved_source_dir = Path(source_dir).resolve()
     if not resolved_source_dir.is_dir():
@@ -124,10 +145,19 @@ def build_plan_for_source(
         if project_config and project_config.python_path
         else DEFAULT_RELATIVE_PYTHON_PATH_ENTRIES
     )
-    resolved_width, resolved_height = resolve_canvas_size(
+    detection: DisplaySizeDetection = detect_display_size(
+        resolved_source_dir,
+        entry_module=resolved_app.module,
+        package_files=package_files,
+    )
+    resolved_width, resolved_height, canvas_layout = resolve_canvas_size(
         project_config,
         canvas_width=canvas_width,
         canvas_height=canvas_height,
+        canvas_fit=canvas_fit,
+        canvas_fill=canvas_fill,
+        detected_width=detection.width,
+        detected_height=detection.height,
     )
 
     return BuildPlan(
@@ -149,6 +179,11 @@ def build_plan_for_source(
         ),
         canvas_width=resolved_width,
         canvas_height=resolved_height,
+        canvas_layout=canvas_layout,
+        canvas_aspect_found=detection.found,
+        canvas_aspect_source=detection.source,
+        canvas_aspect_width=detection.width,
+        canvas_aspect_height=detection.height,
         python_path_entries=resolve_python_path_entries(raw_python_path_entries),
     )
 
@@ -158,12 +193,21 @@ def resolve_canvas_size(
     *,
     canvas_width: int | None = None,
     canvas_height: int | None = None,
-) -> tuple[int | None, int | None]:
-    """Resolve canvas size.
+    canvas_fit: bool | None = None,
+    canvas_fill: bool | None = None,
+    detected_width: int = DEFAULT_CANVAS_WIDTH,
+    detected_height: int = DEFAULT_CANVAS_HEIGHT,
+) -> tuple[int, int, CanvasLayout]:
+    """Resolve canvas layout and reference size.
 
-    Priority: CLI overrides project config. If neither side is set for either
-    dimension, return ``(None, None)`` so the browser fills the viewport.
-    If only one dimension is set, the other falls back to the fixed defaults.
+    Priority (mutually exclusive layouts):
+    1. Explicit ``canvas-width`` / ``canvas-height`` → fixed pixel box
+    2. Explicit ``canvas-fit`` → largest viewport size keeping game aspect
+    3. Explicit ``canvas-fill`` → stretch to fill the viewport
+    4. Default → fixed box at the auto-discovered ``set_mode`` size (as-is)
+
+    Reference width/height for fit/fill/default come from a ``set_mode`` scan
+    (falling back to 800×600).
     """
     width = (
         canvas_width
@@ -183,16 +227,55 @@ def resolve_canvas_size(
             else None
         )
     )
-    if width is None and height is None:
-        return None, None
-
-    resolved_width = DEFAULT_CANVAS_WIDTH if width is None else width
-    resolved_height = DEFAULT_CANVAS_HEIGHT if height is None else height
-    if resolved_width <= 0 or resolved_height <= 0:
-        raise ValueError(
-            f"Canvas size must be positive (got {resolved_width}x{resolved_height})"
+    fit = (
+        canvas_fit
+        if canvas_fit is not None
+        else (
+            project_config.canvas_fit
+            if project_config and project_config.canvas_fit is not None
+            else None
         )
-    return resolved_width, resolved_height
+    )
+    fill = (
+        canvas_fill
+        if canvas_fill is not None
+        else (
+            project_config.canvas_fill
+            if project_config and project_config.canvas_fill is not None
+            else None
+        )
+    )
+
+    has_fixed = width is not None or height is not None
+    wants_fit = fit is True
+    wants_fill = fill is True
+    exclusive_count = sum((has_fixed, wants_fit, wants_fill))
+    if exclusive_count > 1:
+        raise ValueError(
+            "Choose one canvas layout: fixed size "
+            "(--canvas-width/--canvas-height), --canvas-fit, or --canvas-fill."
+        )
+
+    game_width = DEFAULT_CANVAS_WIDTH if detected_width <= 0 else detected_width
+    game_height = DEFAULT_CANVAS_HEIGHT if detected_height <= 0 else detected_height
+
+    if has_fixed:
+        resolved_width = game_width if width is None else width
+        resolved_height = game_height if height is None else height
+        if resolved_width <= 0 or resolved_height <= 0:
+            raise ValueError(
+                f"Canvas size must be positive (got {resolved_width}x{resolved_height})"
+            )
+        return resolved_width, resolved_height, "fixed"
+
+    if wants_fit:
+        return game_width, game_height, "fit"
+
+    if wants_fill:
+        return game_width, game_height, "fill"
+
+    # Default: use auto-discovered size as a fixed pixel box.
+    return game_width, game_height, "fixed"
 
 
 def build_output_dir(path: str | Path) -> Path:

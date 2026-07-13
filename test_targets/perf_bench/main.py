@@ -119,7 +119,9 @@ async def main() -> None:
 
         pygame.display.update()
 
-        await asyncio.sleep(0)
+        await asyncio.sleep(
+            0
+        )  # Uncapped for maximum FPS, only consistently works well on Chrome.
 
 
 if __name__ == "__main__":

@@ -107,8 +107,10 @@ def build(
             "--canvas-width",
             min=1,
             help=(
-                "HTML canvas width in pixels. Overrides "
-                "[tool.pygodide].canvas-width when provided."
+                "Fixed HTML canvas width in pixels (with --canvas-height). "
+                "Stretches Pygame's surface to this size; does not change "
+                "set_mode. Default without this is the auto-discovered "
+                "set_mode size as-is. Overrides [tool.pygodide].canvas-width."
             ),
         ),
     ] = None,
@@ -118,8 +120,32 @@ def build(
             "--canvas-height",
             min=1,
             help=(
-                "HTML canvas height in pixels. Overrides "
-                "[tool.pygodide].canvas-height when provided."
+                "Fixed HTML canvas height in pixels (with --canvas-width). "
+                "Stretches Pygame's surface to this size; does not change "
+                "set_mode. Overrides [tool.pygodide].canvas-height."
+            ),
+        ),
+    ] = None,
+    canvas_fit: Annotated[
+        bool | None,
+        typer.Option(
+            "--canvas-fit/--no-canvas-fit",
+            help=(
+                "Scale the canvas to the largest size that fits the viewport "
+                "while keeping the game's set_mode aspect ratio. Overrides "
+                "[tool.pygodide].canvas-fit. Cannot combine with fill or fixed "
+                "size."
+            ),
+        ),
+    ] = None,
+    canvas_fill: Annotated[
+        bool | None,
+        typer.Option(
+            "--canvas-fill/--no-canvas-fill",
+            help=(
+                "Stretch the canvas to fill the browser viewport (may change "
+                "aspect ratio). Overrides [tool.pygodide].canvas-fill. Cannot "
+                "combine with fit or fixed size."
             ),
         ),
     ] = None,
@@ -139,6 +165,8 @@ def build(
         zip_output=zip_output,
         canvas_width=canvas_width,
         canvas_height=canvas_height,
+        canvas_fit=canvas_fit,
+        canvas_fill=canvas_fill,
     )
 
 
@@ -259,8 +287,9 @@ def smoke(
             "--canvas-width",
             min=1,
             help=(
-                "HTML canvas width in pixels. Overrides "
-                "[tool.pygodide].canvas-width when provided."
+                "Fixed HTML canvas width in pixels (with --canvas-height). "
+                "Stretches Pygame's surface to this size; does not change "
+                "set_mode. Overrides [tool.pygodide].canvas-width."
             ),
         ),
     ] = None,
@@ -270,8 +299,29 @@ def smoke(
             "--canvas-height",
             min=1,
             help=(
-                "HTML canvas height in pixels. Overrides "
-                "[tool.pygodide].canvas-height when provided."
+                "Fixed HTML canvas height in pixels (with --canvas-width). "
+                "Stretches Pygame's surface to this size; does not change "
+                "set_mode. Overrides [tool.pygodide].canvas-height."
+            ),
+        ),
+    ] = None,
+    canvas_fit: Annotated[
+        bool | None,
+        typer.Option(
+            "--canvas-fit/--no-canvas-fit",
+            help=(
+                "Scale to the largest viewport size that keeps the game aspect "
+                "ratio. Overrides [tool.pygodide].canvas-fit."
+            ),
+        ),
+    ] = None,
+    canvas_fill: Annotated[
+        bool | None,
+        typer.Option(
+            "--canvas-fill/--no-canvas-fill",
+            help=(
+                "Stretch the canvas to fill the browser viewport (may change "
+                "aspect ratio). Overrides [tool.pygodide].canvas-fill."
             ),
         ),
     ] = None,
@@ -301,6 +351,8 @@ def smoke(
         auto_async=auto_async,
         canvas_width=canvas_width,
         canvas_height=canvas_height,
+        canvas_fit=canvas_fit,
+        canvas_fill=canvas_fill,
         verbose=verbose,
     )
 

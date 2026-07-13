@@ -4,7 +4,7 @@ import ast
 from pathlib import Path
 
 from pygodide.asyncify.ast_utils import loop_has_pygame_frame_signal
-from pygodide.asyncify.constants import MANUAL_ASYNC_GUIDANCE
+from pygodide.asyncify.constants import FRAME_YIELD_HINT, MANUAL_ASYNC_GUIDANCE
 from pygodide.asyncify.models import (
     AsyncifyDiagnostic,
     EntrypointAnalysis,
@@ -44,7 +44,7 @@ def diagnose_entrypoint(
         status="would-change",
         message=(
             f"Auto async would transform {analysis.relative_path}, "
-            "inserting await asyncio.sleep(0)"
+            f"inserting {FRAME_YIELD_HINT}"
         ),
         warnings=analysis.warnings,
     )

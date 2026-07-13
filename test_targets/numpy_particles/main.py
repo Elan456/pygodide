@@ -280,7 +280,7 @@ async def web_main():
 
     while True:
         score = loop(clock, score)
-        await asyncio.sleep(0)
+        await asyncio.sleep(1 / (60 * 2))
 
 
 if __name__ == "__main__":

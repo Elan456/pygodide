@@ -68,7 +68,7 @@ async def main():
         _draw_line("SPACE: play staged sounds   ESC: quit", y, label_font=small_font)
 
         pygame.display.flip()
-        await asyncio.sleep(0)
+        await asyncio.sleep(1 / (60 * 2))
 
 
 if __name__ == "__main__":

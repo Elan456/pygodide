@@ -184,10 +184,29 @@ def log_build_choices(
         f"App entrypoint: {build_plan.entry_module}:{build_plan.entry_function} "
         f"({build_plan.app_source})"
     )
-    if build_plan.canvas_width is None or build_plan.canvas_height is None:
-        log("Canvas: auto (fill viewport)")
+    layout = getattr(build_plan, "canvas_layout", "fixed")
+    size = f"{build_plan.canvas_width}x{build_plan.canvas_height}"
+    aspect_found = getattr(build_plan, "canvas_aspect_found", None)
+    aspect_source = getattr(build_plan, "canvas_aspect_source", None)
+    aspect_width = getattr(build_plan, "canvas_aspect_width", build_plan.canvas_width)
+    aspect_height = getattr(
+        build_plan, "canvas_aspect_height", build_plan.canvas_height
+    )
+    aspect_size = f"{aspect_width}x{aspect_height}"
+    if aspect_found is True:
+        source_label = aspect_source or "source"
+        log(f"Canvas aspect: found {aspect_size} in {source_label}")
+    elif aspect_found is False:
+        log(
+            "Canvas aspect: not found "
+            f"(using default {aspect_size}; could not resolve set_mode size)"
+        )
+    if layout == "fill":
+        log(f"Canvas: fill viewport (stretch from {size})")
+    elif layout == "fit":
+        log(f"Canvas: fit {size} (max in viewport, aspect preserved)")
     else:
-        log(f"Canvas: {build_plan.canvas_width}x{build_plan.canvas_height}")
+        log(f"Canvas: fixed {size} (as-is)")
     log(
         f"Package files: {len(build_plan.package_files)} "
         f"({build_plan.package_files_source})"

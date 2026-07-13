@@ -156,8 +156,8 @@ def test_build_allows_project_directory_named_build(tmp_path):
     assert (source_dir / "build" / "boot.js").is_file()
 
 
-def test_build_command_defaults_to_auto_canvas_size(tmp_path):
-    source_dir = tmp_path / "auto_canvas"
+def test_build_command_defaults_to_discovered_size_as_is(tmp_path):
+    source_dir = tmp_path / "default_canvas"
     source_dir.mkdir(parents=True)
     (source_dir / "main.py").write_text(
         "async def main():\n    return None\n",
@@ -167,11 +167,84 @@ def test_build_command_defaults_to_auto_canvas_size(tmp_path):
     result = runner.invoke(app, ["build", str(source_dir)])
 
     assert result.exit_code == 0, result.output
-    assert "Canvas: auto (fill viewport)" in result.output
+    assert "Canvas aspect: not found" in result.output
+    assert "using default 800x600" in result.output
+    assert "Canvas: fixed 800x600 (as-is)" in result.output
     index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
-    assert 'data-canvas-auto="true"' in index_html
-    assert "const canvasAutoSize = true;" in boot_js
+    assert 'width="800"' in index_html
+    assert 'height="600"' in index_html
+    assert 'data-canvas-layout="fixed"' in index_html
+    assert 'const canvasLayout = "fixed";' in boot_js
+
+
+def test_build_command_logs_found_canvas_aspect_and_uses_as_is(tmp_path):
+    source_dir = tmp_path / "aspect_found"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        """
+import pygame
+
+SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 576
+pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+async def main():
+    return None
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["build", str(source_dir)])
+
+    assert result.exit_code == 0, result.output
+    assert "Canvas aspect: found 1024x576 in main.py" in result.output
+    assert "Canvas: fixed 1024x576 (as-is)" in result.output
+    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    assert 'width="1024"' in index_html
+    assert 'height="576"' in index_html
+    assert 'data-canvas-layout="fixed"' in index_html
+
+
+def test_build_command_canvas_fit_scales_to_viewport(tmp_path):
+    source_dir = tmp_path / "fit_canvas"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        """
+import pygame
+pygame.display.set_mode((800, 600))
+async def main():
+    return None
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["build", str(source_dir), "--canvas-fit"])
+
+    assert result.exit_code == 0, result.output
+    assert "Canvas: fit 800x600" in result.output
+    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
+    assert 'data-canvas-layout="fit"' in index_html
+    assert 'const canvasLayout = "fit";' in boot_js
+    assert "sizeCanvasToFitAspect" in boot_js
+
+
+def test_build_command_canvas_fill_fills_viewport(tmp_path):
+    source_dir = tmp_path / "fill_canvas"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["build", str(source_dir), "--canvas-fill"])
+
+    assert result.exit_code == 0, result.output
+    assert "Canvas: fill viewport" in result.output
+    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
+    assert 'data-canvas-layout="fill"' in index_html
+    assert 'const canvasLayout = "fill";' in boot_js
     assert "sizeCanvasToViewport" in boot_js
 
 
@@ -208,14 +281,14 @@ canvas-height = 768
     )
 
     assert result.exit_code == 0, result.output
-    assert "Canvas: 1280x720" in result.output
+    assert "Canvas: fixed 1280x720 (as-is)" in result.output
     index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
     assert 'width="1280"' in index_html
     assert 'height="720"' in index_html
     assert 'width="1024"' not in index_html
-    assert "data-canvas-auto" not in index_html
-    assert "const canvasAutoSize = false;" in boot_js
+    assert 'data-canvas-layout="fixed"' in index_html
+    assert 'const canvasLayout = "fixed";' in boot_js
 
 
 def test_build_command_uses_project_root_favicon(tmp_path):
@@ -431,7 +504,10 @@ def test_template_renderers_include_configured_values():
     assert "os.chdir(\\u0027/\\u0027)" in boot_js
     assert "from demo.main import start" in boot_js
     assert "/vendor" in boot_js
-    assert "await asyncio.sleep(0)" in boot_js
+    # Startup drains the event loop once (not frame pacing).
+    assert ".sleep(0)" in boot_js
+    # Loading-app hint for game loops.
+    assert "await asyncio.sleep(1 / (60 * 2))" in boot_js
     assert "console.warn(getLoadingAppStatusMessage())" in boot_js
     assert "const appPromise = runtime.runPythonAsync(startupPythonCode);" in boot_js
     assert 'const readyLogMessage = "[pygodide] ready";' in boot_js
@@ -466,22 +542,21 @@ def main():
     result = runner.invoke(app, ["build", str(source_dir)])
 
     assert result.exit_code == 0, result.output
-    assert "Auto async: transformed main.py, inserted await asyncio.sleep(0)" in (
-        result.output
+    auto_async_msg = (
+        "Auto async: transformed main.py, inserted await asyncio.sleep(1 / (60 * 2))"
     )
+    assert auto_async_msg in result.output
 
     built_main = (source_dir / "build" / "main.py").read_text(encoding="utf-8")
     assert "async def main():" in built_main
-    assert "await asyncio.sleep(0)" in built_main
+    assert "await asyncio.sleep(1 / (60 * 2))" in built_main
 
     build_log = (source_dir / "build" / "pygodide-build.log").read_text(
         encoding="utf-8"
     )
-    assert "Auto async: transformed main.py, inserted await asyncio.sleep(0)" in (
-        build_log
-    )
+    assert auto_async_msg in build_log
     assert "Auto async transformed source (main.py):" in build_log
-    assert "await asyncio.sleep(0)" in build_log
+    assert "await asyncio.sleep(1 / (60 * 2))" in build_log
 
 
 def test_build_command_no_auto_async_leaves_sync_source(tmp_path):

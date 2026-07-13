@@ -89,7 +89,8 @@ def assert_ready_status_hidden(
         raise RuntimeError(
             "Page logged ready but did not hide the loading UI. "
             "The app may be blocking the browser event loop; make the entrypoint "
-            "async and yield with await asyncio.sleep(0) in long-running loops."
+            "async and yield with await asyncio.sleep(1 / (60 * 2)) "
+            "in long-running loops."
         ) from exc
 
 

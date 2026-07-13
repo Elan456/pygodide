@@ -20,6 +20,8 @@ class PygodideProjectConfig:
     title: str | None = None
     canvas_width: int | None = None
     canvas_height: int | None = None
+    canvas_fit: bool | None = None
+    canvas_fill: bool | None = None
     python_path: list[str] | None = None
     dependencies: list[str] | None = None
     dependency_groups: list[str] | None = None
@@ -73,6 +75,16 @@ def load_pygodide_project_config(
         canvas_height=_parse_optional_int(
             raw_config,
             key="canvas-height",
+            pyproject_path=pyproject_path,
+        ),
+        canvas_fit=_parse_optional_bool(
+            raw_config,
+            key="canvas-fit",
+            pyproject_path=pyproject_path,
+        ),
+        canvas_fill=_parse_optional_bool(
+            raw_config,
+            key="canvas-fill",
             pyproject_path=pyproject_path,
         ),
         python_path=_parse_optional_string_list(

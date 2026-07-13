@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pygodide.asyncify.analyze import analyze_entrypoint, entrypoint_relative_path
 from pygodide.asyncify.ast_utils import dotted_name
+from pygodide.asyncify.constants import DEFAULT_TARGET_FPS, FRAME_YIELD_HINT
 from pygodide.asyncify.models import AsyncifyResult
 from pygodide.builder.plan import BuildPlan
 
@@ -44,7 +45,7 @@ def asyncify_entrypoint(build_plan: BuildPlan, output_dir: Path) -> AsyncifyResu
         if transform_target.game_loop is not None and not loop_yields_to_asyncio(
             transform_target.game_loop
         ):
-            transform_target.game_loop.body.append(asyncio_sleep_statement())
+            transform_target.game_loop.body.append(asyncio_frame_sleep_statement())
         if transform_target.await_calls_to:
             await_calls_to_functions(
                 transform_target.function,
@@ -60,7 +61,7 @@ def asyncify_entrypoint(build_plan: BuildPlan, output_dir: Path) -> AsyncifyResu
         changed=True,
         status="changed",
         message=(
-            f"Auto async: transformed {relative_path}, inserted await asyncio.sleep(0)"
+            f"Auto async: transformed {relative_path}, inserted {FRAME_YIELD_HINT}"
         ),
         relative_path=relative_path,
         warnings=analysis.warnings,
@@ -85,7 +86,8 @@ def loop_yields_to_asyncio(loop: ast.While) -> bool:
     )
 
 
-def asyncio_sleep_statement() -> ast.Expr:
+def asyncio_frame_sleep_statement() -> ast.Expr:
+    """Yield with half a frame budget so work + sleep can still hit target FPS."""
     return ast.Expr(
         value=ast.Await(
             value=ast.Call(
@@ -94,7 +96,17 @@ def asyncio_sleep_statement() -> ast.Expr:
                     attr="sleep",
                     ctx=ast.Load(),
                 ),
-                args=[ast.Constant(value=0)],
+                args=[
+                    ast.BinOp(
+                        left=ast.Constant(value=1),
+                        op=ast.Div(),
+                        right=ast.BinOp(
+                            left=ast.Constant(value=DEFAULT_TARGET_FPS),
+                            op=ast.Mult(),
+                            right=ast.Constant(value=2),
+                        ),
+                    )
+                ],
                 keywords=[],
             )
         )
