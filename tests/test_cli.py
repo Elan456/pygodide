@@ -50,6 +50,9 @@ def test_build_command_creates_expected_output(tmp_path):
     git_object = git_objects / "cdef"
     git_object.write_bytes(b"fake-git-object")
     git_object.chmod(0o444)
+    github_workflow = source_dir / ".github" / "workflows"
+    github_workflow.mkdir(parents=True)
+    (github_workflow / "pages.yml").write_text("name: pages\n", encoding="utf-8")
 
     result = runner.invoke(app, ["build", str(source_dir)])
 
@@ -73,6 +76,10 @@ def test_build_command_creates_expected_output(tmp_path):
     assert (output_dir / "assets" / "sprite.bin").read_bytes() == b"\x00\x01\x02"
     assert not (output_dir / ".venv").exists()
     assert not (output_dir / ".git").exists()
+    assert not (output_dir / ".github").exists()
+    assert ".github/workflows/pages.yml" not in (output_dir / "boot.js").read_text(
+        encoding="utf-8"
+    )
 
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
     boot_js = (output_dir / "boot.js").read_text(encoding="utf-8")
@@ -363,6 +370,10 @@ def test_template_renderers_include_configured_values():
     assert 'const declaredPackageNames = ["pygame-ce", "numpy"];' in boot_js
     assert "function extractPythonErrorText(error)" in boot_js
     assert "function formatPyodideError(error)" in boot_js
+    assert "function formatAssetFetchError(filename, url, detail)" in boot_js
+    assert "Failed to download staged file" in boot_js
+    assert "upload-pages-artifact always excludes .git and .github" in boot_js
+    assert "stack.includes(message)" in boot_js
     assert "ModuleNotFoundError" in boot_js
     assert "Add '${suggestedPackageName}' to [project].dependencies" in boot_js
     assert 'pygame: "pygame-ce"' in boot_js

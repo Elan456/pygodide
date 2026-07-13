@@ -112,8 +112,17 @@ function errorToString(error) {
     return pythonError;
   }
 
-  if (error instanceof Error && error.stack) {
-    return error.stack;
+  if (error instanceof Error) {
+    const message = (error.message || error.name || "Unknown error").trim();
+    const stack = typeof error.stack === "string" ? error.stack.trim() : "";
+    // Safari/Firefox often put only frames in `.stack`, without the message.
+    if (stack && message && !stack.includes(message)) {
+      return `${message}\n\n${stack}`;
+    }
+    if (stack) {
+      return stack;
+    }
+    return message;
   }
 
   return String(error);
@@ -150,11 +159,29 @@ function formatConfiguredDependencies() {
   return declaredPackageNames.join(", ");
 }
 
+function formatAssetFetchError(filename, url, detail) {
+  const cleanUrl = String(url).replace(/([?&])_pygodide=[^&]*/g, "$1").replace(/[?&]$/, "");
+  return [
+    `Failed to download staged file '${filename}'.`,
+    `URL: ${cleanUrl}`,
+    detail,
+    "",
+    "The build listed this path for the browser, but the web host did not serve it.",
+    "Common causes:",
+    "- Deploy omitted the file (GitHub Pages upload-pages-artifact always excludes .git and .github)",
+    "- Auto-discovery included a tooling path that is not part of the game",
+    "- The published build/ is incomplete or from an older deploy",
+    "",
+    "Fix: rebuild with a current pygodide (tooling dirs are skipped), or set",
+    "[tool.pygodide].include to only the files your game needs, then redeploy build/.",
+  ].join("\n");
+}
+
 function formatPyodideError(error) {
   const errorText = errorToString(error);
   const missingModuleName = extractMissingModuleName(errorText);
   if (!missingModuleName) {
-    return `Error: ${errorText}`;
+    return `Error:\n${errorText}`;
   }
 
   const suggestedPackageName = guessPackageNameForModule(missingModuleName);
@@ -235,19 +262,43 @@ function resolveAssetUrl(filename) {
 }
 
 async function fetchAssetBytes(filename) {
-  const response = await fetch(resolveAssetUrl(filename), { cache: "no-store" });
+  const url = resolveAssetUrl(filename);
+  let response;
+  try {
+    response = await fetch(url, { cache: "no-store" });
+  } catch (error) {
+    const detail =
+      error instanceof Error ? `Network error: ${error.message}` : `Network error: ${error}`;
+    throw new Error(formatAssetFetchError(filename, url, detail), { cause: error });
+  }
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${filename}: ${response.status} ${response.statusText}`);
+    throw new Error(
+      formatAssetFetchError(
+        filename,
+        url,
+        `HTTP ${response.status} ${response.statusText || ""}`.trim(),
+      ),
+    );
   }
   return new Uint8Array(await response.arrayBuffer());
 }
 
 async function stageAppFiles(runtime) {
   for (const filename of packageFiles) {
-    const source = await fetchAssetBytes(filename);
-    const targetPath = joinVirtualPath(virtualFsRoot, filename);
-    ensureParentDir(runtime, targetPath);
-    runtime.FS.writeFile(targetPath, source);
+    try {
+      const source = await fetchAssetBytes(filename);
+      const targetPath = joinVirtualPath(virtualFsRoot, filename);
+      ensureParentDir(runtime, targetPath);
+      runtime.FS.writeFile(targetPath, source);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Failed to download staged file")) {
+        throw error;
+      }
+      throw new Error(
+        `Failed while staging '${filename}' into the browser filesystem.\n${errorToString(error)}`,
+        { cause: error },
+      );
+    }
   }
 }
 

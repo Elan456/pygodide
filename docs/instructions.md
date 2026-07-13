@@ -301,7 +301,7 @@ dependency-groups = ["web"]
 | --- | --- |
 | `app` | Entry function (`module:callable`). Defaults to `main:main`. |
 | `auto-async` | Enable/disable automatic game-loop conversion. Defaults to `true`. |
-| `include` | Files to stage into the build. If omitted, pygodide auto-discovers files (excluding `.git`, `.venv`, `build`, `pyproject.toml`, and similar tooling dirs). |
+| `include` | Files to stage into the build. If omitted, pygodide auto-discovers files (excluding `.git`, `.github`, `.venv`, `build`, `pyproject.toml`, and similar tooling dirs). |
 | `title` | HTML page title. Defaults to the project directory name. |
 | `canvas-width`, `canvas-height` | Fixed HTML canvas size in pixels. If **both** are omitted (and not passed on the CLI), the canvas fills the browser viewport at boot. Override with `pygodide build . --canvas-width W --canvas-height H`. |
 | `python-path` | Folders added to `sys.path` for imports. Defaults to `["."]`. See [Python path](#python-path). |
@@ -421,7 +421,11 @@ keep up to date.
 ### Tips
 
 - **Paths**: pygodide uses relative asset URLs (`./boot.js`, and so on), so
-  project pages under `/<repo>/` work without extra base-path config.
+  project pages under `/<repo>/` and **custom domains** work without extra
+  base-path config. A custom DNS name is not a special case.
+- **What gets staged**: auto-discovery should only pick up game assets and
+  source. Tooling trees such as `.git` and `.github` are skipped so the browser
+  does not try to `fetch` CI workflow files that Pages will not serve.
 - **Canvas size**: match `pygame.display.set_mode`, or pass
   `--canvas-width` / `--canvas-height`, or leave both unset to fill the
   viewport.

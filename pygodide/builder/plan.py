@@ -20,6 +20,8 @@ DEFAULT_EXCLUDED_FILENAMES = {"pyproject.toml", "testing_manifest.yaml", "uv.loc
 # Directory names skipped anywhere in a relative path during auto-discovery.
 IGNORED_PATH_PARTS = {
     ".git",
+    ".github",
+    ".gitlab",
     ".hg",
     ".svn",
     ".venv",
