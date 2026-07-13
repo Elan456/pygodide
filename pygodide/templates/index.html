@@ -145,34 +145,59 @@
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
       }
 
-      /* Snake progress: yellow body segments + green head on a mini playfield. */
+      /*
+        Snake progress: single-row playfield.
+        --cell = pitch, --seg = solid block, --line = grid gap.
+        boot.js snaps fill to N * --cell and sets --head-left / --apple-inset.
+      */
       .pygodide-progress {
-        --snake-cell: 11px;
-        --snake-gap: 2px;
-        --snake-seg: 9px;
+        --cell: 12px;
+        --line: 2px;
+        --seg: 10px;
+        --pad-y: 5px;
+        --pad-x: 8px;
+        --snake-gold: #ffe94a;
+        --snake-gold-deep: #e8c200;
+        --snake-gold-shine: #fff6a8;
+        --apple-green: #6af02a;
+        --apple-green-deep: #2db010;
+        --head-left: 0px;
+        --apple-inset: 0px;
         position: relative;
-        width: min(340px, 78%);
-        height: 16px;
-        margin: 0.15rem auto 0;
-        padding: 3px;
-        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        width: min(360px, 82%);
+        height: calc(var(--pad-y) * 2 + var(--seg));
+        margin: 0.25rem auto 0;
+        padding: var(--pad-y) var(--pad-x);
+        border-radius: 8px;
         overflow: hidden;
-        background-color: #1a3f66;
+        box-sizing: border-box;
+        background-color: #122a48;
         background-image:
-          linear-gradient(
-            rgba(30, 74, 114, 0.55) 1px,
-            transparent 1px
+          /* Soft vignette */
+          radial-gradient(
+            ellipse 90% 140% at 50% 50%,
+            rgba(40, 90, 140, 0.35) 0%,
+            transparent 70%
           ),
-          linear-gradient(
+          /* Vertical cell separators only */
+          repeating-linear-gradient(
             90deg,
-            rgba(30, 74, 114, 0.55) 1px,
-            transparent 1px
+            transparent 0,
+            transparent var(--seg),
+            rgba(20, 50, 85, 0.95) var(--seg),
+            rgba(20, 50, 85, 0.95) var(--cell)
           );
-        background-size: var(--snake-cell) var(--snake-cell);
-        background-position: 3px 3px;
+        background-origin: content-box, content-box;
+        background-size: 100% 100%, var(--cell) 100%;
+        background-position: 0 0, 0 0;
+        background-repeat: no-repeat, repeat-x;
         box-shadow:
-          inset 0 0 0 1px rgba(90, 140, 190, 0.25),
-          0 4px 14px rgba(0, 0, 0, 0.25);
+          inset 0 1px 0 rgba(140, 190, 255, 0.12),
+          inset 0 0 0 1px rgba(90, 140, 190, 0.28),
+          inset 0 -6px 12px rgba(0, 0, 0, 0.28),
+          0 6px 18px rgba(0, 0, 0, 0.35);
       }
 
       .pygodide-progress[data-state="hidden"] {
@@ -180,98 +205,137 @@
       }
 
       .pygodide-progress[data-state="error"] {
-        background-color: #4a1c24;
+        --snake-gold: #ff9a9a;
+        --snake-gold-deep: #e05555;
+        --snake-gold-shine: #ffc8c8;
+        background-color: #3a141c;
         background-image:
-          linear-gradient(rgba(120, 40, 50, 0.5) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(120, 40, 50, 0.5) 1px, transparent 1px);
+          radial-gradient(
+            ellipse 90% 140% at 50% 50%,
+            rgba(120, 40, 55, 0.35) 0%,
+            transparent 70%
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent var(--seg),
+            rgba(80, 25, 35, 0.95) var(--seg),
+            rgba(80, 25, 35, 0.95) var(--cell)
+          );
       }
 
       .pygodide-progress-fill {
         position: relative;
         display: block;
-        width: 10%;
-        min-width: calc(var(--snake-seg) + 4px);
-        height: 100%;
-        border-radius: 2px;
-        /* Segmented body: gold blocks with tiny gaps (logo snake vibe). */
-        background-image: repeating-linear-gradient(
-          90deg,
-          #ffe94a 0,
-          #ffe94a var(--snake-seg),
-          #e8c200 var(--snake-seg),
-          #e8c200 calc(var(--snake-seg) + 1px),
-          transparent calc(var(--snake-seg) + 1px),
-          transparent calc(var(--snake-seg) + var(--snake-gap) + 1px)
-        );
-        background-size: calc(var(--snake-seg) + var(--snake-gap) + 1px) 100%;
-        background-repeat: repeat-x;
-        box-shadow: 0 0 10px rgba(255, 220, 60, 0.25);
-        transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+        width: var(--cell);
+        min-width: var(--cell);
+        height: var(--seg);
+        flex: 0 0 auto;
+        align-self: center;
+        box-sizing: border-box;
+        /* Layered body: deep gold base + shine strip + soft outer glow */
+        background-image:
+          repeating-linear-gradient(
+            90deg,
+            var(--snake-gold-deep) 0,
+            var(--snake-gold-deep) var(--seg),
+            transparent var(--seg),
+            transparent var(--cell)
+          ),
+          repeating-linear-gradient(
+            90deg,
+            var(--snake-gold) 0,
+            var(--snake-gold-shine) 35%,
+            var(--snake-gold) 70%,
+            var(--snake-gold-deep) var(--seg),
+            transparent var(--seg),
+            transparent var(--cell)
+          );
+        background-size: var(--cell) 100%, var(--cell) 100%;
+        background-position: 0 0, 0 0;
+        background-repeat: repeat-x, repeat-x;
+        filter: drop-shadow(0 0 4px rgba(255, 220, 60, 0.45));
       }
 
-      /* Snake head (green cell + eyes) at the leading edge. */
+      /* Yellow head: same size as body cells, slightly brighter + glow */
       .pygodide-progress-fill::before {
         content: "";
         position: absolute;
         top: 0;
-        right: 0;
-        width: var(--snake-seg);
-        height: 100%;
+        left: var(--head-left);
+        z-index: 1;
+        width: var(--seg);
+        height: var(--seg);
         border-radius: 2px;
-        background: linear-gradient(180deg, #fff06a 0%, #6af02a 35%, #2db010 100%);
-        box-shadow: 0 0 8px rgba(106, 240, 42, 0.45);
+        background:
+          linear-gradient(
+            165deg,
+            var(--snake-gold-shine) 0%,
+            var(--snake-gold) 42%,
+            var(--snake-gold-deep) 100%
+          );
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 200, 0.25),
+          0 0 8px rgba(255, 220, 50, 0.55),
+          0 1px 2px rgba(0, 0, 0, 0.25);
       }
 
+      /*
+        Equal eyes via two radial gradients (not element + box-shadow,
+        which rendered different sizes).
+      */
       .pygodide-progress-fill::after {
         content: "";
         position: absolute;
-        top: 50%;
-        right: 2px;
-        width: 2px;
-        height: 2px;
-        border-radius: 50%;
-        background: #1a1a1a;
-        box-shadow: -3px 0 0 #1a1a1a;
-        transform: translateY(-50%);
+        top: 0;
+        left: var(--head-left);
+        z-index: 2;
+        width: var(--seg);
+        height: var(--seg);
+        pointer-events: none;
+        background:
+          radial-gradient(
+            circle 1.25px at calc(50% - 2px) 42%,
+            #1a1a1a 95%,
+            transparent 100%
+          ),
+          radial-gradient(
+            circle 1.25px at calc(50% + 2px) 42%,
+            #1a1a1a 95%,
+            transparent 100%
+          );
       }
 
-      /* Tiny apple at the far end of the playfield. */
+      /* Apple with gloss + glow */
       .pygodide-progress::after {
         content: "";
         position: absolute;
-        top: 50%;
-        right: 5px;
-        width: 8px;
-        height: 8px;
+        top: var(--pad-y);
+        left: calc(var(--pad-x) + var(--apple-inset));
+        width: var(--seg);
+        height: var(--seg);
         border-radius: 2px;
-        transform: translateY(-50%);
-        background: linear-gradient(160deg, #6af02a, #2db010);
-        box-shadow: 0 0 6px rgba(80, 220, 40, 0.45);
-        opacity: 0.9;
+        background:
+          radial-gradient(
+            circle at 30% 28%,
+            rgba(255, 255, 255, 0.55) 0%,
+            transparent 42%
+          ),
+          linear-gradient(160deg, var(--apple-green), var(--apple-green-deep));
+        box-shadow:
+          0 0 0 1px rgba(180, 255, 140, 0.25),
+          0 0 10px rgba(80, 220, 40, 0.55),
+          0 1px 2px rgba(0, 0, 0, 0.3);
         pointer-events: none;
       }
 
       .pygodide-progress[data-state="error"] .pygodide-progress-fill {
-        width: 100% !important;
-        background-image: repeating-linear-gradient(
-          90deg,
-          #ff8a8a 0,
-          #ff8a8a var(--snake-seg),
-          #e05555 var(--snake-seg),
-          #e05555 calc(var(--snake-seg) + 1px),
-          transparent calc(var(--snake-seg) + 1px),
-          transparent calc(var(--snake-seg) + var(--snake-gap) + 1px)
-        );
-        box-shadow: 0 0 10px rgba(255, 100, 100, 0.3);
-      }
-
-      .pygodide-progress[data-state="error"] .pygodide-progress-fill::before {
-        background: linear-gradient(180deg, #ffb4b4, #ff6b6b);
-        box-shadow: none;
+        filter: drop-shadow(0 0 4px rgba(255, 100, 100, 0.45));
       }
 
       .pygodide-progress[data-state="error"]::after {
-        opacity: 0.35;
+        opacity: 0.4;
+        filter: grayscale(0.2);
       }
 
       #pygodide-version {

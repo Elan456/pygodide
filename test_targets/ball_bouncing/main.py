@@ -18,7 +18,7 @@ async def main():
     clock = pygame.time.Clock()
 
     while True:
-        dt = min(clock.tick() / 1000.0, 1 / 30)
+        dt = min(clock.tick(120) / 1000.0, 1 / 30)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -46,7 +46,6 @@ async def main():
         screen.blit(fps_text, (10, 10))
 
         pygame.display.update()
-        clock.tick(120)
 
         # Yield to the event loop to allow the browser to update the screen
         # and handle events.

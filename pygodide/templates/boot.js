@@ -65,13 +65,39 @@ function setLoadingChromeState(state) {
   }
 }
 
+function snakeGridMetrics(track) {
+  const styles = getComputedStyle(track);
+  const cell = Number.parseFloat(styles.getPropertyValue("--cell")) || 12;
+  const seg = Number.parseFloat(styles.getPropertyValue("--seg")) || 10;
+  const padX = Number.parseFloat(styles.getPropertyValue("--pad-x")) || 6;
+  const contentWidth = Math.max(0, track.clientWidth - padX * 2);
+  // At least 2 cells: one for the snake, one for the apple.
+  const totalCells = Math.max(2, Math.floor(contentWidth / cell));
+  return { cell, seg, padX, totalCells };
+}
+
+function layoutSnakeProgress(track, fill, fraction, { error = false } = {}) {
+  const { cell, totalCells } = snakeGridMetrics(track);
+  // Last cell is reserved for the apple; snake grows through the rest.
+  const maxSnakeCells = Math.max(1, totalCells - 1);
+  const filledCells = error
+    ? maxSnakeCells
+    : Math.max(1, Math.min(maxSnakeCells, Math.round(fraction * maxSnakeCells)));
+
+  // Exact multiples of --cell so segments stay on the grid (no mid-cell widths).
+  fill.style.width = `${filledCells * cell}px`;
+  // Head (and eyes) sit in the last filled cell interior.
+  fill.style.setProperty("--head-left", `${(filledCells - 1) * cell}px`);
+  // Apple in the last full playfield cell.
+  track.style.setProperty("--apple-inset", `${(totalCells - 1) * cell}px`);
+}
+
 function setProgress(fraction, { error = false } = {}) {
   const clamped = Math.max(0, Math.min(1, fraction));
   const fill = document.getElementById("pygodide-progress-fill");
   const track = document.getElementById("pygodide-progress");
-  if (fill) {
-    // Width (not scaleX) keeps snake segment size constant as progress grows.
-    fill.style.width = `${Math.max(clamped * 100, 8)}%`;
+  if (fill && track) {
+    layoutSnakeProgress(track, fill, clamped, { error });
   }
   if (track) {
     track.dataset.state = error ? "error" : "active";
