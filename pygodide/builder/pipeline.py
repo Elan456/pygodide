@@ -11,6 +11,7 @@ from pygodide.dep_handling.pyodide_resolution import (
 )
 from pygodide.logs import log_build_choices
 from pygodide.rendering import (
+    content_cache_buster,
     ensure_favicon,
     render_boot_js,
     render_index_html,
@@ -68,18 +69,6 @@ def build_app(
     if log is not None:
         log(f"Favicon: {favicon.source_label}")
     canvas_auto = build_plan.canvas_width is None or build_plan.canvas_height is None
-    index_html = render_index_html(
-        title=build_plan.title,
-        canvas_width=build_plan.canvas_width,
-        canvas_height=build_plan.canvas_height,
-        boot_script_path=f"./{boot_script_name}",
-        favicon_path=f"./{favicon.filename}",
-        favicon_type=favicon.media_type,
-        logo_path=f"./{logo_name}",
-    )
-
-    index_output_path = output_dir / "index.html"
-    index_output_path.write_text(index_html, encoding="utf-8")
     ensure_favicon(output_dir, favicon)
     write_logo(output_dir, filename=logo_name)
 
@@ -97,6 +86,22 @@ def build_app(
     boot_output_path = output_dir / boot_script_name
     boot_output_path.parent.mkdir(parents=True, exist_ok=True)
     boot_output_path.write_text(boot_js, encoding="utf-8")
+
+    # Bust HTTP caches when boot.js changes (Firefox keeps module scripts even
+    # when the Storage panel is empty).
+    index_html = render_index_html(
+        title=build_plan.title,
+        canvas_width=build_plan.canvas_width,
+        canvas_height=build_plan.canvas_height,
+        boot_script_path=f"./{boot_script_name}",
+        favicon_path=f"./{favicon.filename}",
+        favicon_type=favicon.media_type,
+        logo_path=f"./{logo_name}",
+        boot_cache_buster=content_cache_buster(boot_js),
+    )
+
+    index_output_path = output_dir / "index.html"
+    index_output_path.write_text(index_html, encoding="utf-8")
 
     return output_dir
 

@@ -10,6 +10,7 @@ const virtualFsRoot = {{ virtual_fs_root | tojson }};
 const startupPythonCode = {{ startup_python_code | tojson }};
 const readyLogMessage = {{ ready_log | tojson }};
 const canvasAutoSize = {{ canvas_auto | tojson }};
+const pygodideVersion = {{ pygodide_version | tojson }};
 const assetRequestCacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const knownImportPackageAliases = {
   pygame: "pygame-ce",
@@ -35,16 +36,25 @@ function requireElement(element, id) {
 // Keep in sync with #pygodide-brand opacity transition in index.html.
 const LOADING_UI_FADE_MS = 150;
 
+function setLoadingChromeState(state) {
+  // Visible while loading or on error; hidden before the game starts drawing.
+  const chromeState = state === "hidden" ? "hidden" : "active";
+  const brand = document.getElementById("pygodide-brand");
+  if (brand) {
+    brand.dataset.state = chromeState;
+  }
+  const version = document.getElementById("pygodide-version");
+  if (version) {
+    version.dataset.state = chromeState;
+  }
+}
+
 function setStatus(message, state = "active") {
   if (status) {
     status.textContent = message;
     status.dataset.state = state;
   }
-  const brand = document.getElementById("pygodide-brand");
-  if (brand) {
-    // Visible while loading or on error; hidden before the game starts drawing.
-    brand.dataset.state = state === "hidden" ? "hidden" : "active";
-  }
+  setLoadingChromeState(state);
 }
 
 function hideLoadingUi() {
@@ -310,6 +320,7 @@ async function boot() {
     sizeCanvasToViewport(requiredCanvas);
   }
 
+  console.info(`pygodide ${pygodideVersion}`);
   setStatus(statusText.startingPyodide);
 
   const runtime = await loadPyodide();

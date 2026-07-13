@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import shutil
 from dataclasses import dataclass
+from importlib import metadata
 from importlib.resources import files
 from pathlib import Path
 
@@ -11,6 +13,22 @@ DEFAULT_PYODIDE_PACKAGES = ["pygame-ce"]
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_PACKAGE_FILES = ["main.py"]
 DEFAULT_READY_LOG = "[pygodide] ready"
+
+
+def package_version() -> str:
+    """Installed pygodide version (from package metadata / pyproject)."""
+    try:
+        return metadata.version("pygodide")
+    except metadata.PackageNotFoundError:
+        return "0.0.0"
+
+
+def content_cache_buster(content: str) -> str:
+    """Short stable fingerprint for cache-busting generated static assets."""
+    digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    return digest[:12]
+
+
 DEFAULT_FAVICON_NAME = "favicon.svg"
 DEFAULT_FAVICON_MEDIA_TYPE = "image/svg+xml"
 DEFAULT_LOGO_NAME = "pygodide-logo.svg"
@@ -146,8 +164,13 @@ def render_index_html(
     favicon_path: str = f"./{DEFAULT_FAVICON_NAME}",
     favicon_type: str = DEFAULT_FAVICON_MEDIA_TYPE,
     logo_path: str = f"./{DEFAULT_LOGO_NAME}",
+    pygodide_version: str | None = None,
+    boot_cache_buster: str | None = None,
 ) -> str:
     canvas_auto = canvas_width is None or canvas_height is None
+    resolved_version = (
+        package_version() if pygodide_version is None else pygodide_version
+    )
     template = _template_environment().get_template("index.html")
     return template.render(
         title=title,
@@ -163,6 +186,8 @@ def render_index_html(
         favicon_path=favicon_path,
         favicon_type=favicon_type,
         logo_path=logo_path,
+        pygodide_version=resolved_version,
+        boot_cache_buster=boot_cache_buster or content_cache_buster(resolved_version),
     )
 
 
@@ -254,6 +279,7 @@ def render_boot_js(
     running_status_text: str = "Running",
     ready_log: str = DEFAULT_READY_LOG,
     canvas_auto: bool = True,
+    pygodide_version: str | None = None,
 ) -> str:
     template = _template_environment().get_template("boot.js")
     if python_path_entries is None:
@@ -269,11 +295,15 @@ def render_boot_js(
         python_path_entries=resolved_python_path_entries,
         virtual_fs_root=virtual_fs_root,
     )
+    resolved_version = (
+        package_version() if pygodide_version is None else pygodide_version
+    )
 
     return template.render(
         status_element_id=status_element_id,
         canvas_element_id=canvas_element_id,
         canvas_auto=canvas_auto,
+        pygodide_version=resolved_version,
         pyodide_packages=(
             pyodide_packages
             if pyodide_packages is not None

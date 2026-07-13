@@ -87,11 +87,14 @@ def test_build_command_creates_expected_output(tmp_path):
     logo_svg = (output_dir / "pygodide-logo.svg").read_text(encoding="utf-8")
 
     assert "<title>demo_app Pyodide App</title>" in index_html
-    assert '<script type="module" src="./boot.js"></script>' in index_html
+    assert 'src="./boot.js?v=' in index_html
     assert 'rel="icon" href="./favicon.svg"' in index_html
     assert 'id="pygodide-brand"' in index_html
+    assert 'id="pygodide-version"' in index_html
+    assert f"pygodide {metadata.version('pygodide')}" in index_html
     assert 'src="./pygodide-logo.svg"' in index_html
     assert "pygodide-brand" in boot_js
+    assert f'const pygodideVersion = "{metadata.version("pygodide")}";' in boot_js
     assert "viewBox" in favicon_svg
     assert 'viewBox="12 9 326 102"' in logo_svg
     assert '"assets/sprite.bin"' in boot_js
@@ -352,7 +355,7 @@ def test_template_renderers_include_configured_values():
     )
 
     assert "<title>Example</title>" in index_html
-    assert '<script type="module" src="./custom.js"></script>' in index_html
+    assert 'src="./custom.js?v=' in index_html
     assert 'class="pygodide-shell"' in index_html
     assert 'data-state="active"' in index_html
     assert "background: #090c17;" in index_html
@@ -374,6 +377,9 @@ def test_template_renderers_include_configured_values():
     assert "Failed to download staged file" in boot_js
     assert "upload-pages-artifact always excludes .git and .github" in boot_js
     assert "stack.includes(message)" in boot_js
+    assert "const pygodideVersion =" in boot_js
+    assert "console.info(`pygodide ${pygodideVersion}`)" in boot_js
+    assert "pygodide-version" in boot_js
     assert "ModuleNotFoundError" in boot_js
     assert "Add '${suggestedPackageName}' to [project].dependencies" in boot_js
     assert 'pygame: "pygame-ce"' in boot_js
