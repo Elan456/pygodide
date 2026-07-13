@@ -1,6 +1,6 @@
 [project]
 name = "pygodide"
-version = "0.1.0b6"
+version = "0.1.0b7"
 description = "Turn Pygame projects into browser apps with Pyodide"
 readme = "README.md"
 requires-python = ">=3.11"
