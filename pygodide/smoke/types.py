@@ -9,7 +9,9 @@ from pygodide.rendering import DEFAULT_READY_LOG
 DEFAULT_SMOKE_PATH = "/"
 DEFAULT_TIMEOUT_MS = 120_000
 DEFAULT_POST_READY_MS = 500
-READY_STATUS_SELECTOR = '#status[data-state="hidden"]'
+# Loader is visibility:hidden when dismissed, so smoke waits for "attached",
+# not "visible". Status lives inside the loader overlay.
+READY_STATUS_SELECTOR = '#pygodide-loader[data-state="hidden"]'
 
 
 @dataclass(frozen=True)

@@ -78,10 +78,16 @@ def assert_ready_status_hidden(
     timeout_error: type[BaseException],
 ) -> None:
     try:
-        page.wait_for_selector(READY_STATUS_SELECTOR, timeout=max(timeout_ms, 1))
+        # state="attached": the loader uses visibility:hidden when dismissed, so
+        # Playwright's default "visible" check would never match.
+        page.wait_for_selector(
+            READY_STATUS_SELECTOR,
+            state="attached",
+            timeout=max(timeout_ms, 1),
+        )
     except timeout_error as exc:
         raise RuntimeError(
-            "Page logged ready but did not hide the loading status. "
+            "Page logged ready but did not hide the loading UI. "
             "The app may be blocking the browser event loop; make the entrypoint "
             "async and yield with await asyncio.sleep(0) in long-running loops."
         ) from exc

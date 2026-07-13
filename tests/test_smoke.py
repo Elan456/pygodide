@@ -209,22 +209,27 @@ def test_ready_status_must_hide_after_ready_log():
     class StuckPage:
         selector: str | None = None
         timeout: int | None = None
+        state: str | None = None
 
-        def wait_for_selector(self, selector: str, *, timeout: int) -> None:
+        def wait_for_selector(
+            self, selector: str, *, timeout: int, state: str = "visible"
+        ) -> None:
             self.selector = selector
             self.timeout = timeout
+            self.state = state
             raise FakeTimeoutError("timed out")
 
     page = StuckPage()
 
-    with pytest.raises(RuntimeError, match="did not hide the loading status"):
+    with pytest.raises(RuntimeError, match="did not hide the loading UI"):
         assert_ready_status_hidden(
             page,
             timeout_ms=0,
             timeout_error=FakeTimeoutError,
         )
 
-    assert page.selector == '#status[data-state="hidden"]'
+    assert page.selector == '#pygodide-loader[data-state="hidden"]'
+    assert page.state == "attached"
     assert page.timeout == 1
 
 
