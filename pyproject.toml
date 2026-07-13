@@ -76,7 +76,9 @@ pygodide = "pygodide.cli.main:app"
 
 [tool.ruff]
 line-length = 88
-target-version = "py314"
+# Match requires-python floor (3.11+). py314 makes the formatter drop multi-except
+# parentheses (PEP 758), which is a SyntaxError on 3.11-3.13.
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

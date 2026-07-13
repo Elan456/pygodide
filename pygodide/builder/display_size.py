@@ -81,7 +81,7 @@ def _display_size_from_file(path: Path) -> tuple[int, int] | None:
     try:
         source = path.read_text(encoding="utf-8")
         module = ast.parse(source, filename=str(path))
-    except OSError, SyntaxError, UnicodeError:
+    except (OSError, SyntaxError, UnicodeError):
         return None
 
     constants = _module_int_constants(module)
