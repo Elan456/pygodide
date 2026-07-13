@@ -68,7 +68,8 @@ function setProgress(fraction, { error = false } = {}) {
   const fill = document.getElementById("pygodide-progress-fill");
   const track = document.getElementById("pygodide-progress");
   if (fill) {
-    fill.style.transform = `scaleX(${clamped})`;
+    // Width (not scaleX) keeps snake segment size constant as progress grows.
+    fill.style.width = `${Math.max(clamped * 100, 8)}%`;
   }
   if (track) {
     track.dataset.state = error ? "error" : "active";
