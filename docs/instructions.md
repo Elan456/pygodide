@@ -326,6 +326,113 @@ This builds your project and writes `<project-name>.zip` in the project
 directory, with `index.html` at the archive root. Upload that ZIP as an HTML
 game on itch.io. Use `--zip-output path/to/game.zip` to pick a different path.
 
+## Publishing to GitHub Pages
+
+`pygodide build .` produces a static site in `build/` (`index.html`, `boot.js`,
+assets, and so on). [GitHub Pages](https://pages.github.com/) can host that
+folder over HTTPS. Treat pygodide as a static site generator: commit your
+**source**, build in CI, and publish only **`build/`**.
+
+### Local check first
+
+```bash
+pygodide build .
+pygodide serve .
+# optional before shipping:
+pygodide smoke . --verbose
+```
+
+Confirm the game works at [http://localhost:8000](http://localhost:8000). Prefer
+keeping `build/` out of git (generate it on each deploy).
+
+### Recommended: deploy with GitHub Actions
+
+1. In the GitHub repo: **Settings → Pages → Build and deployment → Source:
+   GitHub Actions**.
+2. Add `.github/workflows/pages.yml` (adjust Python version or build flags as
+   needed):
+
+```yaml
+name: Deploy game to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pygodide
+        run: pip install pygodide
+
+      - name: Build web app
+        run: pygodide build . --clean
+        # optional fixed canvas size:
+        # run: pygodide build . --clean --canvas-width 1280 --canvas-height 720
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+3. Push to `main`. The site will be at
+   `https://<user-or-org>.github.io/<repo>/` (or your custom domain if
+   configured).
+
+Every push rebuilds from source, so deploys stay reproducible.
+
+### Alternative: publish `build/` without Actions
+
+Build locally, then publish only the contents of `build/` as the site root (for
+example with [`gh-pages`](https://www.npmjs.com/package/gh-pages)):
+
+```bash
+pygodide build . --clean
+npx gh-pages -d build
+```
+
+Or copy `build/*` onto a `gh-pages` branch manually. CI is usually easier to
+keep up to date.
+
+### Tips
+
+- **Paths**: pygodide uses relative asset URLs (`./boot.js`, and so on), so
+  project pages under `/<repo>/` work without extra base-path config.
+- **Canvas size**: match `pygame.display.set_mode`, or pass
+  `--canvas-width` / `--canvas-height`, or leave both unset to fill the
+  viewport.
+- **First load**: the browser downloads Pyodide and packages from the CDN; that
+  can take a while and is unrelated to Pages misconfiguration.
+- **Smoke in CI**: optional and heavier (Playwright + Chromium). Many projects
+  run smoke only on pull requests or releases.
+- **Public site**: everything under `build/` is public; do not ship secrets.
+- **itch.io vs Pages**: same `build/` idea. itch uses `pygodide build . --zip`;
+  Pages serves the `build/` directory continuously from git/CI.
+
 ## Still stuck?
 
 If you've worked through the sections above and a real part of your game still

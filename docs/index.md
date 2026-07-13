@@ -56,9 +56,9 @@ Pygodide looks for `main()` in `main.py`, reads dependencies from
 the browser. That covers most small projects without extra setup.
 
 When it works, your game is a normal web page: easy to host, link, and share.
-`pygodide build . --zip` produces an itch.io-ready upload if you want to reach
-more players without a separate web port. See
-[Publishing to itch.io](instructions.md#publishing-to-itchio) in the instructions.
+See [Publishing to itch.io](instructions.md#publishing-to-itchio) for a zip
+upload, or [Publishing to GitHub Pages](instructions.md#publishing-to-github-pages)
+to serve `build/` from a repository.
 
 ## Need more help?
 
@@ -68,6 +68,7 @@ See the **[Instructions](instructions.md)** guide for:
 - setting a custom entry point or dependencies
 - making your game async-compatible
 - running `pygodide smoke` to check a build before debugging in the browser
+- publishing to itch.io or GitHub Pages
 
 For the full flag list generated from the CLI source, see the
 **[CLI reference](cli.md)**.
