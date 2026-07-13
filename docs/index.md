@@ -102,9 +102,17 @@ directory on GitHub, including:
 
 ## Live demos
 
-A few of those fixtures are also hosted on [itch.io](https://elan456.itch.io):
+A few demos built with pygodide are hosted on [itch.io](https://elan456.itch.io):
 
 <div class="itch-demo-list" markdown="0">
+  <iframe
+    frameborder="0"
+    src="https://itch.io/embed/4772414"
+    width="552"
+    height="167"
+    loading="lazy"
+    title="Pygodide Viking Village Builder"
+  ><a href="https://elan456.itch.io/pygodide-viking-village-builder">Pygodide Viking Village Builder by Elan456</a></iframe>
   <iframe
     frameborder="0"
     src="https://itch.io/embed/4748245"
