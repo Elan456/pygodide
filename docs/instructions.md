@@ -292,10 +292,10 @@ app = "main:web_main"
 auto-async = true
 include = ["main.py", "sprites/**", "sounds/**"]
 title = "My Game"
-# canvas-fit = true   # max size in viewport, keep game aspect
+# canvas-fit = true   # max size in viewport, keep aspect
+# canvas-width = 960  # with canvas-fit: explicit aspect when discovery fails
+# canvas-height = 540
 # canvas-fill = true  # stretch to full viewport (may change aspect)
-# canvas-width = 1280 # fixed box (with canvas-height); default is set_mode as-is
-# canvas-height = 720
 # python-path = [".", "src", "lib"]  # only when imports need extra roots
 dependencies = ["pyyaml"]
 dependency-groups = ["web"]
@@ -307,8 +307,8 @@ dependency-groups = ["web"]
 | `auto-async` | Enable/disable automatic game-loop conversion. Defaults to `true`. |
 | `include` | Files to stage into the build. If omitted, pygodide auto-discovers files (excluding `.git`, `.github`, `.venv`, `build`, `pyproject.toml`, and similar tooling dirs). |
 | `title` | HTML page title. Defaults to the project directory name. |
-| `canvas-width`, `canvas-height` | Fixed HTML canvas size in pixels. Stretches Pygame output to that box. CLI: `--canvas-width` / `--canvas-height`. |
-| `canvas-fit` | If `true`, scale to the largest size that fits the viewport while keeping the game aspect ratio. CLI: `--canvas-fit`. |
+| `canvas-width`, `canvas-height` | Canvas size in pixels. Alone: fixed box. With `canvas-fit`: aspect ratio to scale into the viewport (when auto-discovery misses your game size). CLI: `--canvas-width` / `--canvas-height`. |
+| `canvas-fit` | If `true`, scale to the largest size that fits the viewport while keeping aspect ratio. Aspect from width/height when set, else discovered `set_mode`. CLI: `--canvas-fit`. |
 | `canvas-fill` | If `true`, stretch the canvas to fill the whole browser viewport (may change aspect ratio). CLI: `--canvas-fill`. |
 | `python-path` | Folders added to `sys.path` for imports. Defaults to `["."]`. See [Python path](#python-path). |
 | `dependencies` | Extra browser-only packages not listed under `[project]`. |
@@ -330,14 +330,15 @@ By default, pygodide scans for `set_mode((width, height))` (including simple
 named constants like `SCREEN_WIDTH`) and uses that size as-is for the HTML
 canvas. If `set_mode` cannot be found, it assumes **800×600**.
 
-Choose one layout (they are mutually exclusive):
-
 | Setting | What you see |
 | --- | --- |
 | Default | Fixed canvas at the auto-discovered `set_mode` size (as-is). |
-| `--canvas-fit` / `canvas-fit = true` | Largest size in the viewport that keeps the game aspect ratio. |
-| `--canvas-fill` / `canvas-fill = true` | Fill the whole viewport; aspect may change. |
-| `--canvas-width` / `--canvas-height` | Fixed pixel box at that resolution; Pygame output is stretched to it. |
+| `--canvas-width` / `--canvas-height` | Fixed pixel box at that resolution. |
+| `--canvas-fit` | Largest size in the viewport that keeps aspect ratio (from discovery). |
+| `--canvas-width N --canvas-height M --canvas-fit` | Same as fit, but use **N×M** as the aspect ratio (when discovery fails or you want to override it). |
+| `--canvas-fill` | Fill the whole viewport; aspect may change. |
+
+`canvas-fit` and `canvas-fill` cannot be combined.
 
 ## Publishing to itch.io
 

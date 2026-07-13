@@ -229,6 +229,40 @@ async def main():
     assert "sizeCanvasToFitAspect" in boot_js
 
 
+def test_build_command_canvas_fit_with_explicit_size(tmp_path):
+    source_dir = tmp_path / "fit_explicit"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "build",
+            str(source_dir),
+            "--canvas-width",
+            "960",
+            "--canvas-height",
+            "540",
+            "--canvas-fit",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Canvas aspect: not found" in result.output
+    assert "Canvas: fit 960x540" in result.output
+    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
+    assert 'width="960"' in index_html
+    assert 'height="540"' in index_html
+    assert 'data-canvas-layout="fit"' in index_html
+    assert "const canvasAspectWidth = 960;" in boot_js
+    assert "const canvasAspectHeight = 540;" in boot_js
+    assert 'const canvasLayout = "fit";' in boot_js
+
+
 def test_build_command_canvas_fill_fills_viewport(tmp_path):
     source_dir = tmp_path / "fill_canvas"
     source_dir.mkdir(parents=True)

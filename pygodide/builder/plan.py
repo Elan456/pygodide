@@ -200,14 +200,15 @@ def resolve_canvas_size(
 ) -> tuple[int, int, CanvasLayout]:
     """Resolve canvas layout and reference size.
 
-    Priority (mutually exclusive layouts):
-    1. Explicit ``canvas-width`` / ``canvas-height`` → fixed pixel box
-    2. Explicit ``canvas-fit`` → largest viewport size keeping game aspect
-    3. Explicit ``canvas-fill`` → stretch to fill the viewport
-    4. Default → fixed box at the auto-discovered ``set_mode`` size (as-is)
+    Layout modes (fit and fill are mutually exclusive):
+    - Default: fixed box at auto-discovered ``set_mode`` size (as-is)
+    - ``canvas-width`` / ``canvas-height`` alone: fixed box at that size
+    - ``canvas-fit``: largest viewport size keeping aspect; size from width/height
+      when set, otherwise from discovery (for when ``set_mode`` is not found)
+    - ``canvas-fill``: stretch to fill the viewport; optional width/height only
+      set the pre-stretch reference size
 
-    Reference width/height for fit/fill/default come from a ``set_mode`` scan
-    (falling back to 800×600).
+    Discovery falls back to 800×600 when ``set_mode`` cannot be resolved.
     """
     width = (
         canvas_width
@@ -246,33 +247,33 @@ def resolve_canvas_size(
         )
     )
 
-    has_fixed = width is not None or height is not None
     wants_fit = fit is True
     wants_fill = fill is True
-    exclusive_count = sum((has_fixed, wants_fit, wants_fill))
-    if exclusive_count > 1:
+    if wants_fit and wants_fill:
         raise ValueError(
-            "Choose one canvas layout: fixed size "
-            "(--canvas-width/--canvas-height), --canvas-fit, or --canvas-fill."
+            "Cannot combine canvas-fit and canvas-fill. "
+            "Use fit (aspect-preserving scale), fill (stretch), or a fixed size."
         )
 
     game_width = DEFAULT_CANVAS_WIDTH if detected_width <= 0 else detected_width
     game_height = DEFAULT_CANVAS_HEIGHT if detected_height <= 0 else detected_height
-
-    if has_fixed:
-        resolved_width = game_width if width is None else width
-        resolved_height = game_height if height is None else height
-        if resolved_width <= 0 or resolved_height <= 0:
-            raise ValueError(
-                f"Canvas size must be positive (got {resolved_width}x{resolved_height})"
-            )
-        return resolved_width, resolved_height, "fixed"
+    has_configured_size = width is not None or height is not None
+    reference_width = game_width if width is None else width
+    reference_height = game_height if height is None else height
+    if reference_width <= 0 or reference_height <= 0:
+        raise ValueError(
+            f"Canvas size must be positive (got {reference_width}x{reference_height})"
+        )
 
     if wants_fit:
-        return game_width, game_height, "fit"
+        # Width/height (when set) supply the aspect ratio for viewport scaling.
+        return reference_width, reference_height, "fit"
 
     if wants_fill:
-        return game_width, game_height, "fill"
+        return reference_width, reference_height, "fill"
+
+    if has_configured_size:
+        return reference_width, reference_height, "fixed"
 
     # Default: use auto-discovered size as a fixed pixel box.
     return game_width, game_height, "fixed"

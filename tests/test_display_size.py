@@ -93,15 +93,32 @@ def test_resolve_canvas_size_fixed_from_cli() -> None:
     assert (width, height, layout) == (1280, 720, "fixed")
 
 
-def test_resolve_canvas_size_rejects_conflicting_layouts() -> None:
-    with pytest.raises(ValueError, match="Choose one canvas layout"):
-        resolve_canvas_size(
-            None,
-            canvas_width=800,
-            canvas_height=600,
-            canvas_fill=True,
-        )
-    with pytest.raises(ValueError, match="Choose one canvas layout"):
+def test_resolve_canvas_size_fit_with_explicit_aspect() -> None:
+    width, height, layout = resolve_canvas_size(
+        None,
+        canvas_width=960,
+        canvas_height=540,
+        canvas_fit=True,
+        detected_width=800,
+        detected_height=600,
+    )
+    assert (width, height, layout) == (960, 540, "fit")
+
+
+def test_resolve_canvas_size_fill_with_explicit_reference_size() -> None:
+    width, height, layout = resolve_canvas_size(
+        None,
+        canvas_width=960,
+        canvas_height=540,
+        canvas_fill=True,
+        detected_width=800,
+        detected_height=600,
+    )
+    assert (width, height, layout) == (960, 540, "fill")
+
+
+def test_resolve_canvas_size_rejects_fit_and_fill() -> None:
+    with pytest.raises(ValueError, match="Cannot combine canvas-fit and canvas-fill"):
         resolve_canvas_size(
             None,
             canvas_fit=True,

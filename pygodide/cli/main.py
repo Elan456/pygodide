@@ -107,10 +107,11 @@ def build(
             "--canvas-width",
             min=1,
             help=(
-                "Fixed HTML canvas width in pixels (with --canvas-height). "
-                "Stretches Pygame's surface to this size; does not change "
-                "set_mode. Default without this is the auto-discovered "
-                "set_mode size as-is. Overrides [tool.pygodide].canvas-width."
+                "Canvas width in pixels (with --canvas-height). Alone: fixed "
+                "box. With --canvas-fit: aspect ratio to scale into the "
+                "viewport (useful when set_mode is not auto-discovered). "
+                "Does not change set_mode. Overrides "
+                "[tool.pygodide].canvas-width."
             ),
         ),
     ] = None,
@@ -120,9 +121,10 @@ def build(
             "--canvas-height",
             min=1,
             help=(
-                "Fixed HTML canvas height in pixels (with --canvas-width). "
-                "Stretches Pygame's surface to this size; does not change "
-                "set_mode. Overrides [tool.pygodide].canvas-height."
+                "Canvas height in pixels (with --canvas-width). Alone: fixed "
+                "box. With --canvas-fit: aspect ratio for viewport scaling. "
+                "Does not change set_mode. Overrides "
+                "[tool.pygodide].canvas-height."
             ),
         ),
     ] = None,
@@ -131,10 +133,10 @@ def build(
         typer.Option(
             "--canvas-fit/--no-canvas-fit",
             help=(
-                "Scale the canvas to the largest size that fits the viewport "
-                "while keeping the game's set_mode aspect ratio. Overrides "
-                "[tool.pygodide].canvas-fit. Cannot combine with fill or fixed "
-                "size."
+                "Scale to the largest viewport size that keeps aspect ratio. "
+                "Aspect comes from --canvas-width/--canvas-height when set, "
+                "else auto-discovered set_mode size. Overrides "
+                "[tool.pygodide].canvas-fit. Cannot combine with --canvas-fill."
             ),
         ),
     ] = None,
@@ -145,7 +147,7 @@ def build(
             help=(
                 "Stretch the canvas to fill the browser viewport (may change "
                 "aspect ratio). Overrides [tool.pygodide].canvas-fill. Cannot "
-                "combine with fit or fixed size."
+                "combine with --canvas-fit."
             ),
         ),
     ] = None,
@@ -287,9 +289,9 @@ def smoke(
             "--canvas-width",
             min=1,
             help=(
-                "Fixed HTML canvas width in pixels (with --canvas-height). "
-                "Stretches Pygame's surface to this size; does not change "
-                "set_mode. Overrides [tool.pygodide].canvas-width."
+                "Canvas width in pixels (with --canvas-height). Alone: fixed "
+                "box. With --canvas-fit: aspect ratio for viewport scaling. "
+                "Overrides [tool.pygodide].canvas-width."
             ),
         ),
     ] = None,
@@ -299,9 +301,9 @@ def smoke(
             "--canvas-height",
             min=1,
             help=(
-                "Fixed HTML canvas height in pixels (with --canvas-width). "
-                "Stretches Pygame's surface to this size; does not change "
-                "set_mode. Overrides [tool.pygodide].canvas-height."
+                "Canvas height in pixels (with --canvas-width). Alone: fixed "
+                "box. With --canvas-fit: aspect ratio for viewport scaling. "
+                "Overrides [tool.pygodide].canvas-height."
             ),
         ),
     ] = None,
@@ -310,8 +312,9 @@ def smoke(
         typer.Option(
             "--canvas-fit/--no-canvas-fit",
             help=(
-                "Scale to the largest viewport size that keeps the game aspect "
-                "ratio. Overrides [tool.pygodide].canvas-fit."
+                "Scale to the largest viewport size that keeps aspect ratio. "
+                "Use with --canvas-width/--canvas-height when set_mode is not "
+                "discovered. Overrides [tool.pygodide].canvas-fit."
             ),
         ),
     ] = None,
