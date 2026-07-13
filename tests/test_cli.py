@@ -423,6 +423,8 @@ def test_template_renderers_include_configured_values():
     assert "const pygodideVersion =" in boot_js
     assert "console.info(`pygodide ${pygodideVersion}`)" in boot_js
     assert "pygodide-version" in boot_js
+    assert "index + 1" in boot_js
+    assert "packageFiles[index]" in boot_js
     assert "ModuleNotFoundError" in boot_js
     assert "Add '${suggestedPackageName}' to [project].dependencies" in boot_js
     assert 'pygame: "pygame-ce"' in boot_js

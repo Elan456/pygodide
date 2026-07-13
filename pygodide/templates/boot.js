@@ -328,7 +328,25 @@ async function fetchAssetBytes(filename) {
 }
 
 async function stageAppFiles(runtime) {
-  for (const filename of packageFiles) {
+  const total = packageFiles.length;
+  const progressStart = LOADING_PROGRESS.loadingFiles;
+  const progressEnd = LOADING_PROGRESS.loadingApp;
+
+  for (let index = 0; index < total; index += 1) {
+    const filename = packageFiles[index];
+    const fraction =
+      total <= 1
+        ? progressEnd
+        : progressStart + ((progressEnd - progressStart) * index) / (total - 1);
+
+    // Show which asset is loading; yield a frame so the UI can repaint.
+    setStatus(
+      `${statusText.loadingFiles} (${index + 1}/${total})\n${filename}`,
+      "active",
+      { progress: fraction },
+    );
+    await waitForNextPaint();
+
     try {
       const source = await fetchAssetBytes(filename);
       const targetPath = joinVirtualPath(virtualFsRoot, filename);
@@ -380,10 +398,6 @@ async function boot() {
     await micropip.install(micropipPackages);
   }
 
-  setStatus(statusText.loadingFiles, "active", {
-    progress: LOADING_PROGRESS.loadingFiles,
-  });
-  await waitForNextPaint();
   await stageAppFiles(runtime);
 
   console.warn(getLoadingAppStatusMessage());
