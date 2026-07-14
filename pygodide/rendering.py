@@ -29,6 +29,24 @@ def content_cache_buster(content: str) -> str:
     return digest[:12]
 
 
+def package_files_cache_buster(directory: str | Path, package_files: list[str]) -> str:
+    """Short fingerprint of packaged file paths + contents under DIRECTORY.
+
+    Embedded in boot.js so asset URLs stay stable across reloads when the
+    package set is unchanged, and change when any staged file changes.
+    """
+    root = Path(directory)
+    hasher = hashlib.sha256()
+    for relative_path in package_files:
+        hasher.update(relative_path.encode("utf-8"))
+        hasher.update(b"\0")
+        path = root / relative_path
+        if path.is_file():
+            hasher.update(path.read_bytes())
+        hasher.update(b"\0")
+    return hasher.hexdigest()[:12]
+
+
 DEFAULT_FAVICON_NAME = "favicon.svg"
 DEFAULT_FAVICON_MEDIA_TYPE = "image/svg+xml"
 DEFAULT_LOGO_NAME = "pygodide-logo.svg"
@@ -282,6 +300,7 @@ def render_boot_js(
     canvas_width: int = 800,
     canvas_height: int = 600,
     pygodide_version: str | None = None,
+    asset_cache_buster: str | None = None,
 ) -> str:
     template = _template_environment().get_template("boot.js")
     if python_path_entries is None:
@@ -300,6 +319,11 @@ def render_boot_js(
     resolved_version = (
         package_version() if pygodide_version is None else pygodide_version
     )
+    # Fallback keeps standalone render_boot_js callers working; builds pass a
+    # content hash of the staged package files.
+    resolved_asset_cache_buster = asset_cache_buster or content_cache_buster(
+        "\n".join(resolved_package_files)
+    )
 
     return template.render(
         status_element_id=status_element_id,
@@ -308,6 +332,7 @@ def render_boot_js(
         canvas_width=canvas_width,
         canvas_height=canvas_height,
         pygodide_version=resolved_version,
+        asset_cache_buster=resolved_asset_cache_buster,
         pyodide_packages=(
             pyodide_packages
             if pyodide_packages is not None

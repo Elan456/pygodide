@@ -100,12 +100,21 @@
       #pygodide-brand {
         display: block;
         width: min(420px, 88%);
-        height: auto;
         margin: 0 auto 1.35rem;
         /* Nudge logo up so status + bar sit under the visual center. */
         transform: translateY(-10%);
+        /* Loader is pointer-events: none; re-enable so the logo link works. */
+        pointer-events: auto;
+        cursor: pointer;
+        text-decoration: none;
         opacity: 0.98;
         filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+      }
+
+      #pygodide-brand img {
+        display: block;
+        width: 100%;
+        height: auto;
       }
 
       #{{ status_element_id }} {
@@ -388,13 +397,20 @@
     <main class="pygodide-shell">
       <div class="pygodide-stage">
         <div id="pygodide-loader" data-state="active" aria-live="polite">
-          <img
+          <a
             id="pygodide-brand"
-            src="{{ logo_path }}"
-            width="420"
-            height="131"
-            alt="pygodide"
-          />
+            href="https://github.com/Elan456/pygodide"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="pygodide on GitHub"
+          >
+            <img
+              src="{{ logo_path }}"
+              width="420"
+              height="131"
+              alt="pygodide"
+            />
+          </a>
           <div id="{{ status_element_id }}" data-state="active">{{ status_text }}</div>
           <div
             id="pygodide-progress"

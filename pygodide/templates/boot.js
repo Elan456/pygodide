@@ -13,7 +13,11 @@ const canvasLayout = {{ canvas_layout | tojson }};
 const canvasAspectWidth = {{ canvas_width | tojson }};
 const canvasAspectHeight = {{ canvas_height | tojson }};
 const pygodideVersion = {{ pygodide_version | tojson }};
-const assetRequestCacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+// Build-time fingerprint of packaged files. Same content → same URL → browser
+// cache can reuse assets across reloads. Rebuild after edits to pick up changes.
+const assetRequestCacheBuster = {{ asset_cache_buster | tojson }};
+// Cap concurrent asset fetches (browser HTTP/1.1 limits are often ~6 per origin).
+const ASSET_FETCH_CONCURRENCY = 8;
 const knownImportPackageAliases = {
   pygame: "pygame-ce",
 };
@@ -369,7 +373,9 @@ async function fetchAssetBytes(filename) {
   const url = resolveAssetUrl(filename);
   let response;
   try {
-    response = await fetch(url, { cache: "no-store" });
+    // Default HTTP cache: content-hashed `_pygodide` query changes when the
+    // package set changes, so stale assets are not kept after a rebuild.
+    response = await fetch(url);
   } catch (error) {
     const detail =
       error instanceof Error ? `Network error: ${error.message}` : `Network error: ${error}`;
@@ -389,24 +395,32 @@ async function fetchAssetBytes(filename) {
 
 async function stageAppFiles(runtime) {
   const total = packageFiles.length;
+  if (total === 0) {
+    return;
+  }
+
   const progressStart = LOADING_PROGRESS.loadingFiles;
   const progressEnd = LOADING_PROGRESS.loadingApp;
+  let completed = 0;
+  let nextIndex = 0;
 
-  for (let index = 0; index < total; index += 1) {
-    const filename = packageFiles[index];
+  function reportProgress(filename) {
     const fraction =
       total <= 1
         ? progressEnd
-        : progressStart + ((progressEnd - progressStart) * index) / (total - 1);
-
-    // Show which asset is loading; yield a frame so the UI can repaint.
+        : progressStart + ((progressEnd - progressStart) * completed) / total;
     setStatus(
-      `${statusText.loadingFiles} (${index + 1}/${total})\n${filename}`,
+      `${statusText.loadingFiles} (${completed}/${total})\n${filename}`,
       "active",
       { progress: fraction },
     );
-    await waitForNextPaint();
+  }
 
+  // Show the first file immediately so the loading bar does not stay idle.
+  reportProgress(packageFiles[0]);
+  await waitForNextPaint();
+
+  async function stageOne(filename) {
     try {
       const source = await fetchAssetBytes(filename);
       const targetPath = joinVirtualPath(virtualFsRoot, filename);
@@ -421,7 +435,20 @@ async function stageAppFiles(runtime) {
         { cause: error },
       );
     }
+    completed += 1;
+    reportProgress(filename);
   }
+
+  async function worker() {
+    while (nextIndex < total) {
+      const index = nextIndex;
+      nextIndex += 1;
+      await stageOne(packageFiles[index]);
+    }
+  }
+
+  const workerCount = Math.min(ASSET_FETCH_CONCURRENCY, total);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
 }
 
 async function boot() {

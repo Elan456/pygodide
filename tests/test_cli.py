@@ -11,6 +11,7 @@ from pygodide.cli.main import (
 )
 from pygodide.rendering import (
     build_startup_python_code,
+    package_files_cache_buster,
     render_boot_js,
     render_index_html,
 )
@@ -90,6 +91,7 @@ def test_build_command_creates_expected_output(tmp_path):
     assert 'src="./boot.js?v=' in index_html
     assert 'rel="icon" href="./favicon.svg"' in index_html
     assert 'id="pygodide-brand"' in index_html
+    assert 'href="https://github.com/Elan456/pygodide"' in index_html
     assert 'id="pygodide-loader"' in index_html
     assert 'id="pygodide-progress"' in index_html
     assert 'id="pygodide-version"' in index_html
@@ -530,7 +532,8 @@ def test_template_renderers_include_configured_values():
     assert "const pygodideVersion =" in boot_js
     assert "console.info(`pygodide ${pygodideVersion}`)" in boot_js
     assert "pygodide-version" in boot_js
-    assert "index + 1" in boot_js
+    assert "ASSET_FETCH_CONCURRENCY" in boot_js
+    assert "async function worker()" in boot_js
     assert "packageFiles[index]" in boot_js
     assert "ModuleNotFoundError" in boot_js
     assert "Add '${suggestedPackageName}' to [project].dependencies" in boot_js
@@ -550,8 +553,49 @@ def test_template_renderers_include_configured_values():
     assert "await hideLoadingUi()" in boot_js
     assert 'setStatus("", "hidden")' in boot_js
     assert "new Uint8Array(await response.arrayBuffer())" in boot_js
-    assert 'cache: "no-store"' in boot_js
+    # Content-stable cache buster (not a per-load random value).
+    assert "const assetRequestCacheBuster =" in boot_js
+    assert "Date.now()" not in boot_js
+    assert 'cache: "no-store"' not in boot_js
     assert 'url.searchParams.set("_pygodide", assetRequestCacheBuster)' in boot_js
+
+
+def test_package_files_cache_buster_stable_until_content_changes(tmp_path):
+    root = tmp_path / "pkg"
+    root.mkdir()
+    (root / "main.py").write_text("print(1)\n", encoding="utf-8")
+    assets = root / "assets"
+    assets.mkdir()
+    (assets / "sprite.png").write_bytes(b"\x89PNG\r\nfake")
+
+    files = ["assets/sprite.png", "main.py"]
+    first = package_files_cache_buster(root, files)
+    second = package_files_cache_buster(root, files)
+    assert first == second
+    assert len(first) == 12
+
+    (root / "main.py").write_text("print(2)\n", encoding="utf-8")
+    assert package_files_cache_buster(root, files) != first
+
+
+def test_build_embeds_package_content_cache_buster(tmp_path):
+    source_dir = tmp_path / "cache_app"
+    source_dir.mkdir()
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n",
+        encoding="utf-8",
+    )
+    (source_dir / "data.txt").write_text("hello\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["build", str(source_dir)])
+    assert result.exit_code == 0, result.output
+
+    expected = package_files_cache_buster(
+        source_dir / "build",
+        ["data.txt", "main.py"],
+    )
+    boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
+    assert f'const assetRequestCacheBuster = "{expected}";' in boot_js
 
 
 def test_build_command_auto_asyncifies_sync_pygame_loop(tmp_path):

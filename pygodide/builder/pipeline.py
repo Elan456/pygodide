@@ -13,6 +13,7 @@ from pygodide.logs import log_build_choices
 from pygodide.rendering import (
     content_cache_buster,
     ensure_favicon,
+    package_files_cache_buster,
     render_boot_js,
     render_index_html,
     resolve_favicon,
@@ -75,6 +76,10 @@ def build_app(
     ensure_favicon(output_dir, favicon)
     write_logo(output_dir, filename=logo_name)
 
+    # Hash after copy/asyncify so transformed entry sources are included.
+    asset_cache_buster = package_files_cache_buster(
+        output_dir, build_plan.package_files
+    )
     boot_js = render_boot_js(
         package_files=build_plan.package_files,
         pyodide_packages=install_plan.pyodide_packages,
@@ -86,6 +91,7 @@ def build_app(
         canvas_layout=build_plan.canvas_layout,
         canvas_width=build_plan.canvas_width,
         canvas_height=build_plan.canvas_height,
+        asset_cache_buster=asset_cache_buster,
     )
 
     boot_output_path = output_dir / boot_script_name
