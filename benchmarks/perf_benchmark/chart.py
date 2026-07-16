@@ -6,7 +6,11 @@ from pathlib import Path
 
 import plotly.graph_objects as go
 
-from perf_benchmark.config import DOCS_CHART_HTML
+from perf_benchmark.config import (
+    DOCS_CHART_HTML,
+    OUTPUT_README_CHART_PNG,
+    README_CHART_PNG,
+)
 from perf_benchmark.models import BenchmarkReport
 
 RUNTIME_LABELS = {
@@ -22,6 +26,12 @@ RUNTIME_COLORS = {
 CHART_BG = "#1a1b26"
 CHART_HEIGHT = 460
 PLOTLY_CONFIG = {"responsive": True, "displayModeBar": False}
+
+# README-only comparison (no local desktop bar).
+README_RUNTIMES = ("pygodide", "pygbag")
+README_CHART_WIDTH = 560
+README_CHART_HEIGHT = 280
+README_CHART_SCALE = 2
 
 
 def load_report(path: Path) -> BenchmarkReport:
@@ -113,6 +123,98 @@ def build_figure(report: BenchmarkReport) -> go.Figure:
     return figure
 
 
+def build_readme_figure(report: BenchmarkReport) -> go.Figure:
+    """Compact vertical bar chart: pygodide vs pygbag only (for README PNG)."""
+    runtimes: list[str] = []
+    fps_values: list[float] = []
+    colors: list[str] = []
+    text_labels: list[str] = []
+
+    for runtime in README_RUNTIMES:
+        result = report.results.get(runtime)
+        if result is None or result.fps_mean is None:
+            continue
+        runtimes.append(RUNTIME_LABELS.get(runtime, runtime))
+        fps_values.append(result.fps_mean)
+        colors.append(RUNTIME_COLORS.get(runtime, "#888888"))
+        text_labels.append(f"{result.fps_mean:.0f}")
+
+    if not runtimes:
+        raise ValueError("No pygodide/pygbag FPS results available for README chart")
+
+    ratio = (
+        fps_values[0] / fps_values[1]
+        if len(fps_values) == 2 and fps_values[1] > 0
+        else None
+    )
+    subtitle = "perf_bench · headed Chromium · mean FPS"
+    if ratio is not None:
+        subtitle = f"{subtitle} · {ratio:.1f}×"
+
+    max_fps = max(fps_values)
+    figure = go.Figure(
+        data=[
+            go.Bar(
+                x=runtimes,
+                y=fps_values,
+                marker={
+                    "color": colors,
+                    "line": {"width": 0},
+                    "cornerradius": 0,
+                },
+                text=text_labels,
+                textposition="outside",
+                textfont={"size": 14, "color": "#f1f5f9"},
+                width=0.55,
+                hovertemplate="Runtime=%{x}<br>FPS mean=%{y:.2f}<extra></extra>",
+            )
+        ]
+    )
+    figure.update_layout(
+        template="plotly_dark",
+        title={
+            "text": (
+                f"<span style='color:#f1f5f9'>FPS benchmark</span>"
+                f"<br><sup style='color:#94a3b8'>{subtitle}</sup>"
+            ),
+            "font": {"size": 14},
+            "x": 0.5,
+            "xanchor": "center",
+        },
+        paper_bgcolor=CHART_BG,
+        plot_bgcolor=CHART_BG,
+        font={"color": "#e2e8f0", "size": 12},
+        xaxis_title=None,
+        yaxis_title="Mean FPS",
+        width=README_CHART_WIDTH,
+        height=README_CHART_HEIGHT,
+        margin=dict(t=52, l=56, r=28, b=40),
+        showlegend=False,
+        bargap=0.35,
+    )
+    figure.update_xaxes(
+        tickfont={"size": 13},
+        showline=True,
+        linewidth=1,
+        linecolor="#334155",
+        showgrid=False,
+    )
+    figure.update_yaxes(
+        rangemode="tozero",
+        range=[0, max_fps * 1.18],
+        showgrid=True,
+        gridcolor="#283442",
+        zeroline=True,
+        zerolinecolor="#334155",
+        showline=True,
+        linewidth=1,
+        linecolor="#334155",
+        ticks="outside",
+        tickcolor="#334155",
+    )
+    return figure
+
+
 def _finalize_chart_html(path: Path) -> None:
     html = path.read_text(encoding="utf-8")
     embed_style = (
@@ -149,6 +251,31 @@ def write_chart(report: BenchmarkReport, output_path: Path) -> Path:
         )
         _finalize_chart_html(DOCS_CHART_HTML)
 
+    write_readme_chart(report, OUTPUT_README_CHART_PNG)
+    if OUTPUT_README_CHART_PNG.resolve() != README_CHART_PNG.resolve():
+        write_readme_chart(report, README_CHART_PNG)
+
+    return output_path
+
+
+def write_readme_chart(report: BenchmarkReport, output_path: Path) -> Path:
+    """Export a Plotly bar chart (pygodide vs pygbag) as a static PNG for README."""
+    figure = build_readme_figure(report)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        figure.write_image(
+            output_path,
+            format="png",
+            width=README_CHART_WIDTH,
+            height=README_CHART_HEIGHT,
+            scale=README_CHART_SCALE,
+        )
+    except ValueError as exc:
+        # Plotly raises ValueError when kaleido/chrome export is unavailable.
+        raise RuntimeError(
+            "README chart export needs kaleido "
+            "(dev dependency). Install with: uv sync --dev"
+        ) from exc
     return output_path
 
 

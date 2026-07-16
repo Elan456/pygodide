@@ -151,6 +151,16 @@ def build(
             ),
         ),
     ] = None,
+    port: Annotated[
+        int | None,
+        typer.Option(
+            "--port",
+            "-p",
+            min=1,
+            max=65535,
+            help=("Port for --serve (default 8000). Only valid together with --serve."),
+        ),
+    ] = None,
 ):
     """
     Bundle a Pygame app and generate the HTML and JS files needed to run it in the
@@ -169,6 +179,7 @@ def build(
         canvas_height=canvas_height,
         canvas_fit=canvas_fit,
         canvas_fill=canvas_fill,
+        port=port,
     )
 
 

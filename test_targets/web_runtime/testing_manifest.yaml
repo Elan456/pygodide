@@ -1,0 +1,7 @@
+name: web-runtime
+description: >
+  Assert documented web runtime detection (sys.platform == emscripten)
+  under the Pyodide browser runtime.
+smoke:
+  path: /
+  timeout-ms: 15000

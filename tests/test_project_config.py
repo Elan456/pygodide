@@ -52,3 +52,20 @@ dependency-groups = ["web"]
     assert config.python_path == [".", "vendor"]
     assert config.dependencies == ["pygame-ce", "fastquadtree"]
     assert config.dependency_groups == ["web"]
+
+
+def test_load_pygodide_project_config_rejects_bool_as_canvas_size(tmp_path):
+    source_dir = tmp_path / "demo"
+    source_dir.mkdir()
+    (source_dir / "pyproject.toml").write_text(
+        """
+[tool.pygodide]
+canvas-width = true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError, match="non-integer \\[tool.pygodide\\].canvas-width"
+    ):
+        load_pygodide_project_config(source_dir)

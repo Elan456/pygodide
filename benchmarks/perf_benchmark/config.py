@@ -12,6 +12,9 @@ OUTPUT_DIR = BENCHMARKS_ROOT / "output"
 DEFAULT_RESULTS_JSON = RESULTS_DIR / "latest.json"
 DEFAULT_CHART_HTML = OUTPUT_DIR / "benchmark-chart.html"
 DOCS_CHART_HTML = REPO_ROOT / "docs" / "assets" / "benchmark-chart.html"
+# Compact Plotly export (pygodide vs pygbag only) for GitHub README embeds.
+README_CHART_PNG = REPO_ROOT / "docs" / "assets" / "images" / "benchmark-readme.png"
+OUTPUT_README_CHART_PNG = OUTPUT_DIR / "benchmark-readme.png"
 
 SCENARIO_NAME = "perf_bench"
 BENCHMARK_READY_LOG = "[benchmark] ready"

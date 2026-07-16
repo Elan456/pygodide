@@ -102,6 +102,7 @@ directory on GitHub, including:
 - [not async](https://github.com/Elan456/pygodide/tree/main/test_targets/not_async): sync loop converted automatically at build time
 - [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles): larger game with extra dependencies
 - [save slots](https://github.com/Elan456/pygodide/tree/main/test_targets/save_slots): create and load JSON save files from the game
+- [web runtime](https://github.com/Elan456/pygodide/tree/main/test_targets/web_runtime): detect browser vs desktop via `sys.platform == "emscripten"`
 
 ## Live demos
 

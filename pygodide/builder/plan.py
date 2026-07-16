@@ -84,11 +84,6 @@ def looks_like_pygodide_output_dir(path: str | Path) -> bool:
     return (resolved / "boot.js").is_file() and (resolved / "index.html").is_file()
 
 
-# Back-compat alias used by callers/tests.
-def looks_like_build_directory(path: str | Path) -> bool:
-    return looks_like_pygodide_output_dir(path)
-
-
 def build_directory_warning_message(source_dir: Path) -> str:
     project_root = source_dir.parent if source_dir.name == "build" else source_dir
     return (
@@ -139,6 +134,13 @@ def build_plan_for_source(
     )
     if not package_files:
         raise ValueError(f"{resolved_source_dir} does not contain any files to build")
+
+    _require_entry_module_file(
+        resolved_source_dir,
+        entry_module=resolved_app.module,
+        package_files=package_files,
+        app_source=app_source,
+    )
 
     raw_python_path_entries = (
         project_config.python_path
@@ -402,6 +404,37 @@ def _resolve_app_entrypoint(
     if resolved_spec is None:
         resolved_spec = DEFAULT_APP_SPEC
     return parse_app_spec(resolved_spec), "default"
+
+
+def entry_module_relative_path(entry_module: str) -> str:
+    """Relative path of the Python file for an importable entry module."""
+    return f"{entry_module.replace('.', '/')}.py"
+
+
+def _require_entry_module_file(
+    source_dir: Path,
+    *,
+    entry_module: str,
+    package_files: list[str],
+    app_source: str,
+) -> None:
+    """Fail the plan when the entry module is not among staged package files."""
+    relative_path = entry_module_relative_path(entry_module)
+    if relative_path in package_files:
+        return
+
+    on_disk = (source_dir / relative_path).is_file()
+    if on_disk:
+        raise ValueError(
+            f"Entry module file {relative_path!r} exists but is not included in "
+            f"the build package (entrypoint {entry_module!r} from {app_source}). "
+            "Add it via [tool.pygodide].include, or stop excluding it."
+        )
+    raise ValueError(
+        f"Entry module file {relative_path!r} not found under {source_dir} "
+        f"(entrypoint {entry_module!r} from {app_source}). "
+        "Create that file or set --app / [tool.pygodide].app to module:callable."
+    )
 
 
 def _normalize_virtual_path(path: str) -> str:

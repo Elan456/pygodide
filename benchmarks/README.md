@@ -38,8 +38,9 @@ A real browser window opens for each web runtime, similar to testing manually.
 Outputs:
 
 - `benchmarks/results/latest.json`: machine metadata + FPS means
-- `benchmarks/output/benchmark-chart.html`: interactive Plotly chart
-- `docs/assets/benchmark-chart.html`: same chart for the docs site
+- `benchmarks/output/benchmark-chart.html`: interactive Plotly chart (local + pygodide + pygbag)
+- `docs/assets/benchmark-chart.html`: same full chart for the docs site
+- `docs/assets/images/benchmark-readme.png`: compact Plotly chart (pygodide vs pygbag) for the GitHub README
 
 The full run takes roughly 2-4 minutes (5s warmup + 20s measurement per runtime,
 plus build/load overhead).

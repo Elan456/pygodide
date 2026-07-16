@@ -826,5 +826,117 @@ def test_serve_command_accepts_custom_port(tmp_path, monkeypatch):
     assert calls == [(build_dir, 9000)]
 
 
+def test_build_serve_accepts_custom_port(tmp_path, monkeypatch):
+    source_dir = tmp_path / "demo"
+    source_dir.mkdir()
+    (source_dir / "main.py").write_text(
+        "def main():\n    return None\n", encoding="utf-8"
+    )
+    calls: list[tuple[Path, int]] = []
+
+    def fake_serve(directory, *, port: int = 8000) -> None:
+        calls.append((directory, port))
+
+    monkeypatch.setattr(
+        "pygodide.cli.runners.serve_directory_forever",
+        fake_serve,
+    )
+
+    result = runner.invoke(
+        app,
+        ["build", str(source_dir), "--serve", "--port", "9001"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert calls == [(source_dir / "build", 9001)]
+
+
+def test_build_port_requires_serve(tmp_path):
+    source_dir = tmp_path / "demo"
+    source_dir.mkdir()
+    (source_dir / "main.py").write_text(
+        "def main():\n    return None\n", encoding="utf-8"
+    )
+
+    result = runner.invoke(app, ["build", str(source_dir), "--port", "9000"])
+
+    assert result.exit_code != 0
+    assert "--port requires --serve" in result.output
+
+
+def test_build_fails_when_entry_module_file_missing(tmp_path):
+    source_dir = tmp_path / "demo"
+    source_dir.mkdir()
+    (source_dir / "other.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["build", str(source_dir)])
+
+    assert result.exit_code != 0
+    assert "Entry module file 'main.py' not found" in result.output
+    assert "entrypoint 'main' from default" in result.output
+
+
+def test_build_fails_when_entry_module_not_included(tmp_path):
+    source_dir = tmp_path / "demo"
+    source_dir.mkdir()
+    (source_dir / "main.py").write_text(
+        "def main():\n    return None\n", encoding="utf-8"
+    )
+    (source_dir / "extra.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (source_dir / "pyproject.toml").write_text(
+        """
+[tool.pygodide]
+include = ["extra.py"]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["build", str(source_dir)])
+
+    assert result.exit_code != 0
+    assert "not included in the" in result.output
+    assert "build package" in result.output
+
+
+def test_serve_missing_build_is_user_error(tmp_path):
+    source_dir = tmp_path / "demo"
+    source_dir.mkdir()
+
+    result = runner.invoke(app, ["serve", str(source_dir)])
+
+    assert result.exit_code != 0
+    assert "does not exist" in result.output
+    assert "pygodide build" in result.output
+
+
+def test_smoke_suite_rejects_single_app_flags(tmp_path):
+    targets_root = tmp_path / "targets"
+    target_dir = targets_root / "demo"
+    target_dir.mkdir(parents=True)
+    (target_dir / "main.py").write_text(
+        "def main():\n    return None\n", encoding="utf-8"
+    )
+    (target_dir / "testing_manifest.yaml").write_text(
+        "name: demo-target\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "smoke",
+            str(targets_root),
+            "--suite",
+            "--build-only",
+            "--app",
+            "main:main",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Cannot combine --suite with single-app options" in result.output
+    assert "--app" in result.output
+
+
 def test_dev_server_reuses_recently_closed_port():
     assert ReusableTCPServer.allow_reuse_address is True

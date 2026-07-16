@@ -221,3 +221,6 @@ __marimo__/
 # AI stuff:
 .codex/
 .agents/
+
+# Temp / Swap Files
+~*

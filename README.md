@@ -11,12 +11,25 @@
 [![Docs](https://img.shields.io/badge/docs-online-brightgreen)](https://elan456.github.io/pygodide/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-**BETA: everything is subject to change**
-
 **pygodide** turns Pygame projects into browser apps
-using [Pyodide](https://pyodide.org/) with one command, no edits to your source code, and acheiving [2.4x more fps than pygbag](https://elan456.github.io/pygodide/benchmark/).
+using [Pyodide](https://pyodide.org/) with one command, no edits to your source code, and acheiving [2.5x more fps than pygbag](https://elan456.github.io/pygodide/benchmark/).
 
 > Pronounced "pie-go-died"
+
+<p align="center">
+  <a href="https://elan456.github.io/pygodide/benchmark/">
+    <img
+      src="docs/assets/images/benchmark-readme.png"
+      alt="FPS benchmark: pygodide 453 vs pygbag 180 on perf_bench"
+      width="560"
+    >
+  </a>
+</p>
+
+<p align="center">
+  <sub>FPS Performance Benchmark |
+  <a href="https://elan456.github.io/pygodide/benchmark/">Full Benchmark</a></sub>
+</p>
 
 If anything doesn't work out-of-the-box, pygodide offers tons of configuration options to adapt to your needs.
 

@@ -16,6 +16,7 @@ from perf_benchmark.config import (
     DEFAULT_RESULTS_JSON,
     DOCS_CHART_HTML,
     LOCAL_TIMEOUT_S,
+    README_CHART_PNG,
     SCENARIO_NAME,
 )
 from perf_benchmark.local import run_local_benchmark
@@ -134,6 +135,7 @@ def main() -> int:
         chart_path = write_chart(report, args.chart_html)
         print(f"Wrote chart: {chart_path}")
         print(f"Wrote docs chart: {DOCS_CHART_HTML}")
+        print(f"Wrote README chart: {README_CHART_PNG}")
         return 0
 
     results: dict[str, BenchmarkResult] = {}
@@ -194,6 +196,7 @@ def main() -> int:
     print(f"Wrote results: {json_path}")
     print(f"Wrote chart: {chart_path}")
     print(f"Wrote docs chart: {DOCS_CHART_HTML}")
+    print(f"Wrote README chart: {README_CHART_PNG}")
 
     failed = [name for name, result in results.items() if result.status != "ok"]
     if failed:

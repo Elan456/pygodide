@@ -159,7 +159,8 @@ def _parse_optional_int(
     value = raw_config.get(key)
     if value is None:
         return None
-    if not isinstance(value, int):
+    # bool is a subclass of int; reject it so true/false never become 1/0.
+    if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(
             f"{pyproject_path} has a non-integer [tool.pygodide].{key} value: {value!r}"
         )

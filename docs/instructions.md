@@ -21,7 +21,12 @@ That is enough for many projects. By default, pygodide:
 - reads dependencies from `requirements.txt` and/or `pyproject.toml`
 - auto-converts simple synchronous game loops for the browser
 
-Use a different port with `pygodide serve . --port 3000`.
+Use a different port with `pygodide serve . --port 3000`, or build and serve
+in one step:
+
+```bash
+pygodide build . --serve --port 3000
+```
 
 Build details are written to `build/pygodide-build.log`.
 
@@ -77,6 +82,15 @@ Build only, without launching a browser (no Chromium needed):
 ```bash
 pygodide smoke . --build-only --verbose
 ```
+
+### Smoke suite (multiple fixtures)
+
+With `--suite`, PATH is a directory of fixture apps each with a
+`testing_manifest.yaml` (see the repo `test_targets/` folder). Per-target
+overrides come from those manifests. Single-app flags such as `--app`,
+`--dep`, canvas options, `--smoke-path`, `--timeout-ms`, `--post-ready-ms`,
+and `--ready-log` cannot be combined with `--suite` (pygodide errors instead
+of ignoring them).
 
 ## Make the game async-compatible
 
@@ -209,6 +223,12 @@ Pygodide stages those files into the browser build and sets the working
 directory to the project root before your app starts, so `sounds/...` and
 `assets/...` usually work without extra configuration.
 
+**Saves and writes:** ordinary `open()` / `pathlib` work in the browser
+filesystem for the current page session (see the
+[save slots](https://github.com/Elan456/pygodide/tree/main/test_targets/save_slots)
+example). Reloading the page clears that virtual disk; durable cross-visit
+saves are not provided yet.
+
 If your project root contains a favicon file (`favicon.svg`, `favicon.png`,
 `favicon.ico`, and a few other common names), the build uses it for the hosted
 app tab icon. Otherwise pygodide ships a small default favicon.
@@ -270,6 +290,36 @@ imported as `from lib.helpers import load_level` instead, add `lib/__init__.py`
 
 **`src/` layouts:** if your game code lives under `src/` and imports assume that
 directory is on the path, add `"src"` rather than moving files around.
+
+### Detecting the web runtime
+
+For “am I in the browser WASM build?” use Pyodide’s standard check:
+
+```python
+import sys
+
+if sys.platform == "emscripten":
+    # browser / web build (Pyodide, and other Emscripten Pythons)
+    ...
+```
+
+That is enough for most game branching (paths, input, skipping desktop-only
+code). pygodide’s runtime is Emscripten-based, so this is true in the hosted
+app and false in a normal desktop CPython run.
+
+Use a second check only when you need **Pyodide-specific** APIs (for example
+`js` or `pyodide.ffi`), not merely “running on the web”:
+
+```python
+if "pyodide" in sys.modules:
+    # Pyodide is loaded (not just any Emscripten Python)
+    ...
+```
+
+See the
+[web runtime smoke test](https://github.com/Elan456/pygodide/tree/main/test_targets/web_runtime)
+(`test_targets/web_runtime`) for a full example that asserts
+`sys.platform == "emscripten"` under `pygodide smoke`.
 
 ### `pyproject.toml` reference
 
