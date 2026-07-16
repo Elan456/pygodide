@@ -1,3 +1,4 @@
+import re
 from importlib import metadata
 from pathlib import Path
 
@@ -18,6 +19,31 @@ from pygodide.rendering import (
 from pygodide.serving import ReusableTCPServer
 
 runner = CliRunner()
+
+# Rich error panels on narrow terminals (CI default width) wrap messages and
+# inject ANSI codes around flags like --suite. Normalize before substring checks.
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*m")
+_BOX_DRAWING = str.maketrans(
+    {
+        "│": " ",
+        "╭": " ",
+        "╮": " ",
+        "╰": " ",
+        "╯": " ",
+        "─": " ",
+        "├": " ",
+        "┤": " ",
+        "┬": " ",
+        "┴": " ",
+        "┼": " ",
+    }
+)
+
+
+def cli_text(output: str) -> str:
+    """Strip ANSI/box art and collapse whitespace for stable CLI assertions."""
+    plain = _ANSI_ESCAPE_RE.sub("", output).translate(_BOX_DRAWING)
+    return " ".join(plain.split())
 
 
 def test_version_option_matches_package_metadata():
@@ -861,7 +887,7 @@ def test_build_port_requires_serve(tmp_path):
     result = runner.invoke(app, ["build", str(source_dir), "--port", "9000"])
 
     assert result.exit_code != 0
-    assert "--port requires --serve" in result.output
+    assert "--port requires --serve" in cli_text(result.output)
 
 
 def test_build_fails_when_entry_module_file_missing(tmp_path):
@@ -872,8 +898,9 @@ def test_build_fails_when_entry_module_file_missing(tmp_path):
     result = runner.invoke(app, ["build", str(source_dir)])
 
     assert result.exit_code != 0
-    assert "Entry module file 'main.py' not found" in result.output
-    assert "entrypoint 'main' from default" in result.output
+    output = cli_text(result.output)
+    assert "Entry module file 'main.py' not found" in output
+    assert "entrypoint 'main' from default" in output
 
 
 def test_build_fails_when_entry_module_not_included(tmp_path):
@@ -894,8 +921,8 @@ include = ["extra.py"]
     result = runner.invoke(app, ["build", str(source_dir)])
 
     assert result.exit_code != 0
-    assert "not included in the" in result.output
-    assert "build package" in result.output
+    output = cli_text(result.output)
+    assert "not included in the build package" in output
 
 
 def test_serve_missing_build_is_user_error(tmp_path):
@@ -905,8 +932,9 @@ def test_serve_missing_build_is_user_error(tmp_path):
     result = runner.invoke(app, ["serve", str(source_dir)])
 
     assert result.exit_code != 0
-    assert "does not exist" in result.output
-    assert "pygodide build" in result.output
+    output = cli_text(result.output)
+    assert "does not exist" in output
+    assert "pygodide build" in output
 
 
 def test_smoke_suite_rejects_single_app_flags(tmp_path):
@@ -934,8 +962,9 @@ def test_smoke_suite_rejects_single_app_flags(tmp_path):
     )
 
     assert result.exit_code != 0
-    assert "Cannot combine --suite with single-app options" in result.output
-    assert "--app" in result.output
+    output = cli_text(result.output)
+    assert "Cannot combine --suite with single-app options" in output
+    assert "--app" in output
 
 
 def test_dev_server_reuses_recently_closed_port():
