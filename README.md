@@ -21,7 +21,7 @@ using [Pyodide](https://pyodide.org/) with one command, no edits to your source 
     <img
       src="docs/assets/images/benchmark-readme.png"
       alt="FPS benchmark: pygodide 453 vs pygbag 180 on perf_bench"
-      width="560"
+      width="420"
     >
   </a>
 </p>
