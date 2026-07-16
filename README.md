@@ -16,7 +16,7 @@ using [Pyodide](https://pyodide.org/) with one command, no edits to your source 
 
 > Pronounced "pie-go-died"
 
-<p align="center">
+<p align="left">
   <a href="https://elan456.github.io/pygodide/benchmark/">
     <img
       src="docs/assets/images/benchmark-readme.png"
@@ -26,7 +26,7 @@ using [Pyodide](https://pyodide.org/) with one command, no edits to your source 
   </a>
 </p>
 
-<p align="center">
+<p align="left">
   <sub>FPS Performance Benchmark |
   <a href="https://elan456.github.io/pygodide/benchmark/">Full Benchmark</a></sub>
 </p>
