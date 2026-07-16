@@ -3,8 +3,17 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from pygodide.asyncify import AsyncifyResult, asyncify_entrypoint
-from pygodide.builder.plan import build_plan_for_source, copy_package_files
+from pygodide.asyncify import (
+    AsyncifyResult,
+    asyncify_entrypoint,
+    diagnose_entrypoint,
+)
+from pygodide.asyncify.constants import MANUAL_ASYNC_GUIDANCE
+from pygodide.builder.plan import (
+    BuildPlan,
+    build_plan_for_source,
+    copy_package_files,
+)
 from pygodide.dep_handling.pyodide_resolution import (
     build_install_plan,
     collect_requirements,
@@ -65,8 +74,10 @@ def build_app(
         asyncify_result = asyncify_entrypoint(build_plan, output_dir)
         if log is not None:
             _log_asyncify_result(asyncify_result, output_dir, log)
-    elif log is not None:
-        log("Auto async: disabled")
+    else:
+        if log is not None:
+            log("Auto async: disabled")
+            _log_disabled_auto_async_risk(build_plan, output_dir, log)
 
     boot_script_name = "boot.js"
     logo_name = "pygodide-logo.svg"
@@ -132,3 +143,21 @@ def _log_asyncify_result(
     transformed_path = output_dir / result.relative_path
     log(f"Auto async transformed source ({result.relative_path}):")
     log(transformed_path.read_text(encoding="utf-8").rstrip())
+
+
+def _log_disabled_auto_async_risk(
+    build_plan: BuildPlan,
+    source_dir: Path,
+    log: Callable[[str], None],
+) -> None:
+    """Warn at build time when --no-auto-async meets a sync game loop."""
+    del source_dir  # plan carries source_dir
+    diagnostic = diagnose_entrypoint(build_plan, build_plan.source_dir)
+    if diagnostic.status != "would-change":
+        return
+    log(
+        "Warning: auto-async is disabled but the entrypoint looks like a "
+        "synchronous Pygame game loop. In the browser that usually freezes on "
+        "a blank canvas (no paint, no right-click menu). Rebuild without "
+        f"--no-auto-async, or manually: {MANUAL_ASYNC_GUIDANCE}"
+    )

@@ -54,14 +54,16 @@ const LOADING_PROGRESS = {
 
 function setLoadingChromeState(state) {
   // Visible while loading or on error; hidden before the game starts drawing.
-  const chromeState = state === "hidden" ? "hidden" : "active";
+  const chromeState =
+    state === "hidden" ? "hidden" : state === "error" ? "error" : "active";
   const loader = document.getElementById("pygodide-loader");
   if (loader) {
     loader.dataset.state = chromeState;
   }
   const version = document.getElementById("pygodide-version");
   if (version) {
-    version.dataset.state = chromeState;
+    // Version badge follows loading visibility, not error chrome.
+    version.dataset.state = state === "hidden" ? "hidden" : "active";
   }
   const progress = document.getElementById("pygodide-progress");
   if (progress && state === "hidden") {
@@ -156,6 +158,85 @@ function hideLoadingUi() {
 function getLoadingAppStatusMessage() {
   return `${statusText.loadingApp} ${statusText.loadingAppHint}`.trim();
 }
+
+function getSyncEntrypointHelpMessage() {
+  return [
+    "Your game entrypoint is synchronous and is blocking the browser.",
+    "",
+    "The page cannot update, paint, or open a right-click menu while a tight",
+    "while-loop runs without yielding.",
+    "",
+    "Fix (pick one):",
+    "  1. Rebuild WITHOUT --no-auto-async so pygodide can convert simple loops, or",
+    "  2. Make the entry async and yield each frame:",
+    "       async def main():",
+    "           while running:",
+    "               ...",
+    "               await asyncio.sleep(1 / (60 * 2))",
+    "",
+    "Docs: https://elan456.github.io/pygodide/instructions/#make-the-game-async-compatible",
+  ].join("\n");
+}
+
+function getAsyncHangHelpMessage() {
+  // Stable prefix for smoke manifests (smoke.expected-warning) and log grepping.
+  return [
+    "[pygodide] async hang: your async entrypoint never yielded control.",
+    "",
+    "The browser main thread is blocked, so the page cannot update or paint.",
+    "You may have forgotten await asyncio.sleep(...) in your game loop, or the",
+    "app got stuck in a tight loop or long blocking call.",
+    "",
+    "Fix: yield every frame inside the loop, for example:",
+    "  async def main():",
+    "      while running:",
+    "          ...",
+    "          await asyncio.sleep(1 / (60 * 2))",
+    "",
+    "Docs: https://elan456.github.io/pygodide/instructions/#make-the-game-async-compatible",
+  ].join("\n");
+}
+
+let appReadyMarked = false;
+
+function markAppReady() {
+  if (appReadyMarked) {
+    return Promise.resolve();
+  }
+  appReadyMarked = true;
+  console.info(readyLogMessage);
+  return hideLoadingUi();
+}
+
+function allowLoaderTextSelection() {
+  const loader = document.getElementById("pygodide-loader");
+  if (loader) {
+    // Allow selecting/copying help text before (or if) the thread freezes.
+    loader.style.pointerEvents = "auto";
+  }
+}
+
+function warnSyncEntrypoint() {
+  // Keep the loading chrome visible with actionable text. Sync infinite loops
+  // freeze the main thread next; this message must already be on screen.
+  console.warn(getSyncEntrypointHelpMessage());
+  setStatus(getSyncEntrypointHelpMessage(), "error");
+  allowLoaderTextSelection();
+}
+
+function warnAsyncHang() {
+  // Must run before await entrypoint(). If the coroutine never awaits, JS timers
+  // cannot fire — so this guidance has to be painted first (like sync freeze).
+  // Healthy games clear it via markAppReady() after their first yield.
+  console.warn(getAsyncHangHelpMessage());
+  setStatus(getAsyncHangHelpMessage(), "error");
+  allowLoaderTextSelection();
+}
+
+// Called from generated Python startup (js.pygodideMarkAppReady / Warn...).
+globalThis.pygodideMarkAppReady = markAppReady;
+globalThis.pygodideWarnSyncEntrypoint = warnSyncEntrypoint;
+globalThis.pygodideWarnAsyncHang = warnAsyncHang;
 
 function normalizePackageName(name) {
   return name.toLowerCase().replace(/_/g, "-");
@@ -494,15 +575,11 @@ async function boot() {
   });
   await waitForNextPaint();
 
-  // Dismiss the logo/status fully before the game paints its first frames.
-  await hideLoadingUi();
-  await waitForNextPaint();
-
-  const appPromise = runtime.runPythonAsync(startupPythonCode);
-  console.info(readyLogMessage);
-  await waitForNextPaint();
-
-  await appPromise;
+  // Do not hide the loader before the entrypoint runs. Async games arm hang
+  // guidance first, then hide via pygodideMarkAppReady() after the first yield.
+  // Sync game loops keep the loader up with pygodideWarnSyncEntrypoint() instead
+  // of an empty frozen canvas (and a page that cannot open DevTools via right-click).
+  await runtime.runPythonAsync(startupPythonCode);
 }
 
 boot().catch((error) => {

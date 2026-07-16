@@ -1,0 +1,85 @@
+import asyncio
+import gc
+import inspect
+import os
+import sys
+import warnings
+
+# Capture RuntimeWarnings (including "coroutine was never awaited") so we
+# can surface them in the page UI instead of only the F12 console.
+_pygodide_runtime_warnings = []
+
+def _pygodide_showwarning(message, category, filename, lineno, file=None, line=None):
+    text = warnings.formatwarning(message, category, filename, lineno, line)
+    _pygodide_runtime_warnings.append(text)
+    print(text, file=sys.stderr, end='')
+
+warnings.showwarning = _pygodide_showwarning
+warnings.simplefilter('always', RuntimeWarning)
+
+# Boot.js installs these on the JS global; call via pyodide's js module.
+from js import (
+    pygodideMarkAppReady,
+    pygodideWarnAsyncHang,
+    pygodideWarnSyncEntrypoint,
+)
+{% for entry in python_path_entries -%}
+if {{ entry | py_repr }} not in sys.path:
+    sys.path.append({{ entry | py_repr }})
+{% endfor -%}
+os.chdir({{ virtual_fs_root | py_repr }})
+from {{ entry_module }} import {{ entry_function }}
+
+# Async entrypoints that never await freeze the main thread the same way a sync
+# while-loop does. JS timers cannot fire while blocked, so hang guidance must be
+# on screen *before* await entry(). When the game yields once, markAppReady()
+# clears the chrome.
+if inspect.iscoroutinefunction({{ entry_function }}):
+    pygodideWarnAsyncHang()
+    await asyncio.sleep(0.05)
+    _pygodide_game = asyncio.create_task({{ entry_function }}())
+    async def _pygodide_clear_hang_on_first_yield():
+        await asyncio.sleep(0)
+        await pygodideMarkAppReady()
+    _pygodide_ready_task = asyncio.create_task(
+        _pygodide_clear_hang_on_first_yield()
+    )
+    try:
+        await _pygodide_game
+    finally:
+        if not _pygodide_ready_task.done():
+            # Entrypoint finished without a mid-body yield.
+            await pygodideMarkAppReady()
+        _pygodide_ready_task.cancel()
+        try:
+            await _pygodide_ready_task
+        except (asyncio.CancelledError, Exception):
+            pass
+else:
+    # Sync entrypoint: show guidance and yield so it paints, then call.
+    # If main() is a tight game loop, this message stays on screen.
+    pygodideWarnSyncEntrypoint()
+    await asyncio.sleep(0.05)
+    _pygodide_entrypoint = {{ entry_function }}()
+    if inspect.isawaitable(_pygodide_entrypoint):
+        await pygodideMarkAppReady()
+        await _pygodide_entrypoint
+    else:
+        await pygodideMarkAppReady()
+
+# Let finalizers run so "never awaited" warnings fire for coroutines created
+# during startup and then discarded.
+await asyncio.sleep(0)
+gc.collect()
+gc.collect()
+_never_awaited = [
+    warning for warning in _pygodide_runtime_warnings
+    if 'never awaited' in warning
+]
+if _never_awaited:
+    raise RuntimeError(
+        'A coroutine was never awaited. In the browser entrypoint, '
+        'use `await your_async_function()` (for example '
+        '`await game.start()`), not a bare call. Details:\n\n'
+        + ''.join(_never_awaited)
+    )

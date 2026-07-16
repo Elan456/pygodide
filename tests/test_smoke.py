@@ -4,13 +4,16 @@ from pathlib import Path
 
 import pytest
 
+from pygodide.rendering import ASYNC_HANG_WARNING_PREFIX, build_startup_python_code
 from pygodide.smoke import (
     MANIFEST_FILENAME,
     DiscoveredTarget,
     SmokeConfig,
+    SmokeObservation,
     TargetManifest,
     assert_ready_status_hidden,
     discover_targets,
+    evaluate_smoke_result,
     load_target_manifest,
     remaining_timeout_ms,
     resolve_smoke_config,
@@ -231,6 +234,162 @@ def test_ready_status_must_hide_after_ready_log():
     assert page.selector == '#pygodide-loader[data-state="hidden"]'
     assert page.state == "attached"
     assert page.timeout == 1
+
+
+def test_load_target_manifest_reads_expected_warning_hang_config(tmp_path):
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    (target_dir / MANIFEST_FILENAME).write_text(
+        """
+name: hang-target
+smoke:
+  expected-warning: "[pygodide] async hang"
+  post-ready-ms: 2000
+  timeout-ms: 60000
+""".strip(),
+        encoding="utf-8",
+    )
+
+    manifest = load_target_manifest(target_dir)
+
+    assert manifest.smoke.expected_warning == "[pygodide] async hang"
+    assert manifest.smoke.expect_ready is False
+    assert manifest.smoke.post_ready_ms == 2000
+    assert manifest.smoke.timeout_ms == 60000
+
+
+def test_load_target_manifest_allows_expected_warning_with_ready(tmp_path):
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    (target_dir / MANIFEST_FILENAME).write_text(
+        """
+name: warn-and-ready
+smoke:
+  expected-warning: "something odd"
+  expect-ready: true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    manifest = load_target_manifest(target_dir)
+
+    assert manifest.smoke.expected_warning == "something odd"
+    assert manifest.smoke.expect_ready is True
+
+
+def test_resolve_smoke_config_keeps_manifest_hang_fields(tmp_path):
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    (target_dir / MANIFEST_FILENAME).write_text(
+        """
+name: hang-target
+smoke:
+  expected-warning: "[pygodide] async hang"
+  timeout-ms: 60000
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = resolve_smoke_config(target_dir)
+
+    assert config.expected_warning == "[pygodide] async hang"
+    assert config.expect_ready is False
+    assert config.timeout_ms == 60000
+
+
+def test_evaluate_smoke_result_accepts_expected_hang_warning():
+    smoke = SmokeConfig(
+        expected_warning="[pygodide] async hang",
+        expect_ready=False,
+    )
+    evaluate_smoke_result(
+        smoke,
+        SmokeObservation(expected_warning_seen=True, ready_seen=False),
+    )
+
+
+def test_evaluate_smoke_result_rejects_ready_when_hang_expected():
+    smoke = SmokeConfig(
+        expected_warning="[pygodide] async hang",
+        expect_ready=False,
+    )
+    with pytest.raises(RuntimeError, match="became ready"):
+        evaluate_smoke_result(
+            smoke,
+            SmokeObservation(expected_warning_seen=True, ready_seen=True),
+        )
+
+
+def test_evaluate_smoke_result_rejects_missing_expected_warning():
+    smoke = SmokeConfig(
+        expected_warning="[pygodide] async hang",
+        expect_ready=False,
+        timeout_ms=12_000,
+    )
+    with pytest.raises(RuntimeError, match="expected warning"):
+        evaluate_smoke_result(
+            smoke,
+            SmokeObservation(expected_warning_seen=False, ready_seen=False),
+        )
+
+
+def test_evaluate_smoke_result_still_requires_ready_for_normal_targets():
+    smoke = SmokeConfig()
+    with pytest.raises(RuntimeError, match="ready log"):
+        evaluate_smoke_result(
+            smoke,
+            SmokeObservation(ready_seen=False),
+        )
+
+
+def test_evaluate_smoke_result_surfaces_console_failures():
+    smoke = SmokeConfig(expected_warning="[pygodide] async hang", expect_ready=False)
+    with pytest.raises(RuntimeError, match="console error"):
+        evaluate_smoke_result(
+            smoke,
+            SmokeObservation(
+                expected_warning_seen=True,
+                failures=("console error: boom",),
+            ),
+        )
+
+
+def test_startup_python_arms_async_hang_watchdog_before_entrypoint():
+    startup = build_startup_python_code(
+        entry_module="main",
+        entry_function="main",
+        python_path_entries=["/"],
+    )
+
+    assert "pygodideWarnAsyncHang" in startup
+    assert "pygodideWarnSyncEntrypoint" in startup
+    assert "create_task" in startup
+    assert "_pygodide_clear_hang_on_first_yield" in startup
+    # Hang guidance must be shown before the game task runs.
+    assert startup.index("pygodideWarnAsyncHang()") < startup.index(
+        "create_task(main())"
+    )
+
+
+def test_async_hang_fixture_manifest_is_discoverable():
+    repo_targets = Path(__file__).resolve().parents[1] / "test_targets"
+    targets = discover_targets(repo_targets, target_names=["async-hang"])
+    assert len(targets) == 1
+    manifest = targets[0].manifest
+    assert manifest.auto_async is False
+    assert manifest.smoke.expected_warning == "[pygodide] async hang"
+    assert manifest.smoke.expected_warning.startswith(
+        ASYNC_HANG_WARNING_PREFIX.rstrip(":")
+    )
+    assert manifest.smoke.expect_ready is False
+    main_py = (targets[0].path / "main.py").read_text(encoding="utf-8")
+    assert "async def main" in main_py
+    # No real frame yield in the game loop body.
+    assert "await " not in "\n".join(
+        line
+        for line in main_py.splitlines()
+        if line.strip() and not line.lstrip().startswith(("#", '"""', "'''"))
+    )
 
 
 def _write_target_manifest(target_dir: Path, name: str) -> Path:

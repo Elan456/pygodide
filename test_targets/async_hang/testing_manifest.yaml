@@ -1,0 +1,12 @@
+name: async-hang
+description: >
+  Async entrypoint that never awaits; hang watchdog must show guidance and
+  smoke must treat the expected warning as success (not ready).
+build:
+  auto-async: false
+smoke:
+  path: /
+  expected-warning: "[pygodide] async hang"
+  expect-ready: false
+  timeout-ms: 60000
+  post-ready-ms: 2000

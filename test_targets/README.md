@@ -43,6 +43,9 @@ smoke:
   ready-log: "[pygodide] ready"
   timeout-ms: 120000      # wait for ready log + loading UI to clear
   post-ready-ms: 500      # keep listening for errors after ready
+  # Hang / expected-failure fixtures (optional):
+  # expected-warning: "[pygodide] async hang"  # substring in console or #status
+  # expect-ready: false                        # default false when expected-warning set
 ```
 
 | Field | Required | Notes |
@@ -55,7 +58,9 @@ smoke:
 | `smoke.path` | no | Must start with `/` |
 | `smoke.ready-log` | no | Console message that marks success |
 | `smoke.timeout-ms` | no | Positive integer (milliseconds) |
-| `smoke.post-ready-ms` | no | Non-negative integer (milliseconds) |
+| `smoke.post-ready-ms` | no | Non-negative integer (milliseconds). For hang fixtures (`expect-ready: false`), used as a short confirm window that ready does not appear after the expected warning. |
+| `smoke.expected-warning` | no | Substring that must appear in a console message or `#status` text. Used for positive hang/stuck fixtures. |
+| `smoke.expect-ready` | no | Boolean. Defaults to `true`, or `false` when `expected-warning` is set. When `false`, ready is not required and becoming ready is a failure. |
 
 Project config (`pyproject.toml` / `requirements.txt` / `[tool.pygodide]`) still
 applies as usual. Manifest `build` fields are suite-level overrides for that

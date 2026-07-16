@@ -30,6 +30,18 @@ def resolve_smoke_config(
         return cli_config
 
     manifest_smoke = load_target_manifest(resolved_source_dir).smoke
+    # expected_warning: CLI wins only when explicitly set (not None).
+    # expect_ready: CLI wins when False or when CLI set expected_warning;
+    # otherwise prefer the manifest (default True would hide hang fixtures).
+    expected_warning = (
+        cli_config.expected_warning
+        if cli_config.expected_warning is not None
+        else manifest_smoke.expected_warning
+    )
+    if cli_config.expected_warning is not None or not cli_config.expect_ready:
+        expect_ready = cli_config.expect_ready
+    else:
+        expect_ready = manifest_smoke.expect_ready
     return SmokeConfig(
         path=(
             cli_config.path
@@ -51,6 +63,8 @@ def resolve_smoke_config(
             if cli_config.post_ready_ms != DEFAULT_POST_READY_MS
             else manifest_smoke.post_ready_ms
         ),
+        expected_warning=expected_warning,
+        expect_ready=expect_ready,
     )
 
 
@@ -152,12 +166,25 @@ def _parse_smoke_config(
 
     _reject_unknown_keys(
         smoke_config,
-        {"path", "ready-log", "timeout-ms", "post-ready-ms"},
+        {
+            "path",
+            "ready-log",
+            "timeout-ms",
+            "post-ready-ms",
+            "expected-warning",
+            "expect-ready",
+        },
         manifest_path / "smoke",
     )
     path = _optional_string(smoke_config, "path", manifest_path) or DEFAULT_SMOKE_PATH
     if not path.startswith("/"):
         raise ValueError(f"{manifest_path}: smoke.path must start with '/'")
+
+    expected_warning = _optional_string(smoke_config, "expected-warning", manifest_path)
+    expect_ready = _optional_bool(smoke_config, "expect-ready", manifest_path)
+    if expect_ready is None:
+        # Hang fixtures declare expected-warning and should not require ready.
+        expect_ready = expected_warning is None
 
     return SmokeConfig(
         path=path,
@@ -177,6 +204,8 @@ def _parse_smoke_config(
             manifest_path,
             default=DEFAULT_POST_READY_MS,
         ),
+        expected_warning=expected_warning,
+        expect_ready=expect_ready,
     )
 
 

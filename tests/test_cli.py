@@ -544,6 +544,11 @@ def test_template_renderers_include_configured_values():
     assert "os.chdir('/')" in startup_code
     assert "from demo.main import start" in startup_code
     assert "'/vendor'" in startup_code
+    assert "pygodideMarkAppReady" in startup_code
+    assert "pygodideWarnSyncEntrypoint" in startup_code
+    assert "pygodideWarnAsyncHang" in startup_code
+    assert "create_task" in startup_code
+    assert "iscoroutinefunction" in startup_code
     assert '"ball.py"' in boot_js
     assert '"assets/theme.ogg"' in boot_js
     assert 'const pyodidePackages = ["pygame-ce"];' in boot_js
@@ -572,11 +577,22 @@ def test_template_renderers_include_configured_values():
     # Loading-app hint for game loops.
     assert "await asyncio.sleep(1 / (60 * 2))" in boot_js
     assert "console.warn(getLoadingAppStatusMessage())" in boot_js
-    assert "const appPromise = runtime.runPythonAsync(startupPythonCode);" in boot_js
+    assert "await runtime.runPythonAsync(startupPythonCode)" in boot_js
     assert 'const readyLogMessage = "[pygodide] ready";' in boot_js
     assert "console.info(readyLogMessage)" in boot_js
+    assert "function markAppReady()" in boot_js
+    assert "function warnSyncEntrypoint()" in boot_js
+    assert "function warnAsyncHang()" in boot_js
+    assert "function getAsyncHangHelpMessage()" in boot_js
+    assert "pygodideMarkAppReady" in boot_js
+    assert "pygodideWarnSyncEntrypoint" in boot_js
+    assert "pygodideWarnAsyncHang" in boot_js
+    assert "Your game entrypoint is synchronous" in boot_js
+    assert "[pygodide] async hang:" in boot_js
+    assert "forgotten await asyncio.sleep" in boot_js
+    assert "app got stuck" in boot_js
     assert "status.dataset.state = state" in boot_js
-    assert "await hideLoadingUi()" in boot_js
+    assert "function hideLoadingUi()" in boot_js
     assert 'setStatus("", "hidden")' in boot_js
     assert "new Uint8Array(await response.arrayBuffer())" in boot_js
     # Content-stable cache buster (not a per-load random value).
@@ -875,6 +891,36 @@ def test_build_serve_accepts_custom_port(tmp_path, monkeypatch):
 
     assert result.exit_code == 0, result.output
     assert calls == [(source_dir / "build", 9001)]
+
+
+def test_build_warns_when_auto_async_disabled_on_sync_loop(tmp_path):
+    source_dir = tmp_path / "demo"
+    source_dir.mkdir()
+    (source_dir / "main.py").write_text(
+        """
+import pygame
+
+def main():
+    screen = pygame.display.set_mode((800, 600))
+    while True:
+        for event in pygame.event.get():
+            pass
+        pygame.display.flip()
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        ["build", str(source_dir), "--no-auto-async"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Auto async: disabled" in result.output
+    assert "auto-async is disabled but the entrypoint looks like" in result.output
+    boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
+    assert "pygodideWarnSyncEntrypoint" in boot_js
+    assert "Your game entrypoint is synchronous" in boot_js
 
 
 def test_build_port_requires_serve(tmp_path):

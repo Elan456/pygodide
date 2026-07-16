@@ -10,11 +10,14 @@ guiding the project.
 
 For an overview of the project, read the `README.md` and the `docs/index.md`.
 
-The goal of the project is to create a dead-simple tool for beginner Python developers to publish their games easily while also exposing options for more experienced developers to cater the tool to their needs.
+The goal of the project is to create a dead-simple tool for beginner Python
+developers to publish their games easily, while also exposing options for more
+experienced developers to tailor the tool to their needs.
 
 ## AI-Rules
 
-- Always acknowledge that you have read this file with "I've read the AGENTS.md" at the start of any chat or task involving the project.
+- Always acknowledge that you have read this file with "I've read the AGENTS.md"
+  at the start of any chat or task involving the project.
 - Never edit this file (AGENTS.md) even if told to do so explicitly.
     - Exception: Running a grammar pass (don't change any semantics)
 - Never use any `git` commands.
@@ -22,12 +25,10 @@ The goal of the project is to create a dead-simple tool for beginner Python deve
 
 ### Backwards-Compatibility
 
-The project follows [semver](https://semver.org/) versioning rules, but those rules only apply to the
-user-facing CLI. In practice, this means that every minor and patch release must not introduce breaking
-changes to the user-facing CLI but can change anything around the internal interfaces.
-
-**NOTE** The project is still **beta**, so backwards compatibility is entirely irrelevant.
-Do not waste any time trying to maintain backwards compatibility anywhere at all.
+The project follows [semver](https://semver.org/) versioning rules, but those
+rules only apply to the user-facing CLI. In practice, this means that every
+minor and patch release must not introduce breaking changes to the user-facing
+CLI, but can change anything around the internal interfaces.
 
 ### User-facing CLI
 
@@ -60,13 +61,6 @@ docs/            # Zensical site
 benchmarks/      # cross-runtime FPS harness (not part of the CLI)
 ```
 
-### Beta / no compatibility theater
-
-- Do not add backward-compat aliases (`OldName = NewName`, dual CLI names, or
-  "deprecated but still works" parameters) unless asked.
-- Renames and API cleanup are welcome when they improve clarity.
-- Removing dead paths is preferred over leaving them "just in case."
-
 ### Code style
 
 - Target Python 3.11+. Ruff for format and lint (`uv run ruff format`, `uv run ruff check`).
@@ -82,9 +76,18 @@ benchmarks/      # cross-runtime FPS harness (not part of the CLI)
   `uv run zensical build --clean` when verifying the site (Zensical can cache
   pages that do not change on disk).
 - Prefer normal ASCII punctuation in repo prose.
-- Don't overly use **bold** and *italics*
+- Don't overuse **bold** and *italics*.
 - Keep contributor-facing docs close to the code they describe (e.g.
   `test_targets/README.md` for the fixture suite).
+
+### Debuggability
+
+Many novice developers will be using this tool. It is extremely important that
+pygodide prioritizes easy-to-read error messages, obvious failure modes, and
+clear warnings. The pygodide window should never just crash or freeze; it should
+always give a helpful error message that is shown clearly on the webpage.
+Anything that makes pygodide easier to use, or easier to figure out why an app
+won't start on the web, should be prioritized.
 
 ### Dependencies
 
@@ -125,16 +128,19 @@ uv run pytest
 ### Auto-async
 
 Build-time AST rewrite for simple sync game loops (yield with
-`await asyncio.sleep(1 / (fps * 2))`). Prefer improving detection/transform carefully;
-unsafe transforms should skip with a clear message pointing at manual async
-guidance.
+`await asyncio.sleep(1 / (fps * 2))`). Prefer improving detection/transform
+carefully; unsafe transforms should skip with a clear message pointing at manual
+async guidance.
 
 ### Writing a test_target
 
 - Use an FPS of 120 to ensure it feels smooth.
-- Write at the edge of pygodide's support so the fixtures act as good regression tests.
+- Write at the edge of pygodide's support so the fixtures act as good regression
+  tests.
 - Keep the code simple and easy to follow so users can read them as examples.
-- Avoid writing for pygodide; write primarily for the local case to imitate what most real-world target Python projects will look like. Pygodide should bend to the project, not the other way around.
+- Avoid writing for pygodide; write primarily for the local case to imitate what
+  most real-world target Python projects will look like. Pygodide should bend to
+  the project, not the other way around.
 
 ## What "done" looks like
 

@@ -20,6 +20,11 @@ class SmokeConfig:
     ready_log: str = DEFAULT_READY_LOG
     timeout_ms: int = DEFAULT_TIMEOUT_MS
     post_ready_ms: int = DEFAULT_POST_READY_MS
+    # When set, smoke treats a console/page message containing this substring as
+    # the success signal (e.g. hang-watchdog guidance). Combined with
+    # expect_ready=False for fixtures that must not become ready.
+    expected_warning: str | None = None
+    expect_ready: bool = True
 
 
 @dataclass(frozen=True)
@@ -46,6 +51,16 @@ class SmokeSuiteResult:
     build_dir: Path | None
     success: bool
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class SmokeObservation:
+    """Browser observations collected during a smoke run (pure decision input)."""
+
+    ready_seen: bool = False
+    expected_warning_seen: bool = False
+    failures: tuple[str, ...] = ()
+    timed_out: bool = False
 
 
 BuildRunner = Callable[[DiscoveredTarget], Path]

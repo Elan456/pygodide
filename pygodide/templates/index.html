@@ -95,6 +95,21 @@
       #pygodide-loader[data-state="hidden"] {
         opacity: 0;
         visibility: hidden;
+        pointer-events: none;
+      }
+
+      /* Errors / sync-loop help: allow selecting and scrolling the message. */
+      #pygodide-loader[data-state="error"] {
+        pointer-events: auto;
+      }
+
+      #{{ status_element_id }}[data-state="error"] {
+        pointer-events: auto;
+        user-select: text;
+        white-space: pre-wrap;
+        text-align: left;
+        max-height: min(55vh, 28rem);
+        overflow: auto;
       }
 
       #pygodide-brand {

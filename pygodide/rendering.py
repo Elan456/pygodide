@@ -13,6 +13,8 @@ DEFAULT_PYODIDE_PACKAGES = ["pygame-ce"]
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_PACKAGE_FILES = ["main.py"]
 DEFAULT_READY_LOG = "[pygodide] ready"
+# Must stay in sync with getAsyncHangHelpMessage() in templates/boot.js.
+ASYNC_HANG_WARNING_PREFIX = "[pygodide] async hang:"
 
 
 def package_version() -> str:
@@ -84,10 +86,13 @@ class ResolvedFavicon:
 
 
 def _template_environment() -> Environment:
-    return Environment(
+    env = Environment(
         loader=PackageLoader("pygodide", "templates"),
         autoescape=select_autoescape(["html", "xml"]),
     )
+    # Emit Python string literals (single-quoted for normal paths).
+    env.filters["py_repr"] = repr
+    return env
 
 
 def _package_svg(repo_path: Path, bundled_name: str) -> str:
@@ -216,59 +221,17 @@ def build_startup_python_code(
     python_path_entries: list[str],
     virtual_fs_root: str = "/",
 ) -> str:
-    lines = [
-        "import gc",
-        "import inspect",
-        "import os",
-        "import sys",
-        "import warnings",
-        "",
-        # Capture RuntimeWarnings (including "coroutine was never awaited") so we
-        # can surface them in the page UI instead of only the F12 console.
-        "_pygodide_runtime_warnings = []",
-        "",
-        "def _pygodide_showwarning("
-        "message, category, filename, lineno, file=None, line=None"
-        "):",
-        "    text = warnings.formatwarning(message, category, filename, lineno, line)",
-        "    _pygodide_runtime_warnings.append(text)",
-        "    print(text, file=sys.stderr, end='')",
-        "",
-        "warnings.showwarning = _pygodide_showwarning",
-        "warnings.simplefilter('always', RuntimeWarning)",
-    ]
-
-    for entry in python_path_entries:
-        lines.append(f"if {entry!r} not in sys.path:")
-        lines.append(f"    sys.path.append({entry!r})")
-
-    lines.append(f"os.chdir({virtual_fs_root!r})")
-
-    lines.extend(
-        [
-            f"from {entry_module} import {entry_function}",
-            f"_pygodide_entrypoint = {entry_function}()",
-            "if inspect.isawaitable(_pygodide_entrypoint):",
-            "    await _pygodide_entrypoint",
-            # Let finalizers run so "never awaited" warnings fire for coroutines
-            # created during startup and then discarded.
-            "await __import__('asyncio').sleep(0)",
-            "gc.collect()",
-            "gc.collect()",
-            "_never_awaited = [",
-            "    warning for warning in _pygodide_runtime_warnings",
-            "    if 'never awaited' in warning",
-            "]",
-            "if _never_awaited:",
-            "    raise RuntimeError(",
-            "        'A coroutine was never awaited. In the browser entrypoint, '",
-            "        'use `await your_async_function()` (for example '",
-            "        '`await game.start()`), not a bare call. Details:\\n\\n'",
-            "        + ''.join(_never_awaited)",
-            "    )",
-        ]
+    """Render the in-browser Python glue that imports and runs the app entrypoint."""
+    template = _template_environment().get_template("startup.py.j2")
+    return (
+        template.render(
+            entry_module=entry_module,
+            entry_function=entry_function,
+            python_path_entries=python_path_entries,
+            virtual_fs_root=virtual_fs_root,
+        ).rstrip()
+        + "\n"
     )
-    return "\n".join(lines)
 
 
 def render_boot_js(
