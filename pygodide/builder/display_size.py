@@ -1,13 +1,24 @@
-"""Detect pygame display size from source for canvas aspect fitting."""
+"""Detect pygame display size from source for canvas aspect fitting.
+
+Scans staged Python for ``pygame.display.set_mode`` (and bare ``set_mode``)
+calls, then picks a **playable** size rather than the first hit in the tree.
+
+Dummy surfaces (``(1, 1)`` + ``NOFRAME`` headless helpers, etc.) are ignored so
+unrelated utilities in the project root do not become the HTML canvas size.
+"""
 
 from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 DEFAULT_DISPLAY_WIDTH = 800
 DEFAULT_DISPLAY_HEIGHT = 600
+
+# Sizes at or below this edge are treated as off-screen / forge / convert-only
+# surfaces, not the game window (classic pattern: set_mode((1, 1), NOFRAME)).
+MIN_PLAYABLE_EDGE = 32
 
 
 @dataclass(frozen=True)
@@ -21,6 +32,24 @@ class DisplaySizeDetection:
     source: str | None = None
 
 
+@dataclass(frozen=True)
+class _SizeCandidate:
+    width: int
+    height: int
+    relative_path: str
+    is_entry: bool
+    # True when size is tiny and/or looks like a hidden convert surface.
+    is_dummy: bool
+    # Lower is better among playable candidates.
+    file_rank: int
+    # Order of appearance within the file (lower = earlier).
+    call_index: int
+
+    @property
+    def area(self) -> int:
+        return self.width * self.height
+
+
 def detect_display_size(
     source_dir: Path,
     *,
@@ -29,30 +58,102 @@ def detect_display_size(
 ) -> DisplaySizeDetection:
     """Best-effort width/height from ``pygame.display.set_mode``.
 
-    Prefers the entrypoint module, then other staged ``.py`` files. Falls back
-    to ``800x600`` when nothing is found or values cannot be resolved.
+    Preference order among **playable** sizes (edge >= ``MIN_PLAYABLE_EDGE``):
+
+    1. Calls in the entry module (largest area, then last call wins for ties)
+    2. Calls in the same directory as the entry module
+    3. Other staged modules (largest area, then path / call order)
+
+    Tiny or NOFRAME-style dummy surfaces never win when a playable size exists.
+    If only dummies are found (or nothing), falls back to ``800x600``.
     """
-    candidates = _python_files_for_detection(
+    candidates = _collect_candidates(
         source_dir,
         entry_module=entry_module,
         package_files=package_files,
     )
-    for relative_path, path in candidates:
-        size = _display_size_from_file(path)
-        if size is not None:
-            width, height = size
-            return DisplaySizeDetection(
-                width=width,
-                height=height,
-                found=True,
-                source=relative_path,
-            )
+    chosen = _pick_best_candidate(candidates)
+    if chosen is None:
+        return DisplaySizeDetection(
+            width=DEFAULT_DISPLAY_WIDTH,
+            height=DEFAULT_DISPLAY_HEIGHT,
+            found=False,
+            source=None,
+        )
     return DisplaySizeDetection(
-        width=DEFAULT_DISPLAY_WIDTH,
-        height=DEFAULT_DISPLAY_HEIGHT,
-        found=False,
-        source=None,
+        width=chosen.width,
+        height=chosen.height,
+        found=True,
+        source=chosen.relative_path,
     )
+
+
+def _collect_candidates(
+    source_dir: Path,
+    *,
+    entry_module: str,
+    package_files: list[str],
+) -> list[_SizeCandidate]:
+    entry_relative = f"{entry_module.replace('.', '/')}.py"
+    entry_parent = str(PurePosixPath(entry_relative).parent)
+    if entry_parent == ".":
+        entry_parent = ""
+
+    files = _python_files_for_detection(
+        source_dir,
+        entry_module=entry_module,
+        package_files=package_files,
+    )
+    candidates: list[_SizeCandidate] = []
+    for file_rank, (relative_path, path) in enumerate(files):
+        is_entry = relative_path == entry_relative
+        parent = str(PurePosixPath(relative_path).parent)
+        if parent == ".":
+            parent = ""
+        same_dir_as_entry = parent == entry_parent
+        # Entry first, then same package dir, then everything else (stable file order).
+        if is_entry:
+            rank = 0
+        elif same_dir_as_entry:
+            rank = 1
+        else:
+            rank = 2 + file_rank
+
+        for call_index, size in enumerate(_display_sizes_from_file(path)):
+            width, height, is_dummy = size
+            candidates.append(
+                _SizeCandidate(
+                    width=width,
+                    height=height,
+                    relative_path=relative_path,
+                    is_entry=is_entry,
+                    is_dummy=is_dummy,
+                    file_rank=rank,
+                    call_index=call_index,
+                )
+            )
+    return candidates
+
+
+def _pick_best_candidate(
+    candidates: list[_SizeCandidate],
+) -> _SizeCandidate | None:
+    playable = [c for c in candidates if not c.is_dummy]
+    if not playable:
+        return None
+
+    # Prefer entry module, then nearby files, then larger area.
+    # Within the same file, prefer the *last* playable call (often the real
+    # window after a temporary surface) and larger area when mixed.
+    def sort_key(c: _SizeCandidate) -> tuple[int, int, int, int]:
+        return (
+            c.file_rank,
+            -c.area,
+            -c.call_index if c.is_entry else c.call_index,
+            c.call_index,
+        )
+
+    return min(playable, key=sort_key)
 
 
 def _python_files_for_detection(
@@ -77,23 +178,83 @@ def _python_files_for_detection(
     return paths
 
 
-def _display_size_from_file(path: Path) -> tuple[int, int] | None:
+def _display_sizes_from_file(
+    path: Path,
+) -> list[tuple[int, int, bool]]:
+    """Return every resolvable set_mode size in file order: (w, h, is_dummy)."""
     try:
         source = path.read_text(encoding="utf-8")
         module = ast.parse(source, filename=str(path))
     except (OSError, SyntaxError, UnicodeError):
-        return None
+        return []
 
     constants = _module_int_constants(module)
+    sizes: list[tuple[int, int, bool]] = []
     for node in ast.walk(module):
         if not isinstance(node, ast.Call):
             continue
         if not _is_set_mode_call(node):
             continue
-        size = _size_from_set_mode_call(node, constants)
-        if size is not None:
-            return size
-    return None
+        parsed = _size_from_set_mode_call(node, constants)
+        if parsed is None:
+            continue
+        width, height = parsed
+        is_dummy = _looks_like_dummy_surface(width, height, node)
+        sizes.append((width, height, is_dummy))
+    return sizes
+
+
+def _looks_like_dummy_surface(width: int, height: int, node: ast.Call) -> bool:
+    if width < MIN_PLAYABLE_EDGE or height < MIN_PLAYABLE_EDGE:
+        return True
+    # Explicit hidden / off-screen style flags often pair with tiny surfaces;
+    # also treat NOFRAME/HIDDEN on very small areas as non-game even if edge
+    # is slightly above the floor.
+    if _call_has_hidden_display_flag(node) and (width * height) < 10_000:
+        return True
+    return False
+
+
+def _call_has_hidden_display_flag(node: ast.Call) -> bool:
+    """True when flags look like NOFRAME / HIDDEN / OPENGL-less headless use."""
+    flag_nodes: list[ast.AST] = []
+    if len(node.args) >= 2:
+        flag_nodes.append(node.args[1])
+    for keyword in node.keywords:
+        if keyword.arg in {"flags", "flag"}:
+            flag_nodes.append(keyword.value)
+
+    names: set[str] = set()
+    for flag_node in flag_nodes:
+        names.update(_flag_names(flag_node))
+    # FULLSCREEN / RESIZABLE are normal game flags; only these mark non-game
+    # "hidden convert surface" helpers.
+    return bool(names & {"NOFRAME", "HIDDEN"})
+
+
+def _flag_names(node: ast.AST) -> set[str]:
+    names: set[str] = set()
+    if isinstance(node, ast.Attribute):
+        names.add(node.attr)
+        return names
+    if isinstance(node, ast.Name):
+        names.add(node.id)
+        return names
+    if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.BitOr, ast.BitAnd)):
+        names.update(_flag_names(node.left))
+        names.update(_flag_names(node.right))
+        return names
+    if isinstance(node, ast.UnaryOp):
+        names.update(_flag_names(node.operand))
+        return names
+    if isinstance(node, ast.Call):
+        # e.g. unlikely wrappers; still walk attributes inside args
+        for arg in node.args:
+            names.update(_flag_names(arg))
+        for keyword in node.keywords:
+            names.update(_flag_names(keyword.value))
+        return names
+    return names
 
 
 def _is_set_mode_call(node: ast.Call) -> bool:
@@ -118,8 +279,14 @@ def _size_from_set_mode_call(
         return None
 
     if len(node.args) >= 2:
+        # set_mode(w, h) is not the pygame API, but keep resolving if both ints
+        # and no flags-looking second arg that is a Name/Attribute of flags.
+        second = node.args[1]
+        if isinstance(second, (ast.Name, ast.Attribute, ast.BinOp)):
+            # Likely set_mode(size, flags) with size not a tuple — unresolvable.
+            return None
         width = _resolve_int(node.args[0], constants)
-        height = _resolve_int(node.args[1], constants)
+        height = _resolve_int(second, constants)
         if width is not None and height is not None and width > 0 and height > 0:
             return width, height
     return None

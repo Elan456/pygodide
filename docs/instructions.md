@@ -376,9 +376,11 @@ do **not** change Pygame's internal resolution from
 `pygame.display.set_mode(...)`. Pygame's surface is stretched (scaled) to
 the canvas box.
 
-By default, pygodide scans for `set_mode((width, height))` (including simple
-named constants like `SCREEN_WIDTH`) and uses that size as-is for the HTML
-canvas. If `set_mode` cannot be found, it assumes **800×600**.
+By default, pygodide scans staged Python for `set_mode((width, height))`
+(including simple named constants like `SCREEN_WIDTH`) and picks a **playable**
+size for the HTML canvas. It prefers the entry module, then nearby modules,
+and ignores dummy surfaces such as `set_mode((1, 1), pygame.NOFRAME)` used by
+asset tooling. If no playable size is found, it assumes **800×600**.
 
 | Setting | What you see |
 | --- | --- |
