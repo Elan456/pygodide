@@ -32,6 +32,10 @@ def create_itch_zip(build_dir: Path, zip_path: Path) -> Path:
     if resolved_zip_path.exists():
         resolved_zip_path.unlink()
 
+    # Do not nest this archive (or a prior copy of it) inside itself.
+    excluded_names = set(ITCH_ZIP_EXCLUDED_FILENAMES)
+    excluded_names.add(resolved_zip_path.name)
+
     with zipfile.ZipFile(
         resolved_zip_path,
         mode="w",
@@ -40,7 +44,10 @@ def create_itch_zip(build_dir: Path, zip_path: Path) -> Path:
         for file_path in sorted(resolved_build_dir.rglob("*")):
             if not file_path.is_file():
                 continue
-            if file_path.name in ITCH_ZIP_EXCLUDED_FILENAMES:
+            if file_path.name in excluded_names:
+                continue
+            # If --zip-output points inside build/, do not pack the open archive.
+            if file_path.resolve() == resolved_zip_path:
                 continue
             archive.write(
                 file_path,

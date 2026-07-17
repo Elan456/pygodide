@@ -602,6 +602,76 @@ def test_template_renderers_include_configured_values():
     assert 'url.searchParams.set("_pygodide", assetRequestCacheBuster)' in boot_js
 
 
+def test_error_status_panel_is_interactive_scrollport():
+    """Boot failure UI must accept pointer/wheel input and scroll long errors.
+
+    The loader uses pointer-events: none while loading so the canvas stays
+    clickable. On error, that must be lifted on the loader and status, and the
+    canvas must not steal hits from the status scrollport.
+    """
+    index_html = render_index_html(title="Example", boot_script_path="./boot.js")
+    boot_js = render_boot_js(
+        pyodide_packages=["pygame-ce"],
+        micropip_packages=[],
+        declared_package_names=["pygame-ce"],
+        package_files=["main.py"],
+        python_path_entries=["/"],
+        entry_module="main",
+        entry_function="main",
+    )
+
+    # Loader: click-through while loading / hidden; interactive on error.
+    assert "#pygodide-loader" in index_html
+    assert re.search(
+        r"#pygodide-loader\s*\{[^}]*pointer-events:\s*none",
+        index_html,
+        re.DOTALL,
+    )
+    assert re.search(
+        r'#pygodide-loader\[data-state="hidden"\]\s*\{[^}]*pointer-events:\s*none',
+        index_html,
+        re.DOTALL,
+    )
+    assert re.search(
+        r'#pygodide-loader\[data-state="error"\]\s*\{[^}]*pointer-events:\s*auto',
+        index_html,
+        re.DOTALL,
+    )
+
+    # Single error-panel scrollport (no competing max-height rules).
+    error_blocks = re.findall(
+        r'#status\[data-state="error"\]\s*\{([^}]+)\}',
+        index_html,
+    )
+    assert len(error_blocks) == 1, (
+        f"expected one #status[data-state=error] rule, found {len(error_blocks)}"
+    )
+    error_css = error_blocks[0]
+    assert "pointer-events: auto" in error_css
+    assert "user-select: text" in error_css
+    assert "overflow-y: auto" in error_css
+    assert "max-height:" in error_css
+    assert "overscroll-behavior: contain" in error_css
+    assert "flex: 0 0 auto" in error_css
+    # Scrollbar affordance for long micropip/tracebacks.
+    assert '#status[data-state="error"]::-webkit-scrollbar' in index_html
+    assert "scrollbar-width: thin" in error_css
+
+    # Loading chrome must still re-enable only the brand link, not the whole loader.
+    assert re.search(
+        r"#pygodide-brand\s*\{[^}]*pointer-events:\s*auto",
+        index_html,
+        re.DOTALL,
+    )
+
+    # boot.js disables canvas hit-testing while error chrome is shown.
+    assert "function setCanvasPointerEventsForChrome(state)" in boot_js
+    assert 'canvas.style.pointerEvents = "none"' in boot_js
+    assert "setCanvasPointerEventsForChrome(chromeState)" in boot_js
+    assert "function setLoadingChromeState(state)" in boot_js
+    assert 'state === "error"' in boot_js
+
+
 def test_package_files_cache_buster_stable_until_content_changes(tmp_path):
     root = tmp_path / "pkg"
     root.mkdir()
@@ -773,6 +843,36 @@ def test_build_command_creates_itch_zip(tmp_path):
     assert "boot.js" in names
     assert all(not name.startswith("build/") for name in names)
     assert "pygodide-build.log" not in names
+
+
+def test_build_command_zip_does_not_recursively_include_previous_zip(tmp_path):
+    """Repeated ``build --zip`` must not nest the prior ZIP inside the new one."""
+    import zipfile
+
+    source_dir = tmp_path / "demo_app"
+    source_dir.mkdir(parents=True)
+    (source_dir / "main.py").write_text(
+        "async def main():\n    return None\n", encoding="utf-8"
+    )
+
+    first = runner.invoke(app, ["build", str(source_dir), "--zip"])
+    assert first.exit_code == 0, first.output
+    zip_path = source_dir / "demo_app.zip"
+    first_size = zip_path.stat().st_size
+    with zipfile.ZipFile(zip_path) as archive:
+        first_names = set(archive.namelist())
+
+    second = runner.invoke(app, ["build", str(source_dir), "--zip"])
+    assert second.exit_code == 0, second.output
+    second_size = zip_path.stat().st_size
+    with zipfile.ZipFile(zip_path) as archive:
+        second_names = set(archive.namelist())
+
+    assert second_names == first_names
+    assert "demo_app.zip" not in second_names
+    # Allow small metadata jitter; recursive nesting would roughly double size.
+    assert second_size < first_size * 1.5
+    assert second_size < first_size + 50_000
 
 
 def test_smoke_command_can_run_single_app_build_only(tmp_path):

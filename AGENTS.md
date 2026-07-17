@@ -79,6 +79,9 @@ benchmarks/      # cross-runtime FPS harness (not part of the CLI)
 - Don't overuse **bold** and *italics*.
 - Keep contributor-facing docs close to the code they describe (e.g.
   `test_targets/README.md` for the fixture suite).
+- Do not use the word "staged" (or "staging") for files copied into the build.
+  It is easily confused with git staging. Prefer "copied into the build",
+  "packaged", or "included in the build" in docs, comments, logs, and errors.
 
 ### Debuggability
 

@@ -211,52 +211,75 @@ example) and/or pass `--dep` on the command line.
 
 ### Assets and paths
 
-Use simple paths relative to your project root, the same way you would when
-running the game locally from that directory:
+Load assets with paths relative to the project root, as you would locally:
 
 ```python
 pygame.image.load("assets/sprites/player.png")
 pygame.mixer.Sound("sounds/jump.ogg")
 ```
 
-Pygodide stages those files into the browser build and sets the working
-directory to the project root before your app starts, so `sounds/...` and
-`assets/...` usually work without extra configuration.
+The working directory is the project root, so those paths usually work as-is.
+A browser `FileNotFoundError` means a wrong path or a file that was not copied
+into the build. `python-path` does not affect asset loading; see
+[Python path](#python-path) for imports only.
 
-**Saves and writes:** ordinary `open()` / `pathlib` work in the browser
-filesystem for the current page session (see the
-[save slots](https://github.com/Elan456/pygodide/tree/main/test_targets/save_slots)
-example). Reloading the page clears that virtual disk; durable cross-visit
-saves are not provided yet.
+See [asset maze](https://github.com/Elan456/pygodide/tree/main/test_targets/asset_maze)
+for nested assets loaded by plain relative paths.
 
-If your project root contains a favicon file (`favicon.svg`, `favicon.png`,
-`favicon.ico`, and a few other common names), the build uses it for the hosted
-app tab icon. Otherwise pygodide ships a small default favicon.
+#### What gets copied into the build
 
-`python-path` does **not** affect asset loading. It only changes where Python
-looks for modules to `import`. If an image or sound fails to load, fix the file
-path or make sure the file is included in the build; do not add its folder to
-`python-path`.
+`pygodide build` copies project files into `build/`. Only those files are
+available in the browser (and in an itch ZIP).
 
-The [asset maze](https://github.com/Elan456/pygodide/tree/main/test_targets/asset_maze)
-example loads nested assets from several modules using plain relative paths.
+- Without `include`: auto-discovery copies most files. It skips tooling such as
+  `.git`, `.venv`, `build`, `__pycache__`, `pyproject.toml`, and prior itch
+  outputs named `<project-folder>.zip` or `build.zip`.
+- With `include`: only matching paths are copied (an allowlist). Use this to
+  leave out docs, tools, or other extras. The entry module must match or the
+  build fails.
+
+```toml
+[tool.pygodide]
+include = ["main.py", "game/**", "sprites/**", "sounds/**"]
+```
+
+#### Include patterns
+
+`include` uses
+[pathlib globs](https://docs.python.org/3/library/pathlib.html#pathlib.Path.glob)
+relative to the project root (not regex, not basename-only matching).
+
+| Pattern | Meaning |
+| --- | --- |
+| `main.py` | Exact file at the project root |
+| `assets/*` | Files directly under `assets/` (one level) |
+| `assets/**` | All files under `assets/` (any depth) |
+| `**/*.png` | All `.png` files in the project |
+| `**` | All files under the project root |
+
+Patterns are rooted at the project (`sprites/**`, not `/sprites/**`). `*` is
+one path segment; `**` is any depth. Each pattern must match at least one
+file. Tooling dirs and prior itch ZIPs are still skipped.
+
+#### Saves and favicon
+
+`open()` / `pathlib` work for the current page session (see
+[save slots](https://github.com/Elan456/pygodide/tree/main/test_targets/save_slots)).
+A reload clears that virtual disk; durable saves are not provided yet.
+
+A root favicon (`favicon.svg`, `.png`, `.ico`, and a few other names) is used
+for the tab icon when present; otherwise pygodide ships a default.
 
 ### Python path
 
-The default is `python-path = ["."]`, which is enough for most projects.
+Default `python-path = ["."]` is enough for most projects. It adds folders to
+`sys.path` before importing your entry function. It does not control asset
+file paths.
 
-`python-path` adds folders to `sys.path` before pygodide imports your entry
-function. Only add entries beyond `"."` when your **imports** need them.
+You usually do not need extra entries for asset folders, normal packages
+(`import game`), or installed dependencies.
 
-**You usually do not need extra entries for:**
-
-- `sounds/`, `assets/`, `data/`, and other asset folders opened by path string
-- normal packages such as `game/` imported as `import game` or
-  `from game.loader import ...`
-- dependencies installed with `requirements.txt` or `[project].dependencies`
-
-**Add another `python-path` entry when you import loose modules from a folder
-that is not a package**, for example:
+Add entries when you import loose modules from non-package folders:
 
 ```text
 my-game/
@@ -273,57 +296,63 @@ from gameplay import run
 from helpers import load_level
 ```
 
-If those imports work locally only because you run with `PYTHONPATH=src:lib`,
-mirror that in `pyproject.toml`:
+If that needs `PYTHONPATH=src:lib` locally, mirror it:
 
 ```toml
 [tool.pygodide]
 python-path = [".", "src", "lib"]
 ```
 
-Each entry is relative to the project root. `"."` should stay first for typical
-layouts.
+Entries are relative to the project root; keep `"."` first when you use it.
+Prefer real packages (`from lib.helpers import ...`) over growing
+`python-path`. For a `src/` layout where imports assume that root, add
+`"src"`.
 
-**Prefer fixing imports over growing `python-path`:** if `lib/helpers.py` can be
-imported as `from lib.helpers import load_level` instead, add `lib/__init__.py`
-(or make `lib` a regular package) and keep the default `python-path = ["."]`.
+### Canvas size
 
-**`src/` layouts:** if your game code lives under `src/` and imports assume that
-directory is on the path, add `"src"` rather than moving files around.
+These options set the HTML canvas size. They do not change Pygame's
+`set_mode(...)` resolution; the surface is scaled to the canvas.
+
+By default, pygodide scans packaged Python for `set_mode((width, height))`
+(including simple constants like `SCREEN_WIDTH`), preferring the entry module.
+Dummy surfaces such as `set_mode((1, 1), pygame.NOFRAME)` are ignored. Fallback:
+800x600.
+
+| Setting | What you see |
+| --- | --- |
+| Default | Fixed canvas at discovered `set_mode` size |
+| `--canvas-width` / `--canvas-height` | Fixed pixel box |
+| `--canvas-fit` | Largest size in the viewport that keeps aspect |
+| `--canvas-width N --canvas-height M --canvas-fit` | Fit using N×M as the aspect |
+| `--canvas-fill` | Fill the viewport (aspect may change) |
+
+`canvas-fit` and `canvas-fill` cannot be combined.
 
 ### Detecting the web runtime
 
-For “am I in the browser WASM build?” use Pyodide’s standard check:
+For “am I in the browser WASM build?”:
 
 ```python
 import sys
 
 if sys.platform == "emscripten":
-    # browser / web build (Pyodide, and other Emscripten Pythons)
+    # browser / web build
     ...
 ```
 
-That is enough for most game branching (paths, input, skipping desktop-only
-code). pygodide’s runtime is Emscripten-based, so this is true in the hosted
-app and false in a normal desktop CPython run.
-
-Use a second check only when you need **Pyodide-specific** APIs (for example
-`js` or `pyodide.ffi`), not merely “running on the web”:
+True under pygodide; false under normal desktop CPython. Use a second check
+only for Pyodide-specific APIs (`js`, `pyodide.ffi`, …):
 
 ```python
 if "pyodide" in sys.modules:
-    # Pyodide is loaded (not just any Emscripten Python)
     ...
 ```
 
-See the
-[web runtime smoke test](https://github.com/Elan456/pygodide/tree/main/test_targets/web_runtime)
-(`test_targets/web_runtime`) for a full example that asserts
-`sys.platform == "emscripten"` under `pygodide smoke`.
+See
+[web_runtime](https://github.com/Elan456/pygodide/tree/main/test_targets/web_runtime)
+for a smoke-tested example.
 
 ### `pyproject.toml` reference
-
-Recommended when your project already has a `pyproject.toml`:
 
 ```toml
 [project]
@@ -342,55 +371,30 @@ app = "main:web_main"
 auto-async = true
 include = ["main.py", "sprites/**", "sounds/**"]
 title = "My Game"
-# canvas-fit = true   # max size in viewport, keep aspect
-# canvas-width = 960  # with canvas-fit: explicit aspect when discovery fails
+# canvas-fit = true
+# canvas-width = 960
 # canvas-height = 540
-# canvas-fill = true  # stretch to full viewport (may change aspect)
-# python-path = [".", "src", "lib"]  # only when imports need extra roots
+# canvas-fill = true
+# python-path = [".", "src", "lib"]
 dependencies = ["pyyaml"]
 dependency-groups = ["web"]
 ```
 
 | Field | Purpose |
 | --- | --- |
-| `app` | Entry function (`module:callable`). Defaults to `main:main`. |
-| `auto-async` | Enable/disable automatic game-loop conversion. Defaults to `true`. |
-| `include` | Files to stage into the build. If omitted, pygodide auto-discovers files (excluding `.git`, `.github`, `.venv`, `build`, `pyproject.toml`, and similar tooling dirs). |
-| `title` | HTML page title. Defaults to the project directory name. |
-| `canvas-width`, `canvas-height` | Canvas size in pixels. Alone: fixed box. With `canvas-fit`: aspect ratio to scale into the viewport (when auto-discovery misses your game size). CLI: `--canvas-width` / `--canvas-height`. |
-| `canvas-fit` | If `true`, scale to the largest size that fits the viewport while keeping aspect ratio. Aspect from width/height when set, else discovered `set_mode`. CLI: `--canvas-fit`. |
-| `canvas-fill` | If `true`, stretch the canvas to fill the whole browser viewport (may change aspect ratio). CLI: `--canvas-fill`. |
-| `python-path` | Folders added to `sys.path` for imports. Defaults to `["."]`. See [Python path](#python-path). |
-| `dependencies` | Extra browser-only packages not listed under `[project]`. |
-| `dependency-groups` | Named dependency groups to include in the web build. |
+| `app` | Entry `module:callable`. Default `main:main`. [Entry point](#entry-point). |
+| `auto-async` | Auto game-loop conversion. Default `true`. |
+| `include` | Allowlist of files to copy (path globs). [Assets and paths](#assets-and-paths). |
+| `title` | HTML page title. Default: project directory name. |
+| `canvas-width`, `canvas-height` | Fixed size, or aspect with `canvas-fit`. [Canvas size](#canvas-size). |
+| `canvas-fit` | Scale to viewport, keep aspect. |
+| `canvas-fill` | Stretch to fill viewport (aspect may change). |
+| `python-path` | Extra `sys.path` roots. Default `["."]`. [Python path](#python-path). |
+| `dependencies` | Extra browser packages. [Dependencies](#dependencies). |
+| `dependency-groups` | Named groups from the pyproject to install. |
 
-The [numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles)
-example uses `[project].dependencies` for `numpy`, `pygame-ce`, and
-`fastquadtree`, plus `app = "main:web_main"` for a separate browser entry
-function.
-
-### Canvas size
-
-Canvas options control the **HTML canvas** pygodide creates for the page. They
-do **not** change Pygame's internal resolution from
-`pygame.display.set_mode(...)`. Pygame's surface is stretched (scaled) to
-the canvas box.
-
-By default, pygodide scans staged Python for `set_mode((width, height))`
-(including simple named constants like `SCREEN_WIDTH`) and picks a **playable**
-size for the HTML canvas. It prefers the entry module, then nearby modules,
-and ignores dummy surfaces such as `set_mode((1, 1), pygame.NOFRAME)` used by
-asset tooling. If no playable size is found, it assumes **800×600**.
-
-| Setting | What you see |
-| --- | --- |
-| Default | Fixed canvas at the auto-discovered `set_mode` size (as-is). |
-| `--canvas-width` / `--canvas-height` | Fixed pixel box at that resolution. |
-| `--canvas-fit` | Largest size in the viewport that keeps aspect ratio (from discovery). |
-| `--canvas-width N --canvas-height M --canvas-fit` | Same as fit, but use **N×M** as the aspect ratio (when discovery fails or you want to override it). |
-| `--canvas-fill` | Fill the whole viewport; aspect may change. |
-
-`canvas-fit` and `canvas-fill` cannot be combined.
+[numpy particles](https://github.com/Elan456/pygodide/tree/main/test_targets/numpy_particles)
+shows `[project].dependencies` plus `app = "main:web_main"`.
 
 ## Publishing to itch.io
 

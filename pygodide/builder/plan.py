@@ -330,6 +330,9 @@ def discover_package_files(
 ) -> list[str]:
     resolved_source_dir = Path(source_dir).resolve()
     discovered_files: set[str] = set()
+    # Prior ``build --zip`` outputs (default ``<folder>.zip`` / ``build.zip``)
+    # must not be re-staged into the next build.
+    excluded_itch_zip_names = _itch_output_zip_basenames(resolved_source_dir)
 
     if include_patterns:
         for pattern in include_patterns:
@@ -340,6 +343,8 @@ def discover_package_files(
 
                 relative_path = path.relative_to(resolved_source_dir)
                 if _should_ignore_path(relative_path):
+                    continue
+                if path.name in excluded_itch_zip_names:
                     continue
 
                 relative_posix_path = relative_path.as_posix()
@@ -360,6 +365,8 @@ def discover_package_files(
             if _should_ignore_path(relative_path):
                 continue
             if path.name in DEFAULT_EXCLUDED_FILENAMES:
+                continue
+            if path.name in excluded_itch_zip_names:
                 continue
 
             discovered_files.add(relative_path.as_posix())
@@ -446,6 +453,11 @@ def _normalize_virtual_path(path: str) -> str:
 
 def _should_ignore_path(relative_path: Path) -> bool:
     return any(part in IGNORED_PATH_PARTS for part in relative_path.parts)
+
+
+def _itch_output_zip_basenames(source_dir: Path) -> frozenset[str]:
+    """Basenames of common itch ZIP outputs that must not be re-packaged."""
+    return frozenset({f"{source_dir.name}.zip", "build.zip"})
 
 
 def _iter_include_matches(source_dir: Path, pattern: str):
