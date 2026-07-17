@@ -52,6 +52,19 @@ const LOADING_PROGRESS = {
   complete: 1,
 };
 
+function setCanvasPointerEventsForChrome(state) {
+  // While error text is shown, block the canvas so wheel/drag on the status
+  // scrollport cannot fall through to SDL/canvas under the loader.
+  if (!canvas) {
+    return;
+  }
+  if (state === "error") {
+    canvas.style.pointerEvents = "none";
+  } else if (canvas.style.pointerEvents === "none") {
+    canvas.style.pointerEvents = "";
+  }
+}
+
 function setLoadingChromeState(state) {
   // Visible while loading or on error; hidden before the game starts drawing.
   const chromeState =
@@ -69,6 +82,7 @@ function setLoadingChromeState(state) {
   if (progress && state === "hidden") {
     progress.dataset.state = "hidden";
   }
+  setCanvasPointerEventsForChrome(chromeState);
 }
 
 function snakeGridMetrics(track) {
