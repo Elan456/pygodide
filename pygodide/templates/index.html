@@ -5,10 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ title }}</title>
     <link rel="icon" href="{{ favicon_path }}" type="{{ favicon_type }}" />
+    {# Loader status / version chrome; fallbacks if CDN is unavailable. #}
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/hack-font@3/build/web/hack.css"
+    />
     <style>
       :root {
         color-scheme: dark;
-        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        font-family: "Hack", ui-monospace, "Cascadia Code", "SF Mono", Menlo,
+          Consolas, monospace;
         --pygodide-accent: #3dd018;
         --pygodide-accent-2: #e8c200;
         --pygodide-accent-3: #306998;
@@ -144,7 +150,7 @@
         box-shadow: none;
         color: rgba(237, 243, 255, 0.88);
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 400;
         letter-spacing: 0.01em;
         line-height: 1.45;
         text-align: center;
@@ -403,7 +409,7 @@
         background: transparent;
         color: rgba(237, 243, 255, 0.42);
         font-size: 11px;
-        font-weight: 500;
+        font-weight: 400;
         letter-spacing: 0.02em;
         line-height: 1;
         pointer-events: none;
