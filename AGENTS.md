@@ -151,3 +151,16 @@ async guidance.
 - Names and messages stay clear to game authors, not only to us.
 - Docs/README/`test_targets` guidance updated when contributors need to know
   about behavior changes.
+
+## Release Notes
+
+- When asked to generate release notes, look at all of the code changes between the current head and the last tagged commit.
+- Write a concise bulleted list of changes.
+- Any breaking changes to the user CLI or how configuration files (e.g. the user's pyproject.toml file) will be interpreted should be put in a "Breaking Changes" section at the top.
+
+Example Release Notes:
+
+0.1.2
+
+- Updated asyncification instructions
+- Parallelized asset loading

@@ -19,9 +19,10 @@ warnings.simplefilter('always', RuntimeWarning)
 
 # Boot.js installs these on the JS global; call via pyodide's js module.
 from js import (
+    pygodideHeartbeat,
     pygodideMarkAppReady,
-    pygodideWarnAsyncHang,
-    pygodideWarnSyncEntrypoint,
+    pygodideWatchdogArm,
+    pygodideWatchdogDisarm,
 )
 {% for entry in python_path_entries -%}
 if {{ entry | py_repr }} not in sys.path:
@@ -30,42 +31,59 @@ if {{ entry | py_repr }} not in sys.path:
 os.chdir({{ virtual_fs_root | py_repr }})
 from {{ entry_module }} import {{ entry_function }}
 
-# Async entrypoints that never await freeze the main thread the same way a sync
-# while-loop does. JS timers cannot fire while blocked, so hang guidance must be
-# on screen *before* await entry(). When the game yields once, markAppReady()
-# clears the chrome.
-if inspect.iscoroutinefunction({{ entry_function }}):
-    pygodideWarnAsyncHang()
-    await asyncio.sleep(0.05)
-    _pygodide_game = asyncio.create_task({{ entry_function }}())
-    async def _pygodide_clear_hang_on_first_yield():
-        await asyncio.sleep(0)
-        await pygodideMarkAppReady()
-    _pygodide_ready_task = asyncio.create_task(
-        _pygodide_clear_hang_on_first_yield()
-    )
-    try:
-        await _pygodide_game
-    finally:
-        if not _pygodide_ready_task.done():
-            # Entrypoint finished without a mid-body yield.
+# Yield watchdog: arm paints hang guidance first (covers hard freezes where JS
+# timers cannot run). Heartbeats run when the asyncio event loop is free and
+# clear the hang once the game has yielded (markAppReady). After ready, missed
+# heartbeats re-show hang if the main thread can still run timers (soft stalls).
+async def _pygodide_heartbeat_loop():
+    while True:
+        pygodideHeartbeat()
+        await asyncio.sleep(0.25)
+
+pygodideWatchdogArm()
+# Let the hang UI paint before a possible sync/hard freeze.
+await asyncio.sleep(0.05)
+_pygodide_heartbeat_task = asyncio.create_task(_pygodide_heartbeat_loop())
+
+try:
+    if inspect.iscoroutinefunction({{ entry_function }}):
+        _pygodide_game = asyncio.create_task({{ entry_function }}())
+        async def _pygodide_ready_on_first_yield():
+            # First event-loop turn after the game task is scheduled: hide hang.
+            await asyncio.sleep(0)
             await pygodideMarkAppReady()
-        _pygodide_ready_task.cancel()
+        _pygodide_ready_task = asyncio.create_task(
+            _pygodide_ready_on_first_yield()
+        )
         try:
-            await _pygodide_ready_task
-        except (asyncio.CancelledError, Exception):
-            pass
-else:
-    # Sync entrypoint: show guidance and yield so it paints, then call.
-    # If main() is a tight game loop, this message stays on screen.
-    pygodideWarnSyncEntrypoint()
-    await asyncio.sleep(0.05)
-    _pygodide_entrypoint = {{ entry_function }}()
-    if inspect.isawaitable(_pygodide_entrypoint):
-        await pygodideMarkAppReady()
-        await _pygodide_entrypoint
+            await _pygodide_game
+        finally:
+            if not _pygodide_ready_task.done():
+                # Entrypoint finished without a mid-body yield.
+                await pygodideMarkAppReady()
+            _pygodide_ready_task.cancel()
+            try:
+                await _pygodide_ready_task
+            except (asyncio.CancelledError, Exception):
+                pass
     else:
-        await pygodideMarkAppReady()
+        # Sync entrypoint: hang UI already painted. Tight loops never return;
+        # heartbeats never run and the hang message stays on screen.
+        _pygodide_entrypoint = {{ entry_function }}()
+        if inspect.isawaitable(_pygodide_entrypoint):
+            await pygodideMarkAppReady()
+            await _pygodide_entrypoint
+        else:
+            await pygodideMarkAppReady()
+finally:
+    # Stop hang monitoring when the entrypoint returns (short apps must not
+    # look hung after they exit). Infinite loops never reach here.
+    _pygodide_heartbeat_task.cancel()
+    try:
+        await _pygodide_heartbeat_task
+    except (asyncio.CancelledError, Exception):
+        pass
+    pygodideWatchdogDisarm()
 
 # Let finalizers run so "never awaited" warnings fire for coroutines created
 # during startup and then discarded.

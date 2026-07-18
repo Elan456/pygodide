@@ -41,6 +41,9 @@ function requireElement(element, id) {
 
 // Keep in sync with #pygodide-loader opacity transition in index.html.
 const LOADING_UI_FADE_MS = 180;
+// Soft hang re-detect after the game has become ready (main thread still runs).
+const HANG_TIMEOUT_MS = 2000;
+const HANG_POLL_MS = 250;
 
 // Progress fractions for each boot stage (0–1).
 const LOADING_PROGRESS = {
@@ -173,31 +176,14 @@ function getLoadingAppStatusMessage() {
   return `${statusText.loadingApp} ${statusText.loadingAppHint}`.trim();
 }
 
-function getSyncEntrypointHelpMessage() {
-  return [
-    "Your game entrypoint is synchronous and is blocking the browser.",
-    "",
-    "The page cannot update, paint, or open a right-click menu while a tight",
-    "while-loop runs without yielding.",
-    "",
-    "Fix (pick one):",
-    "  1. Rebuild WITHOUT --no-auto-async so pygodide can convert simple loops, or",
-    "  2. Make the entry async and yield each frame:",
-    "       async def main():",
-    "           while running:",
-    "               ...",
-    "               await asyncio.sleep(1 / (60 * 2))",
-    "",
-    "Docs: https://elan456.github.io/pygodide/instructions/#make-the-game-async-compatible",
-  ].join("\n");
-}
-
-function getAsyncHangHelpMessage() {
+function getHangHelpMessage() {
   // Stable prefix for smoke manifests (smoke.expected-warning) and log grepping.
   return [
-    "[pygodide] async hang: your async entrypoint never yielded control.",
+    "[pygodide] async hang: your game stopped yielding control.",
     "",
-    "The browser main thread is blocked, so the page cannot update or paint.",
+    "The browser main thread is blocked, so the page cannot update or paint",
+    "while a tight loop runs without yielding.",
+    "",
     "You may have forgotten await asyncio.sleep(...) in your game loop, or the",
     "app got stuck in a tight loop or long blocking call.",
     "",
@@ -205,22 +191,16 @@ function getAsyncHangHelpMessage() {
     "  async def main():",
     "      while running:",
     "          ...",
-    "          await asyncio.sleep(1 / (60 * 2))",
+    "          await asyncio.sleep(1 / (fps * 2))",
     "",
     "Docs: https://elan456.github.io/pygodide/instructions/#make-the-game-async-compatible",
   ].join("\n");
 }
 
 let appReadyMarked = false;
-
-function markAppReady() {
-  if (appReadyMarked) {
-    return Promise.resolve();
-  }
-  appReadyMarked = true;
-  console.info(readyLogMessage);
-  return hideLoadingUi();
-}
+let watchdogArmed = false;
+let hangVisible = false;
+let lastHeartbeatAt = 0;
 
 function allowLoaderTextSelection() {
   const loader = document.getElementById("pygodide-loader");
@@ -230,27 +210,67 @@ function allowLoaderTextSelection() {
   }
 }
 
-function warnSyncEntrypoint() {
-  // Keep the loading chrome visible with actionable text. Sync infinite loops
-  // freeze the main thread next; this message must already be on screen.
-  console.warn(getSyncEntrypointHelpMessage());
-  setStatus(getSyncEntrypointHelpMessage(), "error");
+function showHangHelp() {
+  const message = getHangHelpMessage();
+  hangVisible = true;
+  console.warn(message);
+  setStatus(message, "error");
   allowLoaderTextSelection();
 }
 
-function warnAsyncHang() {
-  // Must run before await entrypoint(). If the coroutine never awaits, JS timers
-  // cannot fire — so this guidance has to be painted first (like sync freeze).
-  // Healthy games clear it via markAppReady() after their first yield.
-  console.warn(getAsyncHangHelpMessage());
-  setStatus(getAsyncHangHelpMessage(), "error");
-  allowLoaderTextSelection();
+function armWatchdog() {
+  // Paint hang guidance *before* the entrypoint may hard-freeze the thread.
+  // JS timers cannot open a new message after a tight loop starts, so this
+  // pre-paint is required for never-yield freezes. Healthy games clear it via
+  // markAppReady() after the first yield; heartbeats keep a soft timer reset.
+  watchdogArmed = true;
+  hangVisible = false;
+  lastHeartbeatAt = Date.now();
+  showHangHelp();
 }
 
-// Called from generated Python startup (js.pygodideMarkAppReady / Warn...).
+function heartbeatWatchdog() {
+  lastHeartbeatAt = Date.now();
+  if (appReadyMarked && hangVisible) {
+    // Soft-stall recovery: hide hang chrome while the game keeps running.
+    hangVisible = false;
+    setStatus("", "hidden");
+  }
+}
+
+function disarmWatchdog() {
+  watchdogArmed = false;
+  hangVisible = false;
+}
+
+function markAppReady() {
+  if (appReadyMarked) {
+    return Promise.resolve();
+  }
+  appReadyMarked = true;
+  hangVisible = false;
+  lastHeartbeatAt = Date.now();
+  console.info(readyLogMessage);
+  return hideLoadingUi();
+}
+
+// After ready, re-show hang if heartbeats stop but the main thread still runs
+// (soft stalls). Hard freezes after ready cannot paint new UI; pre-paint at arm
+// covers never-yield startup freezes.
+window.setInterval(() => {
+  if (!watchdogArmed || !appReadyMarked || hangVisible) {
+    return;
+  }
+  if (Date.now() - lastHeartbeatAt >= HANG_TIMEOUT_MS) {
+    showHangHelp();
+  }
+}, HANG_POLL_MS);
+
+// Called from generated Python startup (js.pygodideMarkAppReady / Arm / Heartbeat).
 globalThis.pygodideMarkAppReady = markAppReady;
-globalThis.pygodideWarnSyncEntrypoint = warnSyncEntrypoint;
-globalThis.pygodideWarnAsyncHang = warnAsyncHang;
+globalThis.pygodideWatchdogArm = armWatchdog;
+globalThis.pygodideHeartbeat = heartbeatWatchdog;
+globalThis.pygodideWatchdogDisarm = disarmWatchdog;
 
 function normalizePackageName(name) {
   return name.toLowerCase().replace(/_/g, "-");
@@ -589,14 +609,14 @@ async function boot() {
   });
   await waitForNextPaint();
 
-  // Do not hide the loader before the entrypoint runs. Async games arm hang
-  // guidance first, then hide via pygodideMarkAppReady() after the first yield.
-  // Sync game loops keep the loader up with pygodideWarnSyncEntrypoint() instead
-  // of an empty frozen canvas (and a page that cannot open DevTools via right-click).
+  // Do not hide the loader before the entrypoint runs. Startup arms the yield
+  // watchdog (paints hang help first), then hides via pygodideMarkAppReady()
+  // after the first yield (or when a short-lived entrypoint returns).
   await runtime.runPythonAsync(startupPythonCode);
 }
 
 boot().catch((error) => {
   console.error(error);
+  disarmWatchdog();
   setStatus(formatPyodideError(error), "error");
 });

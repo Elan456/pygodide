@@ -1,8 +1,8 @@
 """Async entrypoint that never yields — hang watchdog demo.
 
 This fixture intentionally never yields to the event loop so the browser main
-thread freezes. Pygodide should show the async-hang guidance instead of a blank
-canvas.
+thread freezes. Pygodide should show hang guidance (painted before the
+entrypoint runs) instead of a blank frozen canvas with no help.
 """
 
 import pygame
@@ -21,7 +21,7 @@ async def main():
     x = 0
 
     # Tight async loop with no await: freezes the browser the same way a sync
-    # while-loop does. The hang watchdog must already be on screen.
+    # while-loop does. Hang help must already be on screen.
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

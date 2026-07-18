@@ -158,6 +158,6 @@ def _log_disabled_auto_async_risk(
     log(
         "Warning: auto-async is disabled but the entrypoint looks like a "
         "synchronous Pygame game loop. In the browser that usually freezes on "
-        "a blank canvas (no paint, no right-click menu). Rebuild without "
+        "a blank canvas with hang help (or a frozen page). Rebuild without "
         f"--no-auto-async, or manually: {MANUAL_ASYNC_GUIDANCE}"
     )

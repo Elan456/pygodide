@@ -126,6 +126,9 @@ def test_build_command_creates_expected_output(tmp_path):
     assert "pygodide-loader" in boot_js
     assert "LOADING_PROGRESS" in boot_js
     assert "setProgress" in boot_js
+    assert "function armWatchdog()" in boot_js
+    assert "function heartbeatWatchdog()" in boot_js
+    assert "[pygodide] async hang:" in boot_js
     assert f'const pygodideVersion = "{metadata.version("pygodide")}";' in boot_js
     assert "viewBox" in favicon_svg
     assert 'viewBox="12 9 326 102"' in logo_svg
@@ -198,11 +201,11 @@ def test_build_command_defaults_to_discovered_size_as_is(tmp_path):
     assert "Canvas aspect: not found" in result.output
     assert "using default 800x600" in result.output
     assert "Canvas: fixed 800x600 (as-is)" in result.output
-    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    game_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
-    assert 'width="800"' in index_html
-    assert 'height="600"' in index_html
-    assert 'data-canvas-layout="fixed"' in index_html
+    assert 'width="800"' in game_html
+    assert 'height="600"' in game_html
+    assert 'data-canvas-layout="fixed"' in game_html
     assert 'const canvasLayout = "fixed";' in boot_js
 
 
@@ -227,10 +230,10 @@ async def main():
     assert result.exit_code == 0, result.output
     assert "Canvas aspect: found 1024x576 in main.py" in result.output
     assert "Canvas: fixed 1024x576 (as-is)" in result.output
-    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
-    assert 'width="1024"' in index_html
-    assert 'height="576"' in index_html
-    assert 'data-canvas-layout="fixed"' in index_html
+    game_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    assert 'width="1024"' in game_html
+    assert 'height="576"' in game_html
+    assert 'data-canvas-layout="fixed"' in game_html
 
 
 def test_build_command_canvas_fit_scales_to_viewport(tmp_path):
@@ -250,9 +253,9 @@ async def main():
 
     assert result.exit_code == 0, result.output
     assert "Canvas: fit 800x600" in result.output
-    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    game_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
-    assert 'data-canvas-layout="fit"' in index_html
+    assert 'data-canvas-layout="fit"' in game_html
     assert 'const canvasLayout = "fit";' in boot_js
     assert "sizeCanvasToFitAspect" in boot_js
 
@@ -281,11 +284,11 @@ def test_build_command_canvas_fit_with_explicit_size(tmp_path):
     assert result.exit_code == 0, result.output
     assert "Canvas aspect: not found" in result.output
     assert "Canvas: fit 960x540" in result.output
-    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    game_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
-    assert 'width="960"' in index_html
-    assert 'height="540"' in index_html
-    assert 'data-canvas-layout="fit"' in index_html
+    assert 'width="960"' in game_html
+    assert 'height="540"' in game_html
+    assert 'data-canvas-layout="fit"' in game_html
     assert "const canvasAspectWidth = 960;" in boot_js
     assert "const canvasAspectHeight = 540;" in boot_js
     assert 'const canvasLayout = "fit";' in boot_js
@@ -303,9 +306,9 @@ def test_build_command_canvas_fill_fills_viewport(tmp_path):
 
     assert result.exit_code == 0, result.output
     assert "Canvas: fill viewport" in result.output
-    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    game_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
-    assert 'data-canvas-layout="fill"' in index_html
+    assert 'data-canvas-layout="fill"' in game_html
     assert 'const canvasLayout = "fill";' in boot_js
     assert "sizeCanvasToViewport" in boot_js
 
@@ -344,12 +347,12 @@ canvas-height = 768
 
     assert result.exit_code == 0, result.output
     assert "Canvas: fixed 1280x720 (as-is)" in result.output
-    index_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
+    game_html = (source_dir / "build" / "index.html").read_text(encoding="utf-8")
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
-    assert 'width="1280"' in index_html
-    assert 'height="720"' in index_html
-    assert 'width="1024"' not in index_html
-    assert 'data-canvas-layout="fixed"' in index_html
+    assert 'width="1280"' in game_html
+    assert 'height="720"' in game_html
+    assert 'width="1024"' not in game_html
+    assert 'data-canvas-layout="fixed"' in game_html
     assert 'const canvasLayout = "fixed";' in boot_js
 
 
@@ -439,11 +442,12 @@ dependencies = ["fastquadtree"]
     assert (output_dir / "assets" / "tone.dat").read_bytes() == b"\x10\x20"
 
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
+    game_html = (output_dir / "index.html").read_text(encoding="utf-8")
     boot_js = (output_dir / "boot.js").read_text(encoding="utf-8")
 
     assert "<title>Configured Game</title>" in index_html
-    assert 'width="1024"' in index_html
-    assert 'height="768"' in index_html
+    assert 'width="1024"' in game_html
+    assert 'height="768"' in game_html
     assert 'const pyodidePackages = ["pygame-ce"];' in boot_js
     assert '"assets/tone.dat"' in boot_js
     assert "from main import web_main" in boot_js
@@ -545,8 +549,10 @@ def test_template_renderers_include_configured_values():
     assert "from demo.main import start" in startup_code
     assert "'/vendor'" in startup_code
     assert "pygodideMarkAppReady" in startup_code
-    assert "pygodideWarnSyncEntrypoint" in startup_code
-    assert "pygodideWarnAsyncHang" in startup_code
+    assert "pygodideWatchdogArm" in startup_code
+    assert "pygodideHeartbeat" in startup_code
+    assert "pygodideWatchdogDisarm" in startup_code
+    assert "_pygodide_heartbeat_loop" in startup_code
     assert "create_task" in startup_code
     assert "iscoroutinefunction" in startup_code
     assert '"ball.py"' in boot_js
@@ -574,30 +580,30 @@ def test_template_renderers_include_configured_values():
     assert "/vendor" in boot_js
     # Startup drains the event loop once (not frame pacing).
     assert ".sleep(0)" in boot_js
-    # Loading-app hint for game loops.
-    assert "await asyncio.sleep(1 / (60 * 2))" in boot_js
+    # Loading-app / hang guidance for game loops (use target fps, not a fixed rate).
+    assert "await asyncio.sleep(1 / (fps * 2))" in boot_js
     assert "console.warn(getLoadingAppStatusMessage())" in boot_js
     assert "await runtime.runPythonAsync(startupPythonCode)" in boot_js
     assert 'const readyLogMessage = "[pygodide] ready";' in boot_js
     assert "console.info(readyLogMessage)" in boot_js
     assert "function markAppReady()" in boot_js
-    assert "function warnSyncEntrypoint()" in boot_js
-    assert "function warnAsyncHang()" in boot_js
-    assert "function getAsyncHangHelpMessage()" in boot_js
+    assert "function armWatchdog()" in boot_js
+    assert "function heartbeatWatchdog()" in boot_js
+    assert "function disarmWatchdog()" in boot_js
+    assert "function getHangHelpMessage()" in boot_js
     assert "pygodideMarkAppReady" in boot_js
-    assert "pygodideWarnSyncEntrypoint" in boot_js
-    assert "pygodideWarnAsyncHang" in boot_js
-    assert "Your game entrypoint is synchronous" in boot_js
+    assert "pygodideWatchdogArm" in boot_js
+    assert "pygodideHeartbeat" in boot_js
+    assert "pygodideWatchdogDisarm" in boot_js
     assert "[pygodide] async hang:" in boot_js
     assert "forgotten await asyncio.sleep" in boot_js
-    assert "app got stuck" in boot_js
+    assert "HANG_TIMEOUT_MS" in boot_js
     assert "status.dataset.state = state" in boot_js
     assert "function hideLoadingUi()" in boot_js
     assert 'setStatus("", "hidden")' in boot_js
     assert "new Uint8Array(await response.arrayBuffer())" in boot_js
-    # Content-stable cache buster (not a per-load random value).
+    # Content-stable asset cache buster (not a per-load random value).
     assert "const assetRequestCacheBuster =" in boot_js
-    assert "Date.now()" not in boot_js
     assert 'cache: "no-store"' not in boot_js
     assert 'url.searchParams.set("_pygodide", assetRequestCacheBuster)' in boot_js
 
@@ -1019,8 +1025,10 @@ def main():
     assert "Auto async: disabled" in result.output
     assert "auto-async is disabled but the entrypoint looks like" in result.output
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
-    assert "pygodideWarnSyncEntrypoint" in boot_js
-    assert "Your game entrypoint is synchronous" in boot_js
+    assert "pygodideWatchdogArm" in boot_js
+    assert "pygodideHeartbeat" in boot_js
+    assert "[pygodide] async hang:" in boot_js
+    assert "blank canvas with hang help" in result.output
 
 
 def test_build_port_requires_serve(tmp_path):

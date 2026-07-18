@@ -354,20 +354,23 @@ def test_evaluate_smoke_result_surfaces_console_failures():
         )
 
 
-def test_startup_python_arms_async_hang_watchdog_before_entrypoint():
+def test_startup_python_arms_yield_watchdog_before_entrypoint():
     startup = build_startup_python_code(
         entry_module="main",
         entry_function="main",
         python_path_entries=["/"],
     )
 
-    assert "pygodideWarnAsyncHang" in startup
-    assert "pygodideWarnSyncEntrypoint" in startup
+    assert "pygodideWatchdogArm" in startup
+    assert "pygodideHeartbeat" in startup
+    assert "pygodideWatchdogDisarm" in startup
+    assert "_pygodide_heartbeat_loop" in startup
     assert "create_task" in startup
-    assert "_pygodide_clear_hang_on_first_yield" in startup
-    # Hang guidance must be shown before the game task runs.
-    assert startup.index("pygodideWarnAsyncHang()") < startup.index(
-        "create_task(main())"
+    assert "_pygodide_ready_on_first_yield" in startup
+    # Arm parent-shell watchdog before the game task runs; disarm only after.
+    assert startup.index("pygodideWatchdogArm()") < startup.index("create_task(main())")
+    assert startup.index("create_task(main())") < startup.index(
+        "pygodideWatchdogDisarm()"
     )
 
 

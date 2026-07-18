@@ -98,7 +98,13 @@ Pygame games need to yield to the browser event loop. Pygodide tries to do this
 automatically during `pygodide build` by inserting `await asyncio.sleep(1/120)` into
 simple `while` game loops in your entrypoint (or a helper it calls directly).
 
-Check whether that worked:
+If the game never yields, hang guidance is painted before the entrypoint runs
+so you can still read fix steps on a frozen page. After the game has started,
+a heartbeat watchdog re-shows that help if yielding stops and the page can
+still update (soft stalls). Hard freezes after startup freeze the whole tab;
+use the keyboard for DevTools (`F12`) and reload if needed.
+
+Check whether auto-async worked:
 
 ```bash
 pygodide smoke . --verbose
@@ -143,6 +149,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 async def main():
     clock = pygame.time.Clock()
+    fps = 60
     running = True
 
     while running:
@@ -152,9 +159,9 @@ async def main():
 
         screen.fill((0, 0, 0))
         pygame.display.update()
-        clock.tick(60)
+        clock.tick(fps)
         # Half a frame budget: yields for paint without always undershooting FPS.
-        await asyncio.sleep(1 / (60 * 2))
+        await asyncio.sleep(1 / (fps * 2))
 
 if __name__ == "__main__":
     asyncio.run(main())
