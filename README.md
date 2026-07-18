@@ -12,7 +12,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 **pygodide** turns Pygame projects into browser apps
-using [Pyodide](https://pyodide.org/) with one command, no edits to your source code, and acheiving [2.5x more fps than pygbag](https://elan456.github.io/pygodide/benchmark/).
+using [Pyodide](https://pyodide.org/) with one command, no edits to your source code, and achieving [2.5x more fps than pygbag](https://elan456.github.io/pygodide/benchmark/).
 
 > Pronounced "pie-go-died"
 

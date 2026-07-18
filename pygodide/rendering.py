@@ -252,11 +252,6 @@ def render_boot_js(
     loading_packages_status_text: str = "Loading Python packages...",
     loading_files_status_text: str = "Loading app files...",
     loading_app_status_text: str = "Loading Python app...",
-    loading_app_hint_text: str = (
-        "If the page stays here, your app is probably blocking the browser "
-        "event loop. For Pyodide game loops, make the entrypoint async and "
-        "add await asyncio.sleep(1 / (fps * 2)) once per frame."
-    ),
     running_status_text: str = "Running",
     ready_log: str = DEFAULT_READY_LOG,
     canvas_layout: str = "fixed",
@@ -313,7 +308,6 @@ def render_boot_js(
         loading_packages_status_text=loading_packages_status_text,
         loading_files_status_text=loading_files_status_text,
         loading_app_status_text=loading_app_status_text,
-        loading_app_hint_text=loading_app_hint_text,
         running_status_text=running_status_text,
         ready_log=ready_log,
     )

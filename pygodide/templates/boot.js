@@ -28,7 +28,6 @@ const statusText = {
   loadingPackages: {{ loading_packages_status_text | tojson }},
   loadingFiles: {{ loading_files_status_text | tojson }},
   loadingApp: {{ loading_app_status_text | tojson }},
-  loadingAppHint: {{ loading_app_hint_text | tojson }},
   running: {{ running_status_text | tojson }},
 };
 
@@ -128,10 +127,19 @@ function setProgress(fraction, { error = false } = {}) {
   }
 }
 
-function setStatus(message, state = "active", { progress = null } = {}) {
+function setStatus(
+  message,
+  state = "active",
+  { progress = null, wide = false } = {},
+) {
   if (status) {
     status.textContent = message;
     status.dataset.state = state;
+    if (wide) {
+      status.dataset.wide = "true";
+    } else {
+      delete status.dataset.wide;
+    }
   }
   if (state === "error") {
     setProgress(1, { error: true });
@@ -172,29 +180,14 @@ function hideLoadingUi() {
   });
 }
 
-function getLoadingAppStatusMessage() {
-  return `${statusText.loadingApp} ${statusText.loadingAppHint}`.trim();
-}
-
 function getHangHelpMessage() {
   // Stable prefix for smoke manifests (smoke.expected-warning) and log grepping.
-  return [
-    "[pygodide] async hang: your game stopped yielding control.",
-    "",
-    "The browser main thread is blocked, so the page cannot update or paint",
-    "while a tight loop runs without yielding.",
-    "",
-    "You may have forgotten await asyncio.sleep(...) in your game loop, or the",
-    "app got stuck in a tight loop or long blocking call.",
-    "",
-    "Fix: yield every frame inside the loop, for example:",
-    "  async def main():",
-    "      while running:",
-    "          ...",
-    "          await asyncio.sleep(1 / (fps * 2))",
-    "",
-    "Docs: https://elan456.github.io/pygodide/instructions/#make-the-game-async-compatible",
-  ].join("\n");
+  // Keep this short: pre-paint runs on every launch, so a long wall of text
+  // jumps the logo and progress bar right before healthy games start.
+  return (
+    "async hang: the game is not yielding to the browser. " +
+    "Add `await asyncio.sleep(1 / (fps * 2))` once per frame in your main loop."
+  );
 }
 
 let appReadyMarked = false;
@@ -211,20 +204,23 @@ function allowLoaderTextSelection() {
 }
 
 function showHangHelp() {
-  // Use normal loader text (not error/red). Healthy games flash this briefly
-  // before the first yield; red error chrome reads like a crash every launch.
+  // Use normal loader text (not error/red). Never-yield freezes must already
+  // have this on screen (timers cannot paint after a hard freeze). Healthy
+  // games clear it via markAppReady after the first yield. Wider status so
+  // the short hang line fits without clipping at the fixed height.
   const message = getHangHelpMessage();
   hangVisible = true;
   console.warn(message);
-  setStatus(message, "active");
+  setStatus(message, "active", { wide: true });
   allowLoaderTextSelection();
 }
 
 function armWatchdog() {
   // Paint hang guidance *before* the entrypoint may hard-freeze the thread.
   // JS timers cannot open a new message after a tight loop starts, so this
-  // pre-paint is required for never-yield freezes. Healthy games clear it via
-  // markAppReady() after the first yield; heartbeats keep a soft timer reset.
+  // pre-paint is required for never-yield freezes (e.g. async_hang). Healthy
+  // games clear it via markAppReady() after the first yield; heartbeats keep
+  // a soft timer reset. Soft stalls after ready re-show via the interval.
   watchdogArmed = true;
   hangVisible = false;
   lastHeartbeatAt = Date.now();
@@ -257,8 +253,7 @@ function markAppReady() {
 }
 
 // After ready, re-show hang if heartbeats stop but the main thread still runs
-// (soft stalls). Hard freezes after ready cannot paint new UI; pre-paint at arm
-// covers never-yield startup freezes.
+// (soft stalls). Hard freezes at startup rely on pre-paint in armWatchdog().
 window.setInterval(() => {
   if (!watchdogArmed || !appReadyMarked || hangVisible) {
     return;
@@ -605,15 +600,15 @@ async function boot() {
 
   await stageAppFiles(runtime);
 
-  console.warn(getLoadingAppStatusMessage());
-  setStatus(getLoadingAppStatusMessage(), "active", {
+  setStatus(statusText.loadingApp, "active", {
     progress: LOADING_PROGRESS.loadingApp,
   });
   await waitForNextPaint();
 
   // Do not hide the loader before the entrypoint runs. Startup arms the yield
-  // watchdog (paints hang help first), then hides via pygodideMarkAppReady()
-  // after the first yield (or when a short-lived entrypoint returns).
+  // watchdog (paints hang help once for never-yield freezes), then hides via
+  // pygodideMarkAppReady() after the first yield (or when a short-lived
+  // entrypoint returns).
   await runtime.runPythonAsync(startupPythonCode);
 }
 

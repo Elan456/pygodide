@@ -22,6 +22,7 @@ experienced developers to tailor the tool to their needs.
     - Exception: Running a grammar pass (don't change any semantics)
 - Never use any `git` commands.
     - `git log` and `git diff` are okay
+- If you want to make temp output files or reports, name them with a leading "~" so they get ignored by git automatically. For example: ~analysis_report.md.
 
 ### Backwards-Compatibility
 

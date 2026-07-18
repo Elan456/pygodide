@@ -580,9 +580,10 @@ def test_template_renderers_include_configured_values():
     assert "/vendor" in boot_js
     # Startup drains the event loop once (not frame pacing).
     assert ".sleep(0)" in boot_js
-    # Loading-app / hang guidance for game loops (use target fps, not a fixed rate).
-    assert "await asyncio.sleep(1 / (fps * 2))" in boot_js
-    assert "console.warn(getLoadingAppStatusMessage())" in boot_js
+    # Hang guidance is short (layout-stable pre-paint).
+    # Arm pre-paints hang help once (hard freezes cannot paint later).
+    assert "console.warn(message)" in boot_js
+    assert "showHangHelp()" in boot_js
     assert "await runtime.runPythonAsync(startupPythonCode)" in boot_js
     assert 'const readyLogMessage = "[pygodide] ready";' in boot_js
     assert "console.info(readyLogMessage)" in boot_js
@@ -591,12 +592,15 @@ def test_template_renderers_include_configured_values():
     assert "function heartbeatWatchdog()" in boot_js
     assert "function disarmWatchdog()" in boot_js
     assert "function getHangHelpMessage()" in boot_js
+    assert "statusText.loadingApp" in boot_js
+    assert "loadingAppHint" not in boot_js
     assert "pygodideMarkAppReady" in boot_js
     assert "pygodideWatchdogArm" in boot_js
     assert "pygodideHeartbeat" in boot_js
     assert "pygodideWatchdogDisarm" in boot_js
     assert "[pygodide] async hang:" in boot_js
-    assert "forgotten await asyncio.sleep" in boot_js
+    assert "the game is not yielding" in boot_js
+    assert "await asyncio.sleep(1 / (fps * 2))" in boot_js
     assert "HANG_TIMEOUT_MS" in boot_js
     assert "status.dataset.state = state" in boot_js
     assert "function hideLoadingUi()" in boot_js
@@ -1028,7 +1032,7 @@ def main():
     assert "pygodideWatchdogArm" in boot_js
     assert "pygodideHeartbeat" in boot_js
     assert "[pygodide] async hang:" in boot_js
-    assert "blank canvas with hang help" in result.output
+    assert "hang help" in result.output
 
 
 def test_build_port_requires_serve(tmp_path):

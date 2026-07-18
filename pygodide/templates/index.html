@@ -142,7 +142,11 @@
 
       #{{ status_element_id }} {
         z-index: 4;
+        /* Fixed height keeps logo + progress bar from jumping when status
+           text swaps (e.g. hang pre-paint vs "Loading Python app..."). */
         width: min(420px, 92%);
+        min-height: 2.9em;
+        max-height: 2.9em;
         margin: 0 auto 0.85rem;
         padding: 0;
         border: 0;
@@ -154,9 +158,18 @@
         letter-spacing: 0.01em;
         line-height: 1.45;
         text-align: center;
-        white-space: pre-wrap;
+        white-space: normal;
         overflow: hidden;
-        transition: opacity 180ms ease-out, color 180ms ease;
+        transition:
+          opacity 180ms ease-out,
+          color 180ms ease,
+          width 180ms ease-out;
+      }
+
+      /* Hang help is short but includes a docs URL; widen only this stage so
+         the fixed 2-line height can show the full line without clipping. */
+      #{{ status_element_id }}[data-wide="true"] {
+        width: min(800px, 96%);
       }
 
       #{{ status_element_id }}[data-state="hidden"],
