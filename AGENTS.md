@@ -163,5 +163,11 @@ Example Release Notes:
 
 0.1.2
 
-- Updated asyncification instructions
-- Parallelized asset loading
+- Detect hung games that never yield and show fix guidance on the page
+- Re-show hang help after ready if yielding stops (soft stalls)
+- Smarter auto canvas size (prefer playable set_mode, ignore tiny/NOFRAME dummies)
+- Make crash error panels scrollable and selectable
+- Use Hack font for the loader by default
+- Stop nesting previous zip builds into the next zip
+- Smoke support for expected hang warnings (async_hang fixture)
+- Docs and dependency bumps
