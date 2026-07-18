@@ -12,7 +12,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 **pygodide** turns Pygame projects into browser apps
-using [Pyodide](https://pyodide.org/) with one command, no edits to your source code, and achieving [2.5x more fps than pygbag](https://elan456.github.io/pygodide/benchmark/).
+using [Pyodide](https://pyodide.org/) with one command, no edits to your source code, and achieving [2.5x more FPS than pygbag](https://elan456.github.io/pygodide/benchmark/).
 
 > Pronounced "pie-go-died"
 
@@ -27,17 +27,17 @@ using [Pyodide](https://pyodide.org/) with one command, no edits to your source 
 </p>
 
 <p align="left">
-  <sub>FPS Performance Benchmark |
-  <a href="https://elan456.github.io/pygodide/benchmark/">Full Benchmark</a></sub>
+  <sub>FPS performance benchmark |
+  <a href="https://elan456.github.io/pygodide/benchmark/">Full benchmark</a></sub>
 </p>
 
-If anything doesn't work out-of-the-box, pygodide offers tons of configuration options to adapt to your needs.
+If anything does not work out of the box, pygodide offers many configuration options to adapt to your needs.
 
 **Documentation**: [https://elan456.github.io/pygodide/](https://elan456.github.io/pygodide/)
 
 ## Quick Start
 
-While in your project's root directory, run the following commands:
+From your project's root directory, run the following commands:
 
 ### Install
 
@@ -52,7 +52,7 @@ pip install pygodide
 # Produces the web-hostable build/ directory
 pygodide build .
 
-# For an Itch.io zip file
+# For an itch.io zip file
 pygodide build . --zip
 ```
 
@@ -72,7 +72,7 @@ If anything went wrong, head over to the [instructions](https://elan456.github.i
 ## Examples and Live Demos
 
 Sample projects live under
-[`test_targets/`](https://github.com/Elan456/pygodide/tree/main/test_targets) and a few of them are uploaded to `itch.io`.
+[`test_targets/`](https://github.com/Elan456/pygodide/tree/main/test_targets), and a few of them are uploaded to itch.io.
 
 Numpy particles demo: https://elan456.itch.io/pygodide-test-project  
 Audio demo: https://elan456.itch.io/pygodide-audio-demo  
@@ -117,4 +117,4 @@ uv run pygodide smoke /path/to/your/pygame/project
 uv run pygodide smoke test_targets --suite
 ```
 
-Be sure to read the `AGENTS.md` it's written for both human contributors as well as AI tools.
+Be sure to read `AGENTS.md`; it is written for both human contributors and AI tools.
