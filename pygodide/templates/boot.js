@@ -185,7 +185,7 @@ function getHangHelpMessage() {
   // Keep this short: pre-paint runs on every launch, so a long wall of text
   // jumps the logo and progress bar right before healthy games start.
   return (
-    "async hang: the game is not yielding to the browser. " +
+    "[pygodide] async hang: the game is not yielding to the browser. " +
     "Add `await asyncio.sleep(1 / (fps * 2))` once per frame in your main loop."
   );
 }

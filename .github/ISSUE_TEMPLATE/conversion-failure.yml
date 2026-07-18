@@ -1,4 +1,4 @@
-name: My project didn't convert
+name: "My project didn't convert"
 description: Something went wrong turning your Pygame project into a web app
 labels:
   - conversion-failure
@@ -16,7 +16,7 @@ body:
     id: what-happened
     attributes:
       label: What happened?
-      description: In your own words: what did you try, and what did you see instead?
+      description: "In your own words: what did you try, and what did you see instead?"
       placeholder: |
         I ran `pygodide build . --serve` on my snake game. The build finished, but the browser stays on "Loading..." and never shows the game.
     validations:
@@ -26,7 +26,7 @@ body:
     id: build-log
     attributes:
       label: Build log
-      description: Paste the full contents of `build/pygodide-build.log`. It has everything we need on our end (version, dependencies, errors).
+      description: "Paste the full contents of `build/pygodide-build.log`. It has everything we need on our end (version, dependencies, errors)."
       render: shell
     validations:
       required: true
@@ -36,11 +36,11 @@ body:
     attributes:
       label: Link to your project (optional)
       description: A GitHub repo, gist, or zip link helps us reproduce the issue faster.
-      placeholder: https://github.com/you/my-game
+      placeholder: "https://github.com/you/my-game"
 
   - type: textarea
     id: anything-else
     attributes:
       label: Anything else? (optional)
-      description: Browser console errors (F12 → Console), screenshots, or a link to a smaller repro (only if you have them handy).
-      placeholder: Firefox console says "micropip install failed for ..."
+      description: "Browser console errors (F12 → Console), screenshots, or a link to a smaller repro (only if you have them handy)."
+      placeholder: 'Firefox console says "micropip install failed for ..."'
