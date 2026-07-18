@@ -211,10 +211,12 @@ function allowLoaderTextSelection() {
 }
 
 function showHangHelp() {
+  // Use normal loader text (not error/red). Healthy games flash this briefly
+  // before the first yield; red error chrome reads like a crash every launch.
   const message = getHangHelpMessage();
   hangVisible = true;
   console.warn(message);
-  setStatus(message, "error");
+  setStatus(message, "active");
   allowLoaderTextSelection();
 }
 
