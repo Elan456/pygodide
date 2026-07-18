@@ -33,6 +33,12 @@ using [Pyodide](https://pyodide.org/) with one command, no edits to your source 
 
 If anything does not work out of the box, pygodide offers many configuration options to adapt to your needs.
 
+**Stuck?** Work through the
+[instructions](https://elan456.github.io/pygodide/instructions/) first. If you
+still cannot get your game running, open a
+[**"My project didn't convert"** issue](https://github.com/Elan456/pygodide/issues/new?template=conversion-failure.yml)
+so we can improve pygodide for everyone.
+
 **Documentation**: [https://elan456.github.io/pygodide/](https://elan456.github.io/pygodide/)
 
 ## Quick Start
@@ -67,7 +73,14 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ### Troubleshooting
 
-If anything went wrong, head over to the [instructions](https://elan456.github.io/pygodide/instructions/) page for more details and troubleshooting guidance.
+If anything went wrong, work through the
+[instructions](https://elan456.github.io/pygodide/instructions/) page first
+(config, async, smoke tests, and common failures).
+
+If you still cannot get your game running in the browser, open a
+[**"My project didn't convert"** issue](https://github.com/Elan456/pygodide/issues/new?template=conversion-failure.yml)
+so we can improve pygodide for everyone. Paste `build/pygodide-build.log` into
+the form.
 
 ## Examples and Live Demos
 
