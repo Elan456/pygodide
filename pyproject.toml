@@ -51,14 +51,14 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "hatchling>=1.17.0",
-    "plotly>=6.0.0",
+    "hatchling>=1.31.0",
+    "plotly>=6.9.0",
     "kaleido>=1.0.0",
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
-    "ruff>=0.15.18",
+    "ruff>=0.15.22",
     "numpy>=2.4.0",
-    "zensical>=0.0.46",
+    "zensical>=0.0.51",
     "pygbag",
     "mkdocs-typer2[zensical]>=0.4.1",
     "pygame-ce",
