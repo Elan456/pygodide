@@ -61,6 +61,8 @@ class SmokeObservation:
     expected_warning_seen: bool = False
     failures: tuple[str, ...] = ()
     timed_out: bool = False
+    # Last #status text when the wait ended (helps debug CI timeouts).
+    last_status: str | None = None
 
 
 BuildRunner = Callable[[DiscoveredTarget], Path]

@@ -336,6 +336,18 @@ def test_evaluate_smoke_result_rejects_missing_expected_warning():
         )
 
 
+def test_evaluate_smoke_result_includes_last_status_on_ready_timeout():
+    smoke = SmokeConfig(timeout_ms=12_000)
+    with pytest.raises(RuntimeError, match="Last page status: 'Starting Pyodide"):
+        evaluate_smoke_result(
+            smoke,
+            SmokeObservation(
+                ready_seen=False,
+                last_status="Starting Pyodide...",
+            ),
+        )
+
+
 def test_evaluate_smoke_result_still_requires_ready_for_normal_targets():
     smoke = SmokeConfig()
     with pytest.raises(RuntimeError, match="ready log"):

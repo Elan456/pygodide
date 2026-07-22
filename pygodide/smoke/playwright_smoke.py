@@ -10,6 +10,11 @@ from pygodide.smoke.types import (
     SmokeObservation,
 )
 
+# hideLoadingUi fades ~180ms; give slow CI enough budget after a late ready.
+MIN_LOADER_HIDE_MS = 2_000
+# GitHub Actions (and other small /dev/shm hosts) otherwise flake or hang Chromium.
+CHROMIUM_LAUNCH_ARGS = ("--disable-dev-shm-usage",)
+
 
 def evaluate_smoke_result(smoke: SmokeConfig, observation: SmokeObservation) -> None:
     """Raise RuntimeError when a smoke observation does not satisfy config.
@@ -20,18 +25,23 @@ def evaluate_smoke_result(smoke: SmokeConfig, observation: SmokeObservation) -> 
     if observation.failures:
         raise RuntimeError("; ".join(observation.failures))
 
+    status_hint = ""
+    if observation.last_status:
+        status_hint = f" Last page status: {observation.last_status!r}."
+
     if smoke.expected_warning:
         if not observation.expected_warning_seen:
             raise RuntimeError(
                 f"Timed out waiting for expected warning "
-                f"{smoke.expected_warning!r} after {smoke.timeout_ms} ms"
+                f"{smoke.expected_warning!r} after {smoke.timeout_ms} ms."
+                f"{status_hint}"
             )
         if smoke.expect_ready:
             if not observation.ready_seen:
                 raise RuntimeError(
                     f"Timed out waiting for ready log {smoke.ready_log!r} "
                     f"after {smoke.timeout_ms} ms "
-                    f"(expected warning was observed)"
+                    f"(expected warning was observed).{status_hint}"
                 )
         elif observation.ready_seen:
             raise RuntimeError(
@@ -43,7 +53,7 @@ def evaluate_smoke_result(smoke: SmokeConfig, observation: SmokeObservation) -> 
     if not observation.ready_seen:
         raise RuntimeError(
             f"Timed out waiting for ready log {smoke.ready_log!r} "
-            f"after {smoke.timeout_ms} ms"
+            f"after {smoke.timeout_ms} ms.{status_hint}"
         )
 
 
@@ -64,7 +74,7 @@ def run_playwright_smoke(smoke: SmokeConfig, base_url: str) -> None:
     failures: list[str] = []
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
+        browser = playwright.chromium.launch(args=list(CHROMIUM_LAUNCH_ARGS))
         page = browser.new_page()
 
         def handle_console(message) -> None:
@@ -133,6 +143,7 @@ def _collect_playwright_observation(
             failures=tuple(failures),
             timed_out=time.monotonic() >= deadline
             and not expected_warning_seen.is_set(),
+            last_status=_page_status_text(page),
         )
 
     while not ready_seen.is_set() and not failures:
@@ -146,9 +157,15 @@ def _collect_playwright_observation(
 
     if ready_seen.is_set() and not failures:
         try:
+            # Ready can arrive near the deadline on cold CI CDN loads; still allow
+            # time for the loader fade so we do not mis-report a yield hang.
+            hide_timeout_ms = max(
+                remaining_timeout_ms(deadline),
+                MIN_LOADER_HIDE_MS,
+            )
             assert_ready_status_hidden(
                 page,
-                timeout_ms=remaining_timeout_ms(deadline),
+                timeout_ms=hide_timeout_ms,
                 timeout_error=timeout_error,
             )
         except RuntimeError as exc:
@@ -161,7 +178,17 @@ def _collect_playwright_observation(
         expected_warning_seen=expected_warning_seen.is_set(),
         failures=tuple(failures),
         timed_out=time.monotonic() >= deadline and not ready_seen.is_set(),
+        last_status=_page_status_text(page),
     )
+
+
+def _page_status_text(page: Any) -> str | None:
+    try:
+        text = page.locator("#status").inner_text(timeout=200)
+    except Exception:
+        return None
+    text = (text or "").strip()
+    return text or None
 
 
 def _poll_expected_warning_from_page(
