@@ -187,10 +187,10 @@ def smoke_test_app(
         log(f"Smoke path: {smoke_config.path}")
         log(f"Ready log: {smoke_config.ready_log!r}")
         log(f"Timeout: {smoke_config.timeout_ms} ms")
-        log("Smoke testing")
+        log("Running automated browser smoke")
 
         with serve_directory(build_dir) as base_url:
-            log(f"Serving build directory at {base_url}")
+            log(f"Playwright loading {base_url}")
             run_playwright_smoke(smoke_config, base_url)
 
         log("Smoke test passed")

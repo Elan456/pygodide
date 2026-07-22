@@ -83,6 +83,8 @@ benchmarks/      # cross-runtime FPS harness (not part of the CLI)
 - Do not use the word "staged" (or "staging") for files copied into the build.
   It is easily confused with git staging. Prefer "copied into the build",
   "packaged", or "included in the build" in docs, comments, logs, and errors.
+- Prefer short, plain language. Say what is happening and what to do next; avoid jargon, log-style prefixes, and    
+  parenthetical asides when a clearer main sentence works.
 
 ### Debuggability
 
