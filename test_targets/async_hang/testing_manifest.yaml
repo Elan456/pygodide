@@ -6,7 +6,7 @@ build:
   auto-async: false
 smoke:
   path: /
-  expected-warning: "[pygodide] async hang"
+  expected-warning: "If you stay stuck here, the game is not yielding"
   expect-ready: false
   timeout-ms: 60000
   post-ready-ms: 2000

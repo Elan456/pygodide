@@ -181,11 +181,13 @@ function hideLoadingUi() {
 }
 
 function getHangHelpMessage() {
-  // Stable prefix for smoke manifests (smoke.expected-warning) and log grepping.
-  // Keep this short: pre-paint runs on every launch, so a long wall of text
-  // jumps the logo and progress bar right before healthy games start.
+  // Keep in sync with ASYNC_HANG_WARNING_MARKER in rendering.py (smoke
+  // expected-warning matches a stable substring of this text).
+  // Keep this short: pre-paint runs on every launch (including healthy games
+  // that take a moment before the first yield), so word it as "if stuck" not
+  // a definite hang. Long text also jumps the logo/progress bar.
   return (
-    "[pygodide] async hang: the game is not yielding to the browser. " +
+    "If you stay stuck here, the game is not yielding. " +
     "Add `await asyncio.sleep(1 / (fps * 2))` once per frame in your main loop."
   );
 }

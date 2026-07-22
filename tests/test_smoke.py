@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pygodide.rendering import ASYNC_HANG_WARNING_PREFIX, build_startup_python_code
+from pygodide.rendering import ASYNC_HANG_WARNING_MARKER, build_startup_python_code
 from pygodide.smoke import (
     MANIFEST_FILENAME,
     DiscoveredTarget,
@@ -243,7 +243,7 @@ def test_load_target_manifest_reads_expected_warning_hang_config(tmp_path):
         """
 name: hang-target
 smoke:
-  expected-warning: "[pygodide] async hang"
+  expected-warning: "If you stay stuck here, the game is not yielding"
   post-ready-ms: 2000
   timeout-ms: 60000
 """.strip(),
@@ -252,7 +252,10 @@ smoke:
 
     manifest = load_target_manifest(target_dir)
 
-    assert manifest.smoke.expected_warning == "[pygodide] async hang"
+    assert (
+        manifest.smoke.expected_warning
+        == "If you stay stuck here, the game is not yielding"
+    )
     assert manifest.smoke.expect_ready is False
     assert manifest.smoke.post_ready_ms == 2000
     assert manifest.smoke.timeout_ms == 60000
@@ -284,7 +287,7 @@ def test_resolve_smoke_config_keeps_manifest_hang_fields(tmp_path):
         """
 name: hang-target
 smoke:
-  expected-warning: "[pygodide] async hang"
+  expected-warning: "If you stay stuck here, the game is not yielding"
   timeout-ms: 60000
 """.strip(),
         encoding="utf-8",
@@ -292,14 +295,14 @@ smoke:
 
     config = resolve_smoke_config(target_dir)
 
-    assert config.expected_warning == "[pygodide] async hang"
+    assert config.expected_warning == "If you stay stuck here, the game is not yielding"
     assert config.expect_ready is False
     assert config.timeout_ms == 60000
 
 
 def test_evaluate_smoke_result_accepts_expected_hang_warning():
     smoke = SmokeConfig(
-        expected_warning="[pygodide] async hang",
+        expected_warning=ASYNC_HANG_WARNING_MARKER,
         expect_ready=False,
     )
     evaluate_smoke_result(
@@ -310,7 +313,7 @@ def test_evaluate_smoke_result_accepts_expected_hang_warning():
 
 def test_evaluate_smoke_result_rejects_ready_when_hang_expected():
     smoke = SmokeConfig(
-        expected_warning="[pygodide] async hang",
+        expected_warning=ASYNC_HANG_WARNING_MARKER,
         expect_ready=False,
     )
     with pytest.raises(RuntimeError, match="became ready"):
@@ -322,7 +325,7 @@ def test_evaluate_smoke_result_rejects_ready_when_hang_expected():
 
 def test_evaluate_smoke_result_rejects_missing_expected_warning():
     smoke = SmokeConfig(
-        expected_warning="[pygodide] async hang",
+        expected_warning=ASYNC_HANG_WARNING_MARKER,
         expect_ready=False,
         timeout_ms=12_000,
     )
@@ -343,7 +346,7 @@ def test_evaluate_smoke_result_still_requires_ready_for_normal_targets():
 
 
 def test_evaluate_smoke_result_surfaces_console_failures():
-    smoke = SmokeConfig(expected_warning="[pygodide] async hang", expect_ready=False)
+    smoke = SmokeConfig(expected_warning=ASYNC_HANG_WARNING_MARKER, expect_ready=False)
     with pytest.raises(RuntimeError, match="console error"):
         evaluate_smoke_result(
             smoke,
@@ -380,10 +383,7 @@ def test_async_hang_fixture_manifest_is_discoverable():
     assert len(targets) == 1
     manifest = targets[0].manifest
     assert manifest.auto_async is False
-    assert manifest.smoke.expected_warning == "[pygodide] async hang"
-    assert manifest.smoke.expected_warning.startswith(
-        ASYNC_HANG_WARNING_PREFIX.rstrip(":")
-    )
+    assert manifest.smoke.expected_warning == ASYNC_HANG_WARNING_MARKER
     assert manifest.smoke.expect_ready is False
     main_py = (targets[0].path / "main.py").read_text(encoding="utf-8")
     assert "async def main" in main_py

@@ -44,7 +44,7 @@ smoke:
   timeout-ms: 120000      # wait for ready log + loading UI to clear
   post-ready-ms: 500      # keep listening for errors after ready
   # Hang / expected-failure fixtures (optional):
-  # expected-warning: "[pygodide] async hang"  # substring in console or #status
+  # expected-warning: "If you stay stuck here"  # substring in console or #status
   # expect-ready: false                        # default false when expected-warning set
 ```
 

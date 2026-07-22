@@ -13,8 +13,9 @@ DEFAULT_PYODIDE_PACKAGES = ["pygame-ce"]
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
 DEFAULT_PACKAGE_FILES = ["main.py"]
 DEFAULT_READY_LOG = "[pygodide] ready"
-# Must stay in sync with getHangHelpMessage() in templates/boot.js.
-ASYNC_HANG_WARNING_PREFIX = "[pygodide] async hang:"
+# Stable substring of getHangHelpMessage() in templates/boot.js.
+# Smoke fixtures (smoke.expected-warning) match this in console / #status text.
+ASYNC_HANG_WARNING_MARKER = "If you stay stuck here, the game is not yielding"
 
 
 def package_version() -> str:

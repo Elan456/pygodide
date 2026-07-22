@@ -128,7 +128,7 @@ def test_build_command_creates_expected_output(tmp_path):
     assert "setProgress" in boot_js
     assert "function armWatchdog()" in boot_js
     assert "function heartbeatWatchdog()" in boot_js
-    assert "[pygodide] async hang:" in boot_js
+    assert "If you stay stuck here, the game is not yielding" in boot_js
     assert f'const pygodideVersion = "{metadata.version("pygodide")}";' in boot_js
     assert "viewBox" in favicon_svg
     assert 'viewBox="12 9 326 102"' in logo_svg
@@ -598,8 +598,7 @@ def test_template_renderers_include_configured_values():
     assert "pygodideWatchdogArm" in boot_js
     assert "pygodideHeartbeat" in boot_js
     assert "pygodideWatchdogDisarm" in boot_js
-    assert "[pygodide] async hang:" in boot_js
-    assert "the game is not yielding" in boot_js
+    assert "If you stay stuck here, the game is not yielding" in boot_js
     assert "await asyncio.sleep(1 / (fps * 2))" in boot_js
     assert "HANG_TIMEOUT_MS" in boot_js
     assert "status.dataset.state = state" in boot_js
@@ -1031,7 +1030,7 @@ def main():
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
     assert "pygodideWatchdogArm" in boot_js
     assert "pygodideHeartbeat" in boot_js
-    assert "[pygodide] async hang:" in boot_js
+    assert "If you stay stuck here, the game is not yielding" in boot_js
     assert "hang help" in result.output
 
 
