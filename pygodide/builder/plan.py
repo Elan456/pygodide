@@ -376,8 +376,8 @@ def discover_package_files(
 
 def default_title(source_dir: Path) -> str:
     if source_dir.name == "src" and source_dir.parent.name:
-        return f"{source_dir.parent.name} Pyodide App"
-    return f"{source_dir.name} Pyodide App"
+        return f"{source_dir.parent.name} - pygodide"
+    return f"{source_dir.name} - pygodide"
 
 
 def resolve_python_path_entries(

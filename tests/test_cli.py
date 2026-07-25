@@ -113,7 +113,7 @@ def test_build_command_creates_expected_output(tmp_path):
     favicon_svg = (output_dir / "favicon.svg").read_text(encoding="utf-8")
     logo_svg = (output_dir / "pygodide-logo.svg").read_text(encoding="utf-8")
 
-    assert "<title>demo_app Pyodide App</title>" in index_html
+    assert "<title>demo_app - pygodide</title>" in index_html
     assert 'src="./boot.js?v=' in index_html
     assert 'rel="icon" href="./favicon.svg"' in index_html
     assert 'id="pygodide-brand"' in index_html

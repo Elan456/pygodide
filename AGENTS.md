@@ -24,6 +24,7 @@ experienced developers to tailor the tool to their needs.
     - `git log` and `git diff` are okay
 - If you want to make temp output files or reports, name them with a leading "~" so they get ignored by git automatically. For example: ~analysis_report.md.
 - The top-level README.md is sacred and needs a strong human touch. Be very careful adding AI-generated prose, and make the user very aware.
+- Don't use weird characters that aren't on a keyboard. They look stupid and are hard to work with. (e.g. ·)
 
 ### Backwards-Compatibility
 

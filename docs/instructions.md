@@ -389,7 +389,7 @@ dependency-groups = ["web"]
 | `app` | Entry `module:callable`. Default `main:main`. [Entry point](#entry-point). |
 | `auto-async` | Auto game-loop conversion. Default `true`. |
 | `include` | Allowlist of files to copy (path globs). [Assets and paths](#assets-and-paths). |
-| `title` | HTML page title. Default: project directory name. |
+| `title` | HTML page title. Default: `{project dir} - pygodide`. |
 | `canvas-width`, `canvas-height` | Fixed size, or aspect with `canvas-fit`. [Canvas size](#canvas-size). |
 | `canvas-fit` | Scale to viewport, keep aspect. |
 | `canvas-fill` | Stretch to fill viewport (aspect may change). |

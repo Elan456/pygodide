@@ -176,7 +176,7 @@ def write_logo(output_dir: Path, *, filename: str = DEFAULT_LOGO_NAME) -> Path:
 
 def render_index_html(
     *,
-    title: str = "Pygame Pyodide Test",
+    title: str = "pygodide",
     lang: str = "en",
     status_text: str = "Loading...",
     status_element_id: str = "status",

@@ -9,24 +9,30 @@ authors = [
     { name = "Ethan Anderson", email = "telan4892@gmail.com" }
 ]
 keywords = [
+    "pygodide",
     "pygame",
     "pygame-ce",
     "pyodide",
     "wasm",
     "webassembly",
+    "emscripten",
     "browser",
+    "html5",
+    "html5-game",
     "game",
     "gamedev",
     "web",
-    "html5",
+    "itch.io",
     "cli",
     "build-tool",
+    "packaging",
 ]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Environment :: Web Environment",
     "Intended Audience :: Developers",
+    "Intended Audience :: Education",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
@@ -70,7 +76,10 @@ smoke = ["playwright>=1.57.0"]
 
 [project.urls]
 Homepage = "https://github.com/Elan456/pygodide"
+Documentation = "https://elan456.github.io/pygodide/"
 Repository = "https://github.com/Elan456/pygodide.git"
+Issues = "https://github.com/Elan456/pygodide/issues"
+Changelog = "https://github.com/Elan456/pygodide/releases"
 
 [project.scripts]
 pygodide = "pygodide.cli.main:app"
