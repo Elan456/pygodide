@@ -17,6 +17,14 @@ using [Pyodide](https://pyodide.org/) with one command, no edits to your source 
 > Pronounced "pie-go-died"
 
 <p align="left">
+  <img
+    src="docs/assets/images/loading-screen.gif"
+    alt="pygodide in-browser loading screen, then a pygame snake game starting"
+    width="420"
+  >
+</p>
+
+<p align="left">
   <a href="https://elan456.github.io/pygodide/benchmark/">
     <img
       src="docs/assets/images/benchmark-readme.png"
@@ -26,20 +34,9 @@ using [Pyodide](https://pyodide.org/) with one command, no edits to your source 
   </a>
 </p>
 
-<p align="left">
-  <sub>FPS performance benchmark |
-  <a href="https://elan456.github.io/pygodide/benchmark/">Full benchmark</a></sub>
-</p>
+> [Full benchmark details](https://elan456.github.io/pygodide/benchmark/)
 
-If anything does not work out of the box, pygodide offers many configuration options to adapt to your needs.
-
-**Stuck?** Work through the
-[instructions](https://elan456.github.io/pygodide/instructions/) first. If you
-still cannot get your game running, open a
-[**"My project didn't convert"** issue](https://github.com/Elan456/pygodide/issues/new?template=conversion-failure.yml)
-so we can improve pygodide for everyone.
-
-**Documentation**: [https://elan456.github.io/pygodide/](https://elan456.github.io/pygodide/)
+[![Documentation](https://img.shields.io/badge/Documentation-Read%20the%20docs-e8c200?style=for-the-badge&labelColor=275a86&color=e8c200)](https://elan456.github.io/pygodide/)
 
 ## Quick Start
 
@@ -87,13 +84,18 @@ the form.
 Sample projects live under
 [`test_targets/`](https://github.com/Elan456/pygodide/tree/main/test_targets), and a few of them are uploaded to itch.io.
 
-Numpy particles demo: https://elan456.itch.io/pygodide-test-project  
-Audio demo: https://elan456.itch.io/pygodide-audio-demo  
-Arcade performance benchmark: https://elan456.itch.io/pygodide-performance-benchmark
+- [3D first-person demo](https://elan456.itch.io/pygodide-pyvorengi-sdk-demo)
+- [Numpy particles demo](https://elan456.itch.io/pygodide-test-project)
+- [Audio demo](https://elan456.itch.io/pygodide-audio-demo)
+- [Arcade performance benchmark](https://elan456.itch.io/pygodide-performance-benchmark)
 
 Try one locally:
 
 ```bash
+git clone https://github.com/Elan456/pygodide.git
+cd pygodide
+pip install pygodide
+
 pygodide build test_targets/ball_bouncing
 pygodide serve test_targets/ball_bouncing
 ```
