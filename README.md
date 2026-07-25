@@ -16,25 +16,27 @@ using [Pyodide](https://pyodide.org/) with one command, no edits to your source 
 
 > Pronounced "pie-go-died"
 
-<p align="left">
+<p align="center">
   <img
     src="docs/assets/images/loading-screen.gif"
     alt="pygodide in-browser loading screen, then a pygame snake game starting"
-    width="420"
+    width="49%"
   >
-</p>
-
-<p align="left">
   <a href="https://elan456.github.io/pygodide/benchmark/">
     <img
       src="docs/assets/images/benchmark-readme.png"
       alt="FPS benchmark: pygodide 453 vs pygbag 180 on perf_bench"
-      width="420"
+      width="49%"
     >
   </a>
 </p>
-
-> [Full benchmark details](https://elan456.github.io/pygodide/benchmark/)
+<p align="center">
+  <sub>
+    In-browser load and game boot
+    &nbsp;·&nbsp;
+    <a href="https://elan456.github.io/pygodide/benchmark/">FPS vs pygbag — full benchmark</a>
+  </sub>
+</p>
 
 [![Documentation](https://img.shields.io/badge/Documentation-Read%20the%20docs-e8c200?style=for-the-badge&labelColor=275a86&color=e8c200)](https://elan456.github.io/pygodide/)
 
