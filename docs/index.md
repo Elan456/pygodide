@@ -40,7 +40,7 @@ Then run `pygodide smoke .` from your game project. See
 [smoke testing](instructions.md#check-your-build-with-a-smoke-test) for the full
 flow.
 
-## Get started in 30 seconds
+## Quick start
 
 From your project root:
 
