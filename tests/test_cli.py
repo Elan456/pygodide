@@ -560,7 +560,7 @@ def test_template_renderers_include_configured_values():
     assert 'src="./custom.js?v=' in index_html
     assert 'class="pygodide-shell"' in index_html
     assert 'data-state="active"' in index_html
-    assert "background: #090c17;" in index_html
+    assert "background: #050814;" in index_html
     assert "pygodide-progress" in index_html
     assert "import os" in startup_code
     assert "import warnings" in startup_code
@@ -624,11 +624,113 @@ def test_template_renderers_include_configured_values():
     assert "HANG_TIMEOUT_MS" in boot_js
     assert "status.dataset.state = state" in boot_js
     assert "function hideLoadingUi()" in boot_js
+    assert "function applyPlayReadyLayout()" not in boot_js
+    assert "CANVAS_VIEWPORT_PADDING" not in boot_js
     assert 'setStatus("", "hidden")' in boot_js
     # Content-stable archive cache buster (not a per-load random value).
     assert "const assetRequestCacheBuster =" in boot_js
     assert 'cache: "no-store"' not in boot_js
     assert 'url.searchParams.set("_pygodide", assetRequestCacheBuster)' in boot_js
+
+
+def test_fixed_layout_page_matches_canvas_size_borderless():
+    """Fixed layout: game box is canvas W×H; larger windows center top-middle."""
+    index_html = render_index_html(
+        title="Borderless",
+        canvas_width=960,
+        canvas_height=540,
+        canvas_layout="fixed",
+        boot_script_path="./boot.js",
+    )
+    boot_js = render_boot_js(
+        canvas_layout="fixed",
+        canvas_width=960,
+        canvas_height=540,
+        entry_module="main",
+        entry_function="main",
+    )
+
+    # Shell is always flush (loader padding is overlay-only).
+    assert re.search(
+        r"\.pygodide-shell\s*\{[^}]*padding:\s*0",
+        index_html,
+        re.DOTALL,
+    )
+    assert re.search(
+        r"#canvas\s*\{[^}]*border:\s*0",
+        index_html,
+        re.DOTALL,
+    )
+    # No load/play dual layout state.
+    assert "data-pygodide-play" not in index_html
+    assert "applyPlayReadyLayout" not in boot_js
+    assert "CANVAS_VIEWPORT_PADDING" not in boot_js
+
+    # Play surface stays configured size; body fills host and centers it.
+    assert "width: 960px" in index_html
+    assert "height: 540px" in index_html
+    assert re.search(
+        r"\.pygodide-shell,\s*\.pygodide-stage\s*\{[^}]*width:\s*960px",
+        index_html,
+        re.DOTALL,
+    )
+    assert re.search(
+        r"body\s*\{[^}]*justify-content:\s*center",
+        index_html,
+        re.DOTALL,
+    )
+    assert re.search(
+        r"body\s*\{[^}]*align-items:\s*flex-start",
+        index_html,
+        re.DOTALL,
+    )
+    # Top pad only when viewport is taller than the game (0 in a tight iframe).
+    assert "100vh - 540px" in index_html or "100dvh - 540px" in index_html
+    assert "padding-top: max(0px, min(24px," in index_html
+    # Loader is an overlay with its own padding over the stage.
+    assert re.search(
+        r"#pygodide-loader\s*\{[^}]*position:\s*absolute",
+        index_html,
+        re.DOTALL,
+    )
+    assert re.search(
+        r"#pygodide-loader\s*\{[^}]*inset:\s*0",
+        index_html,
+        re.DOTALL,
+    )
+    # Loading edge so the stage does not blend into the window background.
+    assert (
+        ".pygodide-stage:has(#pygodide-loader:not([data-state=" in index_html
+        or '.pygodide-stage:has(#pygodide-loader:not([data-state="hidden"]))'
+        in index_html
+    )
+    assert "box-shadow:" in index_html
+
+
+def test_fit_layout_is_viewport_flush_without_shell_padding():
+    index_html = render_index_html(
+        title="Fit",
+        canvas_width=800,
+        canvas_height=600,
+        canvas_layout="fit",
+        boot_script_path="./boot.js",
+    )
+    boot_js = render_boot_js(
+        canvas_layout="fit",
+        canvas_width=800,
+        canvas_height=600,
+    )
+
+    assert re.search(
+        r"\.pygodide-shell\s*\{[^}]*padding:\s*0",
+        index_html,
+        re.DOTALL,
+    )
+    assert "data-pygodide-play" not in index_html
+    # Fit still viewport-driven (min-height 100vh), not a fixed pixel page box.
+    assert "min-height: 100vh" in index_html
+    assert "window.innerWidth" in boot_js
+    assert "CANVAS_VIEWPORT_PADDING" not in boot_js
 
 
 def test_error_status_panel_is_interactive_scrollport():

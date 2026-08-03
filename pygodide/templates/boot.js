@@ -20,8 +20,6 @@ const assetRequestCacheBuster = {{ asset_cache_buster | tojson }};
 const knownImportPackageAliases = {
   pygame: "pygame-ce",
 };
-// Keep in sync with .pygodide-shell padding (20px each side).
-const CANVAS_VIEWPORT_PADDING = 40;
 const statusText = {
   startingPyodide: {{ starting_pyodide_status_text | tojson }},
   loadingPackages: {{ loading_packages_status_text | tojson }},
@@ -441,9 +439,10 @@ function waitForNextPaint() {
 }
 
 function viewportMaxSize() {
+  // Shell is flush; fit/fill use the full window (loader padding is overlay-only).
   return {
-    width: Math.max(1, Math.floor(window.innerWidth - CANVAS_VIEWPORT_PADDING)),
-    height: Math.max(1, Math.floor(window.innerHeight - CANVAS_VIEWPORT_PADDING)),
+    width: Math.max(1, Math.floor(window.innerWidth)),
+    height: Math.max(1, Math.floor(window.innerHeight)),
   };
 }
 

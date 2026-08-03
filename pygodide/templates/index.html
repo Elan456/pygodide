@@ -24,65 +24,106 @@
         box-sizing: border-box;
       }
 
+      /*
+        Layout is always flush: page/shell match the play surface. Loading
+        chrome is an overlay on the stage (its own padding), not shell margin.
+      */
       html,
       body {
         margin: 0;
-        min-height: 100%;
+        color: #edf3ff;
+        background: #050814;
       }
 
       body {
-        display: grid;
-        place-items: center;
-        background: #090c17;
-        color: #edf3ff;
+        overflow: hidden;
       }
 
       .pygodide-shell {
-        width: max-content;
-        max-width: 100vw;
-        padding: 20px;
-      }
-
-      {% if canvas_layout == "fill" %}
-      .pygodide-shell {
-        width: 100%;
-        max-width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        padding: 20px;
+        margin: 0;
+        padding: 0;
         box-sizing: border-box;
-        display: grid;
-        place-items: center;
       }
-      {% elif canvas_layout == "fit" %}
-      .pygodide-shell {
-        width: 100%;
-        max-width: 100vw;
-        min-height: 100vh;
-        min-height: 100dvh;
-        padding: 20px;
-        box-sizing: border-box;
-        display: grid;
-        place-items: center;
-      }
-      {% endif %}
 
-      /* Logo/status are positioned against the canvas box, not the padded shell. */
+      /* Stage is the canvas box; loader sits on top with absolute inset. */
       .pygodide-stage {
         position: relative;
-        width: max-content;
-        max-width: calc(100vw - 40px);
+        margin: 0;
+        padding: 0;
       }
 
-      {% if canvas_layout == "fill" %}
+      /*
+        While the loader is up, ring the stage so the loading surface does not
+        blend into the same-colored window background. box-shadow keeps layout
+        size unchanged; gone when the loader is hidden for gameplay.
+      */
+      .pygodide-stage:has(#pygodide-loader:not([data-state="hidden"])) {
+        box-shadow:
+          0 0 0 1px #000000,
+          0 0 0 2px rgba(0, 0, 0, 0.65);
+      }
+
+      {% if canvas_layout == "fixed" %}
+      /*
+        Fixed: play surface is canvas W×H. Body fills the host window so a
+        larger browser centers the game (top-middle); tight embeds (iframe =
+        game size) get no extra gap.
+      */
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        height: 100%;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        /* Only pad when the window is taller than the game (0 in a tight iframe). */
+        padding-top: max(0px, min(24px, 100vh - {{ canvas_height }}px));
+        padding-top: max(0px, min(24px, 100dvh - {{ canvas_height }}px));
+        box-sizing: border-box;
+      }
+
+      .pygodide-shell,
       .pygodide-stage {
+        width: {{ canvas_width }}px;
+        height: {{ canvas_height }}px;
+        flex-shrink: 0;
+      }
+      {% elif canvas_layout == "fill" %}
+      html,
+      body {
         width: 100%;
         height: 100%;
-        max-width: none;
+      }
+
+      .pygodide-shell,
+      .pygodide-stage {
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+      }
+      {% else %}
+      /* fit: full viewport; JS sizes the canvas to keep aspect. */
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+      }
+
+      .pygodide-shell,
+      .pygodide-stage {
+        width: 100%;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
       }
       {% endif %}
 
-      /* Centered loading chrome over the canvas. */
+      /* Loading / error chrome: padded panel over the canvas, not page chrome. */
       #pygodide-loader {
         position: absolute;
         inset: 0;
@@ -92,6 +133,7 @@
         align-items: center;
         justify-content: center;
         padding: 8% 10% 12%;
+        box-sizing: border-box;
         pointer-events: none;
         transition:
           opacity 180ms ease-out,
@@ -439,20 +481,19 @@
 
       #{{ canvas_element_id }} {
         display: block;
-        border: 1px solid rgba(140, 160, 220, 0.14);
+        margin: 0;
+        padding: 0;
+        border: 0;
         background: #050814;
         {% if canvas_layout == "fill" %}
         width: 100%;
         height: 100%;
-        max-width: 100%;
-        max-height: 100%;
         {% elif canvas_layout == "fit" %}
         max-width: 100%;
         max-height: 100%;
         {% else %}
-        width: min({{ canvas_width }}px, 100%);
-        max-width: 100%;
-        height: auto;
+        width: {{ canvas_width }}px;
+        height: {{ canvas_height }}px;
         {% endif %}
       }
     </style>
