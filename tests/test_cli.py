@@ -6,12 +6,14 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
+from pygodide.builder.zip import APP_ARCHIVE_FILENAME
 from pygodide.cli.main import (
     app,
     build,
 )
 from pygodide.rendering import (
     build_startup_python_code,
+    file_content_cache_buster,
     package_files_cache_buster,
     render_boot_js,
     render_index_html,
@@ -94,13 +96,22 @@ def test_build_command_creates_expected_output(tmp_path):
     build_log = output_dir / "pygodide-build.log"
     assert output_dir.is_dir()
     assert build_log.is_file()
-    assert (output_dir / "main.py").read_text(encoding="utf-8") == (
-        source_dir / "main.py"
-    ).read_text(encoding="utf-8")
-    assert (output_dir / "helpers.py").read_text(encoding="utf-8") == (
-        source_dir / "helpers.py"
-    ).read_text(encoding="utf-8")
-    assert (output_dir / "assets" / "sprite.bin").read_bytes() == b"\x00\x01\x02"
+    app_archive = output_dir / APP_ARCHIVE_FILENAME
+    assert app_archive.is_file()
+    # Loose package files are archived, not left beside the shell.
+    assert not (output_dir / "main.py").exists()
+    assert not (output_dir / "helpers.py").exists()
+    assert not (output_dir / "assets").exists()
+
+    import zipfile
+
+    with zipfile.ZipFile(app_archive) as archive:
+        names = set(archive.namelist())
+        assert names == {"assets/sprite.bin", "helpers.py", "main.py"}
+        assert archive.read("main.py") == (source_dir / "main.py").read_bytes()
+        assert archive.read("helpers.py") == (source_dir / "helpers.py").read_bytes()
+        assert archive.read("assets/sprite.bin") == b"\x00\x01\x02"
+
     assert not (output_dir / ".venv").exists()
     assert not (output_dir / ".git").exists()
     assert not (output_dir / ".github").exists()
@@ -132,9 +143,10 @@ def test_build_command_creates_expected_output(tmp_path):
     assert f'const pygodideVersion = "{metadata.version("pygodide")}";' in boot_js
     assert "viewBox" in favicon_svg
     assert 'viewBox="12 9 326 102"' in logo_svg
-    assert '"assets/sprite.bin"' in boot_js
-    assert '"helpers.py"' in boot_js
-    assert '"main.py"' in boot_js
+    assert f'const appArchivePath = "{APP_ARCHIVE_FILENAME}";' in boot_js
+    assert "unpackArchive" in boot_js
+    assert "packageFiles[index]" not in boot_js
+    assert "ASSET_FETCH_CONCURRENCY" not in boot_js
     assert "testing_manifest.yaml" not in boot_js
     assert "build/old.py" not in boot_js
     assert "from main import main" in boot_js
@@ -437,9 +449,17 @@ dependencies = ["fastquadtree"]
     assert "micropip.install: fastquadtree" in result.output
 
     output_dir = source_dir / "build"
-    assert (output_dir / "main.py").is_file()
+    app_archive = output_dir / APP_ARCHIVE_FILENAME
+    assert app_archive.is_file()
+    assert not (output_dir / "main.py").exists()
     assert not (output_dir / "ball.py").exists()
-    assert (output_dir / "assets" / "tone.dat").read_bytes() == b"\x10\x20"
+
+    import zipfile
+
+    with zipfile.ZipFile(app_archive) as archive:
+        names = set(archive.namelist())
+        assert names == {"assets/tone.dat", "main.py"}
+        assert archive.read("assets/tone.dat") == b"\x10\x20"
 
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
     game_html = (output_dir / "index.html").read_text(encoding="utf-8")
@@ -449,7 +469,7 @@ dependencies = ["fastquadtree"]
     assert 'width="1024"' in game_html
     assert 'height="768"' in game_html
     assert 'const pyodidePackages = ["pygame-ce"];' in boot_js
-    assert '"assets/tone.dat"' in boot_js
+    assert f'const appArchivePath = "{APP_ARCHIVE_FILENAME}";' in boot_js
     assert "from main import web_main" in boot_js
     assert "/vendor" in boot_js
 
@@ -530,7 +550,7 @@ def test_template_renderers_include_configured_values():
         pyodide_packages=["pygame-ce"],
         micropip_packages=["fastquadtree", "numpy>=1.26"],
         declared_package_names=["pygame-ce", "numpy"],
-        package_files=["main.py", "ball.py", "assets/theme.ogg"],
+        app_archive_path="app.zip",
         python_path_entries=["/", "/vendor"],
         entry_module="demo.main",
         entry_function="start",
@@ -555,23 +575,24 @@ def test_template_renderers_include_configured_values():
     assert "_pygodide_heartbeat_loop" in startup_code
     assert "create_task" in startup_code
     assert "iscoroutinefunction" in startup_code
-    assert '"ball.py"' in boot_js
-    assert '"assets/theme.ogg"' in boot_js
+    assert 'const appArchivePath = "app.zip";' in boot_js
+    assert "function mapDownloadProgress(" in boot_js
+    assert "mapDownloadProgress(received, total, progressStart, progressEnd)" in boot_js
+    assert 'runtime.unpackArchive(archiveBytes, "zip"' in boot_js
+    assert "Content-Length" in boot_js
+    assert "packageFiles[index]" not in boot_js
+    assert "ASSET_FETCH_CONCURRENCY" not in boot_js
     assert 'const pyodidePackages = ["pygame-ce"];' in boot_js
     assert 'const micropipPackages = ["fastquadtree", "numpy\\u003e=1.26"];' in boot_js
     assert 'const declaredPackageNames = ["pygame-ce", "numpy"];' in boot_js
     assert "function extractPythonErrorText(error)" in boot_js
     assert "function formatPyodideError(error)" in boot_js
-    assert "function formatAssetFetchError(filename, url, detail)" in boot_js
-    assert "Failed to download staged file" in boot_js
-    assert "upload-pages-artifact always excludes .git and .github" in boot_js
+    assert "function formatArchiveFetchError(url, detail)" in boot_js
+    assert "Failed to download the game archive" in boot_js
     assert "stack.includes(message)" in boot_js
     assert "const pygodideVersion =" in boot_js
     assert "console.info(`pygodide ${pygodideVersion}`)" in boot_js
     assert "pygodide-version" in boot_js
-    assert "ASSET_FETCH_CONCURRENCY" in boot_js
-    assert "async function worker()" in boot_js
-    assert "packageFiles[index]" in boot_js
     assert "ModuleNotFoundError" in boot_js
     assert "Add '${suggestedPackageName}' to [project].dependencies" in boot_js
     assert 'pygame: "pygame-ce"' in boot_js
@@ -604,8 +625,7 @@ def test_template_renderers_include_configured_values():
     assert "status.dataset.state = state" in boot_js
     assert "function hideLoadingUi()" in boot_js
     assert 'setStatus("", "hidden")' in boot_js
-    assert "new Uint8Array(await response.arrayBuffer())" in boot_js
-    # Content-stable asset cache buster (not a per-load random value).
+    # Content-stable archive cache buster (not a per-load random value).
     assert "const assetRequestCacheBuster =" in boot_js
     assert 'cache: "no-store"' not in boot_js
     assert 'url.searchParams.set("_pygodide", assetRequestCacheBuster)' in boot_js
@@ -623,7 +643,7 @@ def test_error_status_panel_is_interactive_scrollport():
         pyodide_packages=["pygame-ce"],
         micropip_packages=[],
         declared_package_names=["pygame-ce"],
-        package_files=["main.py"],
+        app_archive_path="app.zip",
         python_path_entries=["/"],
         entry_module="main",
         entry_function="main",
@@ -711,12 +731,11 @@ def test_build_embeds_package_content_cache_buster(tmp_path):
     result = runner.invoke(app, ["build", str(source_dir)])
     assert result.exit_code == 0, result.output
 
-    expected = package_files_cache_buster(
-        source_dir / "build",
-        ["data.txt", "main.py"],
-    )
+    archive_path = source_dir / "build" / APP_ARCHIVE_FILENAME
+    expected = file_content_cache_buster(archive_path)
     boot_js = (source_dir / "build" / "boot.js").read_text(encoding="utf-8")
     assert f'const assetRequestCacheBuster = "{expected}";' in boot_js
+    assert f'const appArchivePath = "{APP_ARCHIVE_FILENAME}";' in boot_js
 
 
 def test_build_command_auto_asyncifies_sync_pygame_loop(tmp_path):
@@ -746,7 +765,10 @@ def main():
     )
     assert auto_async_msg in result.output
 
-    built_main = (source_dir / "build" / "main.py").read_text(encoding="utf-8")
+    import zipfile
+
+    with zipfile.ZipFile(source_dir / "build" / APP_ARCHIVE_FILENAME) as archive:
+        built_main = archive.read("main.py").decode("utf-8")
     assert "async def main():" in built_main
     assert "await asyncio.sleep(1 / (60 * 2))" in built_main
 
@@ -775,7 +797,10 @@ def main():
     assert result.exit_code == 0, result.output
     assert "Auto async: disabled" in result.output
 
-    built_main = (source_dir / "build" / "main.py").read_text(encoding="utf-8")
+    import zipfile
+
+    with zipfile.ZipFile(source_dir / "build" / APP_ARCHIVE_FILENAME) as archive:
+        built_main = archive.read("main.py").decode("utf-8")
     assert built_main == (source_dir / "main.py").read_text(encoding="utf-8")
     assert "async def main" not in built_main
 
@@ -850,6 +875,8 @@ def test_build_command_creates_itch_zip(tmp_path):
 
     assert "index.html" in names
     assert "boot.js" in names
+    assert APP_ARCHIVE_FILENAME in names
+    assert "main.py" not in names  # app files live inside app.zip only
     assert all(not name.startswith("build/") for name in names)
     assert "pygodide-build.log" not in names
 

@@ -4,7 +4,8 @@ const canvas = document.getElementById({{ canvas_element_id | tojson }});
 const pyodidePackages = {{ pyodide_packages | tojson }};
 const micropipPackages = {{ micropip_packages | tojson }};
 const declaredPackageNames = {{ declared_package_names | tojson }};
-const packageFiles = {{ package_files | tojson }};
+// Single compressed archive of game code + assets (build-time app.zip).
+const appArchivePath = {{ app_archive_path | tojson }};
 const assetBasePath = {{ asset_base_path | tojson }};
 const virtualFsRoot = {{ virtual_fs_root | tojson }};
 const startupPythonCode = {{ startup_python_code | tojson }};
@@ -13,11 +14,9 @@ const canvasLayout = {{ canvas_layout | tojson }};
 const canvasAspectWidth = {{ canvas_width | tojson }};
 const canvasAspectHeight = {{ canvas_height | tojson }};
 const pygodideVersion = {{ pygodide_version | tojson }};
-// Build-time fingerprint of packaged files. Same content → same URL → browser
-// cache can reuse assets across reloads. Rebuild after edits to pick up changes.
+// Build-time fingerprint of the app archive. Same content → same URL → browser
+// cache can reuse the zip across reloads. Rebuild after edits to pick up changes.
 const assetRequestCacheBuster = {{ asset_cache_buster | tojson }};
-// Cap concurrent asset fetches (browser HTTP/1.1 limits are often ~6 per origin).
-const ASSET_FETCH_CONCURRENCY = 8;
 const knownImportPackageAliases = {
   pygame: "pygame-ce",
 };
@@ -349,22 +348,43 @@ function formatConfiguredDependencies() {
   return declaredPackageNames.join(", ");
 }
 
-function formatAssetFetchError(filename, url, detail) {
+function formatArchiveFetchError(url, detail) {
   const cleanUrl = String(url).replace(/([?&])_pygodide=[^&]*/g, "$1").replace(/[?&]$/, "");
   return [
-    `Failed to download staged file '${filename}'.`,
+    `Failed to download the game archive '${appArchivePath}'.`,
     `URL: ${cleanUrl}`,
     detail,
     "",
-    "The build listed this path for the browser, but the web host did not serve it.",
+    "The build expects this zip next to index.html, but the web host did not serve it.",
     "Common causes:",
-    "- Deploy omitted the file (GitHub Pages upload-pages-artifact always excludes .git and .github)",
-    "- Auto-discovery included a tooling path that is not part of the game",
-    "- The published build/ is incomplete or from an older deploy",
+    "- Deploy omitted app.zip (incomplete build/ upload)",
+    "- The published build/ is from an older pygodide that used per-file staging",
     "",
-    "Fix: rebuild with a current pygodide (tooling dirs are skipped), or set",
-    "[tool.pygodide].include to only the files your game needs, then redeploy build/.",
+    "Fix: rebuild with a current pygodide and redeploy the full build/ folder",
+    "(index.html, boot.js, app.zip, and shell assets).",
   ].join("\n");
+}
+
+function formatBytes(byteCount) {
+  if (!Number.isFinite(byteCount) || byteCount < 0) {
+    return "?";
+  }
+  if (byteCount < 1024) {
+    return `${byteCount} B`;
+  }
+  if (byteCount < 1024 * 1024) {
+    return `${(byteCount / 1024).toFixed(1)} KB`;
+  }
+  return `${(byteCount / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Map download ratio into the files→app progress band (0–1 overall). */
+function mapDownloadProgress(received, total, progressStart, progressEnd) {
+  if (!(total > 0) || !Number.isFinite(received)) {
+    return null;
+  }
+  const ratio = Math.max(0, Math.min(1, received / total));
+  return progressStart + (progressEnd - progressStart) * ratio;
 }
 
 function formatPyodideError(error) {
@@ -462,107 +482,122 @@ function applyCanvasLayout(canvasEl) {
   // "fixed" keeps the HTML width/height attributes from index.html.
 }
 
-function joinVirtualPath(root, relativePath) {
-  const normalizedRoot = root.startsWith("/") ? root : `/${root}`;
-  const trimmedRoot = normalizedRoot.replace(/\/+$/, "");
-  const trimmedPath = relativePath.replace(/^\/+/, "");
-  return `${trimmedRoot}/${trimmedPath}`;
-}
-
-function ensureParentDir(runtime, filePath) {
-  const lastSlash = filePath.lastIndexOf("/");
-  if (lastSlash <= 0) {
-    return;
-  }
-  runtime.FS.mkdirTree(filePath.slice(0, lastSlash));
-}
-
-function resolveAssetUrl(filename) {
-  const url = new URL(filename, new URL(assetBasePath, import.meta.url));
+function resolveArchiveUrl() {
+  const url = new URL(appArchivePath, new URL(assetBasePath, import.meta.url));
+  // Default HTTP cache: content-hashed `_pygodide` changes when the archive
+  // changes, so a refresh reuses the zip and rebuilds pick up new content.
   url.searchParams.set("_pygodide", assetRequestCacheBuster);
   return url.toString();
 }
 
-async function fetchAssetBytes(filename) {
-  const url = resolveAssetUrl(filename);
+async function fetchAppArchiveBytes(onProgress) {
+  const url = resolveArchiveUrl();
   let response;
   try {
-    // Default HTTP cache: content-hashed `_pygodide` query changes when the
-    // package set changes, so stale assets are not kept after a rebuild.
     response = await fetch(url);
   } catch (error) {
     const detail =
       error instanceof Error ? `Network error: ${error.message}` : `Network error: ${error}`;
-    throw new Error(formatAssetFetchError(filename, url, detail), { cause: error });
+    throw new Error(formatArchiveFetchError(url, detail), { cause: error });
   }
   if (!response.ok) {
     throw new Error(
-      formatAssetFetchError(
-        filename,
+      formatArchiveFetchError(
         url,
         `HTTP ${response.status} ${response.statusText || ""}`.trim(),
       ),
     );
   }
-  return new Uint8Array(await response.arrayBuffer());
+
+  const totalHeader = response.headers.get("Content-Length");
+  const total = totalHeader ? Number(totalHeader) : NaN;
+  const knownTotal = Number.isFinite(total) && total > 0;
+
+  // Prefer streaming so we can advance the bar from bytes received.
+  if (response.body && typeof response.body.getReader === "function") {
+    const reader = response.body.getReader();
+    const chunks = [];
+    let received = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      chunks.push(value);
+      received += value.byteLength;
+      if (typeof onProgress === "function") {
+        onProgress(received, knownTotal ? total : null);
+      }
+    }
+    const merged = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return merged;
+  }
+
+  const buffer = new Uint8Array(await response.arrayBuffer());
+  if (typeof onProgress === "function") {
+    onProgress(buffer.byteLength, knownTotal ? total : buffer.byteLength);
+  }
+  return buffer;
 }
 
 async function stageAppFiles(runtime) {
-  const total = packageFiles.length;
-  if (total === 0) {
-    return;
-  }
-
   const progressStart = LOADING_PROGRESS.loadingFiles;
   const progressEnd = LOADING_PROGRESS.loadingApp;
-  let completed = 0;
-  let nextIndex = 0;
 
-  function reportProgress(filename) {
-    const fraction =
-      total <= 1
-        ? progressEnd
-        : progressStart + ((progressEnd - progressStart) * completed) / total;
+  function reportDownloadProgress(received, total) {
+    const mapped = mapDownloadProgress(received, total, progressStart, progressEnd);
+    if (mapped !== null && total != null) {
+      setStatus(
+        `${statusText.loadingFiles} (${formatBytes(received)} / ${formatBytes(total)})`,
+        "active",
+        { progress: mapped },
+      );
+      return;
+    }
+    // No Content-Length: keep a clear status and a fixed mid-band progress so
+    // the bar does not look stuck at 0 or jump randomly.
     setStatus(
-      `${statusText.loadingFiles} (${completed}/${total})\n${filename}`,
+      `${statusText.loadingFiles}\n${formatBytes(received)} received`,
       "active",
-      { progress: fraction },
+      { progress: progressStart + (progressEnd - progressStart) * 0.35 },
     );
   }
 
-  // Show the first file immediately so the loading bar does not stay idle.
-  reportProgress(packageFiles[0]);
+  setStatus(statusText.loadingFiles, "active", { progress: progressStart });
   await waitForNextPaint();
 
-  async function stageOne(filename) {
-    try {
-      const source = await fetchAssetBytes(filename);
-      const targetPath = joinVirtualPath(virtualFsRoot, filename);
-      ensureParentDir(runtime, targetPath);
-      runtime.FS.writeFile(targetPath, source);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("Failed to download staged file")) {
-        throw error;
-      }
-      throw new Error(
-        `Failed while staging '${filename}' into the browser filesystem.\n${errorToString(error)}`,
-        { cause: error },
-      );
+  let archiveBytes;
+  try {
+    archiveBytes = await fetchAppArchiveBytes(reportDownloadProgress);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Failed to download the game archive")) {
+      throw error;
     }
-    completed += 1;
-    reportProgress(filename);
+    throw new Error(
+      `Failed while downloading '${appArchivePath}'.\n${errorToString(error)}`,
+      { cause: error },
+    );
   }
 
-  async function worker() {
-    while (nextIndex < total) {
-      const index = nextIndex;
-      nextIndex += 1;
-      await stageOne(packageFiles[index]);
-    }
-  }
+  setStatus(`${statusText.loadingFiles}\nUnpacking...`, "active", {
+    progress: progressEnd,
+  });
+  await waitForNextPaint();
 
-  const workerCount = Math.min(ASSET_FETCH_CONCURRENCY, total);
-  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  try {
+    // Same relative paths as the project (main.py, assets/...), under virtualFsRoot.
+    runtime.unpackArchive(archiveBytes, "zip", { extractDir: virtualFsRoot });
+  } catch (error) {
+    throw new Error(
+      `Failed while unpacking '${appArchivePath}' into the browser filesystem.\n${errorToString(error)}`,
+      { cause: error },
+    );
+  }
 }
 
 async function boot() {

@@ -97,7 +97,12 @@ auto-async = false
     assert "Auto-async setting: False ([tool.pygodide].auto-async)" in result.output
     assert "Auto async: disabled" in result.output
 
-    built_main = (source_dir / "build" / "main.py").read_text(encoding="utf-8")
+    import zipfile
+
+    from pygodide.builder.zip import APP_ARCHIVE_FILENAME
+
+    with zipfile.ZipFile(source_dir / "build" / APP_ARCHIVE_FILENAME) as archive:
+        built_main = archive.read("main.py").decode("utf-8")
     assert "async def main" not in built_main
 
 

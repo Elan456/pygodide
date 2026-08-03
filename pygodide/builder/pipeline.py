@@ -14,6 +14,11 @@ from pygodide.builder.plan import (
     build_plan_for_source,
     copy_package_files,
 )
+from pygodide.builder.zip import (
+    APP_ARCHIVE_FILENAME,
+    create_app_archive,
+    remove_packaged_loose_files,
+)
 from pygodide.dep_handling.pyodide_resolution import (
     build_install_plan,
     collect_requirements,
@@ -22,7 +27,7 @@ from pygodide.logs import log_build_choices
 from pygodide.rendering import (
     content_cache_buster,
     ensure_favicon,
-    package_files_cache_buster,
+    file_content_cache_buster,
     render_boot_js,
     render_index_html,
     resolve_favicon,
@@ -65,6 +70,8 @@ def build_app(
         )
 
     output_dir = build_plan.output_dir
+    # Copy loose files so auto-async can rewrite the entry module on disk, then
+    # pack into one archive and drop the loose tree (runtime + itch ship zip only).
     copy_package_files(
         source_dir=build_plan.source_dir,
         output_dir=output_dir,
@@ -79,6 +86,19 @@ def build_app(
             log("Auto async: disabled")
             _log_disabled_auto_async_risk(build_plan, output_dir, log)
 
+    archive_path = output_dir / APP_ARCHIVE_FILENAME
+    create_app_archive(
+        source_dir=output_dir,
+        package_files=build_plan.package_files,
+        archive_path=archive_path,
+    )
+    remove_packaged_loose_files(output_dir, build_plan.package_files)
+    if log is not None:
+        log(
+            f"App archive: {APP_ARCHIVE_FILENAME} "
+            f"({len(build_plan.package_files)} files)"
+        )
+
     boot_script_name = "boot.js"
     logo_name = "pygodide-logo.svg"
     favicon = resolve_favicon(build_plan.source_dir)
@@ -87,12 +107,11 @@ def build_app(
     ensure_favicon(output_dir, favicon)
     write_logo(output_dir, filename=logo_name)
 
-    # Hash after copy/asyncify so transformed entry sources are included.
-    asset_cache_buster = package_files_cache_buster(
-        output_dir, build_plan.package_files
-    )
+    # Fingerprint the archive bytes so the download URL is stable across
+    # refreshes when content is unchanged, and updates after rebuilds.
+    asset_cache_buster = file_content_cache_buster(archive_path)
     boot_js = render_boot_js(
-        package_files=build_plan.package_files,
+        app_archive_path=APP_ARCHIVE_FILENAME,
         pyodide_packages=install_plan.pyodide_packages,
         micropip_packages=install_plan.micropip_packages,
         declared_package_names=[pkg.name for pkg in dependency_collection.packages],

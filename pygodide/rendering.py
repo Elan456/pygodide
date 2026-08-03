@@ -11,7 +11,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 
 DEFAULT_PYODIDE_PACKAGES = ["pygame-ce"]
 DEFAULT_PYTHON_PATH_ENTRIES = ["/"]
-DEFAULT_PACKAGE_FILES = ["main.py"]
+DEFAULT_APP_ARCHIVE_PATH = "app.zip"
 DEFAULT_READY_LOG = "[pygodide] ready"
 # Stable substring of getHangHelpMessage() in templates/boot.js.
 # Smoke fixtures (smoke.expected-warning) match this in console / #status text.
@@ -35,8 +35,8 @@ def content_cache_buster(content: str) -> str:
 def package_files_cache_buster(directory: str | Path, package_files: list[str]) -> str:
     """Short fingerprint of packaged file paths + contents under DIRECTORY.
 
-    Embedded in boot.js so asset URLs stay stable across reloads when the
-    package set is unchanged, and change when any staged file changes.
+    Used in tests and as a content fingerprint helper. Runtime builds prefer
+    :func:`file_content_cache_buster` on the app archive bytes.
     """
     root = Path(directory)
     hasher = hashlib.sha256()
@@ -48,6 +48,12 @@ def package_files_cache_buster(directory: str | Path, package_files: list[str]) 
             hasher.update(path.read_bytes())
         hasher.update(b"\0")
     return hasher.hexdigest()[:12]
+
+
+def file_content_cache_buster(path: str | Path) -> str:
+    """Short stable fingerprint of a single file's bytes (e.g. app.zip)."""
+    digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    return digest[:12]
 
 
 DEFAULT_FAVICON_NAME = "favicon.svg"
@@ -242,7 +248,7 @@ def render_boot_js(
     pyodide_packages: list[str] | None = None,
     micropip_packages: list[str] | None = None,
     declared_package_names: list[str] | None = None,
-    package_files: list[str] | None = None,
+    app_archive_path: str | None = None,
     python_path_entries: list[str] | None = None,
     asset_base_path: str = "./",
     virtual_fs_root: str = "/",
@@ -251,7 +257,7 @@ def render_boot_js(
     startup_python_code: str | None = None,
     starting_pyodide_status_text: str = "Starting Pyodide...",
     loading_packages_status_text: str = "Loading Python packages...",
-    loading_files_status_text: str = "Loading app files...",
+    loading_files_status_text: str = "Downloading game...",
     loading_app_status_text: str = "Loading Python app...",
     running_status_text: str = "Running",
     ready_log: str = DEFAULT_READY_LOG,
@@ -266,8 +272,8 @@ def render_boot_js(
         resolved_python_path_entries = DEFAULT_PYTHON_PATH_ENTRIES
     else:
         resolved_python_path_entries = python_path_entries
-    resolved_package_files = (
-        package_files if package_files is not None else DEFAULT_PACKAGE_FILES
+    resolved_app_archive_path = (
+        app_archive_path if app_archive_path is not None else DEFAULT_APP_ARCHIVE_PATH
     )
     resolved_startup_python_code = startup_python_code or build_startup_python_code(
         entry_module=entry_module,
@@ -279,9 +285,9 @@ def render_boot_js(
         package_version() if pygodide_version is None else pygodide_version
     )
     # Fallback keeps standalone render_boot_js callers working; builds pass a
-    # content hash of the staged package files.
+    # content hash of the app archive bytes.
     resolved_asset_cache_buster = asset_cache_buster or content_cache_buster(
-        "\n".join(resolved_package_files)
+        resolved_app_archive_path
     )
 
     return template.render(
@@ -301,7 +307,7 @@ def render_boot_js(
         declared_package_names=(
             declared_package_names if declared_package_names is not None else []
         ),
-        package_files=resolved_package_files,
+        app_archive_path=resolved_app_archive_path,
         asset_base_path=asset_base_path,
         virtual_fs_root=virtual_fs_root,
         startup_python_code=resolved_startup_python_code,

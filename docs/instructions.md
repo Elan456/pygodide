@@ -223,22 +223,24 @@ pygame.mixer.Sound("sounds/jump.ogg")
 ```
 
 The working directory is the project root, so those paths usually work as-is.
-A browser `FileNotFoundError` means a wrong path or a file that was not copied
-into the build. `python-path` does not affect asset loading; see
+A browser `FileNotFoundError` means a wrong path or a file that was not packed
+into `app.zip`. `python-path` does not affect asset loading; see
 [Python path](#python-path) for imports only.
 
 See [asset maze](https://github.com/Elan456/pygodide/tree/main/test_targets/asset_maze)
 for nested assets loaded by plain relative paths.
 
-#### What gets copied into the build
+#### What gets packaged into the build
 
-`pygodide build` copies project files into `build/`. Only those files are
+`pygodide build` packs your project files into `build/app.zip` (one compressed
+archive the browser downloads and unpacks). Shell files (`index.html`,
+`boot.js`, favicon, logo) sit next to that zip. Only those packaged paths are
 available in the browser (and in an itch ZIP).
 
-- Without `include`: auto-discovery copies most files. It skips tooling such as
+- Without `include`: auto-discovery packs most files. It skips tooling such as
   `.git`, `.venv`, `build`, `__pycache__`, `pyproject.toml`, and prior itch
   outputs named `<project-folder>.zip` or `build.zip`.
-- With `include`: only matching paths are copied (an allowlist). Use this to
+- With `include`: only matching paths are packed (an allowlist). Use this to
   leave out docs, tools, or other extras. The entry module must match or the
   build fails.
 
@@ -388,7 +390,7 @@ dependency-groups = ["web"]
 | --- | --- |
 | `app` | Entry `module:callable`. Default `main:main`. [Entry point](#entry-point). |
 | `auto-async` | Auto game-loop conversion. Default `true`. |
-| `include` | Allowlist of files to copy (path globs). [Assets and paths](#assets-and-paths). |
+| `include` | Allowlist of files to pack into `app.zip` (path globs). [Assets and paths](#assets-and-paths). |
 | `title` | HTML page title. Default: `{project dir} - pygodide`. |
 | `canvas-width`, `canvas-height` | Fixed size, or aspect with `canvas-fit`. [Canvas size](#canvas-size). |
 | `canvas-fit` | Scale to viewport, keep aspect. |

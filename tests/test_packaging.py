@@ -1,7 +1,13 @@
 import zipfile
 
 from pygodide.builder.plan import discover_package_files
-from pygodide.builder.zip import create_itch_zip, default_itch_zip_path
+from pygodide.builder.zip import (
+    APP_ARCHIVE_FILENAME,
+    create_app_archive,
+    create_itch_zip,
+    default_itch_zip_path,
+    remove_packaged_loose_files,
+)
 
 
 def test_default_itch_zip_path_uses_project_name(tmp_path):
@@ -11,11 +17,59 @@ def test_default_itch_zip_path_uses_project_name(tmp_path):
     assert default_itch_zip_path(source_dir) == source_dir / "my-game.zip"
 
 
+def test_create_app_archive_uses_relative_paths_and_deflate(tmp_path):
+    source_dir = tmp_path / "game"
+    source_dir.mkdir()
+    (source_dir / "main.py").write_text("async def main():\n    return None\n")
+    assets = source_dir / "assets" / "nested"
+    assets.mkdir(parents=True)
+    (assets / "sprite.png").write_bytes(b"\x89PNG\r\nfake")
+    (source_dir / "ball.py").write_text("VALUE = 1\n")
+
+    package_files = [
+        "assets/nested/sprite.png",
+        "ball.py",
+        "main.py",
+    ]
+    archive_path = tmp_path / APP_ARCHIVE_FILENAME
+    create_app_archive(source_dir, package_files, archive_path)
+
+    with zipfile.ZipFile(archive_path) as archive:
+        names = archive.namelist()
+        assert names == package_files  # stable sorted order from caller
+        assert archive.read("main.py") == (source_dir / "main.py").read_bytes()
+        assert archive.read("assets/nested/sprite.png") == b"\x89PNG\r\nfake"
+        for info in archive.infolist():
+            assert info.compress_type == zipfile.ZIP_DEFLATED
+
+
+def test_remove_packaged_loose_files_clears_tree_keeps_shell(tmp_path):
+    build_dir = tmp_path / "build"
+    build_dir.mkdir()
+    (build_dir / "main.py").write_text("x\n")
+    nested = build_dir / "assets" / "deep"
+    nested.mkdir(parents=True)
+    (nested / "a.bin").write_bytes(b"ab")
+    (build_dir / "boot.js").write_text("// shell\n")
+    (build_dir / APP_ARCHIVE_FILENAME).write_bytes(b"PK\x03\x04")
+
+    remove_packaged_loose_files(
+        build_dir,
+        ["main.py", "assets/deep/a.bin"],
+    )
+
+    assert not (build_dir / "main.py").exists()
+    assert not (build_dir / "assets").exists()
+    assert (build_dir / "boot.js").is_file()
+    assert (build_dir / APP_ARCHIVE_FILENAME).is_file()
+
+
 def test_create_itch_zip_puts_index_html_at_archive_root(tmp_path):
     build_dir = tmp_path / "build"
     build_dir.mkdir()
     (build_dir / "index.html").write_text("<html></html>", encoding="utf-8")
     (build_dir / "boot.js").write_text("export {}", encoding="utf-8")
+    (build_dir / APP_ARCHIVE_FILENAME).write_bytes(b"PK\x03\x04app")
     (build_dir / "pygodide-build.log").write_text("log", encoding="utf-8")
 
     zip_path = create_itch_zip(build_dir, tmp_path / "game.zip")
@@ -23,18 +77,19 @@ def test_create_itch_zip_puts_index_html_at_archive_root(tmp_path):
     with zipfile.ZipFile(zip_path) as archive:
         names = archive.namelist()
 
-    assert names == ["boot.js", "index.html"]
+    assert names == [APP_ARCHIVE_FILENAME, "boot.js", "index.html"]
     assert "pygodide-build.log" not in names
 
 
-def test_create_itch_zip_excludes_output_zip_but_keeps_asset_zips(tmp_path):
+def test_create_itch_zip_excludes_output_zip_but_keeps_app_and_asset_zips(tmp_path):
     build_dir = tmp_path / "build"
     build_dir.mkdir()
     (build_dir / "index.html").write_text("<html></html>", encoding="utf-8")
     (build_dir / "boot.js").write_text("export {}", encoding="utf-8")
+    (build_dir / APP_ARCHIVE_FILENAME).write_bytes(b"PK\x03\x04app")
     # Previous itch ZIP staged into build/ by mistake.
     (build_dir / "my-game.zip").write_bytes(b"PK\x03\x04stale")
-    # Legitimate game asset archive should still ship.
+    # Legitimate game asset archive should still ship if present as a loose file.
     (build_dir / "assets").mkdir()
     (build_dir / "assets" / "data.zip").write_bytes(b"PK\x03\x04data")
 
@@ -43,7 +98,12 @@ def test_create_itch_zip_excludes_output_zip_but_keeps_asset_zips(tmp_path):
     with zipfile.ZipFile(zip_path) as archive:
         names = archive.namelist()
 
-    assert names == ["assets/data.zip", "boot.js", "index.html"]
+    assert names == [
+        APP_ARCHIVE_FILENAME,
+        "assets/data.zip",
+        "boot.js",
+        "index.html",
+    ]
     assert "my-game.zip" not in names
 
 
