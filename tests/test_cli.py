@@ -14,7 +14,6 @@ from pygodide.cli.main import (
 from pygodide.rendering import (
     build_startup_python_code,
     file_content_cache_buster,
-    package_files_cache_buster,
     render_boot_js,
     render_index_html,
 )
@@ -801,24 +800,6 @@ def test_error_status_panel_is_interactive_scrollport():
     assert "setCanvasPointerEventsForChrome(chromeState)" in boot_js
     assert "function setLoadingChromeState(state)" in boot_js
     assert 'state === "error"' in boot_js
-
-
-def test_package_files_cache_buster_stable_until_content_changes(tmp_path):
-    root = tmp_path / "pkg"
-    root.mkdir()
-    (root / "main.py").write_text("print(1)\n", encoding="utf-8")
-    assets = root / "assets"
-    assets.mkdir()
-    (assets / "sprite.png").write_bytes(b"\x89PNG\r\nfake")
-
-    files = ["assets/sprite.png", "main.py"]
-    first = package_files_cache_buster(root, files)
-    second = package_files_cache_buster(root, files)
-    assert first == second
-    assert len(first) == 12
-
-    (root / "main.py").write_text("print(2)\n", encoding="utf-8")
-    assert package_files_cache_buster(root, files) != first
 
 
 def test_build_embeds_package_content_cache_buster(tmp_path):

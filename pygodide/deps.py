@@ -1,6 +1,4 @@
-"""
-Collect dependencies from the supported project configuration sources.
-"""
+"""Collect project dependencies and choose a Pyodide install strategy."""
 
 from __future__ import annotations
 
@@ -8,11 +6,26 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import SpecifierSet
 
-from pygodide.project_config import load_pygodide_project_config
-from pygodide.pyproject import load_pyproject_data
+from pygodide.project_config import load_pygodide_project_config, load_pyproject_data
 
-from .common import PackageInfo
+DEFAULT_PYODIDE_PACKAGE_NAMES = {"pygame-ce"}
+
+
+@dataclass
+class PackageInfo:
+    name: str
+    specifier: SpecifierSet | None = None
+
+    @property
+    def normalized_name(self) -> str:
+        return self.name.lower().replace("_", "-")
+
+    def __str__(self) -> str:
+        if self.specifier:
+            return f"{self.name}{self.specifier}"
+        return self.name
 
 
 @dataclass(frozen=True)
@@ -25,6 +38,12 @@ class DependencySource:
 class DependencyCollection:
     packages: list[PackageInfo]
     sources: list[DependencySource]
+
+
+@dataclass(frozen=True)
+class InstallPlan:
+    pyodide_packages: list[str]
+    micropip_packages: list[str]
 
 
 def collect_requirements(
@@ -221,3 +240,20 @@ def merge_dependency_sources(sources: list[DependencySource]) -> list[PackageInf
             merged_packages[package.normalized_name] = package
 
     return list(merged_packages.values())
+
+
+def build_install_plan(packages: list[PackageInfo]) -> InstallPlan:
+    """Prefer pyodide.loadPackage for known wheels; otherwise micropip."""
+    pyodide_packages: list[str] = []
+    micropip_packages: list[str] = []
+
+    for package in packages:
+        if package.normalized_name in DEFAULT_PYODIDE_PACKAGE_NAMES:
+            pyodide_packages.append(package.name)
+        else:
+            micropip_packages.append(str(package))
+
+    return InstallPlan(
+        pyodide_packages=pyodide_packages,
+        micropip_packages=micropip_packages,
+    )

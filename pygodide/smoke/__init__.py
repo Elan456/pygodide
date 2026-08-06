@@ -2,6 +2,11 @@
 
 from pygodide.smoke.manifest import (
     MANIFEST_FILENAME,
+    DiscoveredTarget,
+    SmokeConfig,
+    SmokeObservation,
+    SmokeSuiteResult,
+    TargetManifest,
     discover_targets,
     load_target_manifest,
     resolve_smoke_config,
@@ -17,13 +22,6 @@ from pygodide.smoke.runner import (
     run_smoke_suite,
     smoke_test_app,
     smoke_test_target,
-)
-from pygodide.smoke.types import (
-    DiscoveredTarget,
-    SmokeConfig,
-    SmokeObservation,
-    SmokeSuiteResult,
-    TargetManifest,
 )
 
 __all__ = [

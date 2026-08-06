@@ -4,11 +4,11 @@ from collections.abc import Callable
 from pathlib import Path
 
 from pygodide.asyncify import (
+    MANUAL_ASYNC_GUIDANCE,
     AsyncifyResult,
     asyncify_entrypoint,
     diagnose_entrypoint,
 )
-from pygodide.asyncify.constants import MANUAL_ASYNC_GUIDANCE
 from pygodide.builder.plan import (
     BuildPlan,
     build_plan_for_source,
@@ -19,7 +19,7 @@ from pygodide.builder.zip import (
     create_app_archive,
     remove_packaged_loose_files,
 )
-from pygodide.dep_handling.pyodide_resolution import (
+from pygodide.deps import (
     build_install_plan,
     collect_requirements,
 )

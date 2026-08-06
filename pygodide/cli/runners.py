@@ -13,8 +13,8 @@ from pygodide.builder.plan import (
 )
 from pygodide.builder.zip import create_itch_zip, default_itch_zip_path
 from pygodide.logs import (
-    build_log_tee,
     initialize_build_log,
+    log_tee,
     write_build_log_failure,
     write_build_log_success,
 )
@@ -82,7 +82,7 @@ def run_build_command(
             canvas_height=canvas_height,
             canvas_fit=canvas_fit,
             canvas_fill=canvas_fill,
-            log=build_log_tee(build_log_path, typer.echo),
+            log=log_tee(build_log_path, typer.echo),
         )
     except ValueError as exc:
         write_build_log_failure(build_log_path, exc)

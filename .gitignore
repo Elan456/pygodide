@@ -221,6 +221,12 @@ __marimo__/
 # AI stuff:
 .codex/
 .agents/
+.hermes/
 
 # Temp / Swap Files
 ~*
+# Benchmark local worktrees
+benchmarks/.work/
+benchmarks/.venv/
+benchmarks/output/
+benchmarks/results/

@@ -1,7 +1,7 @@
 import pytest
 from packaging.specifiers import SpecifierSet
 
-from pygodide.dep_handling.pyodide_resolution import (
+from pygodide.deps import (
     PackageInfo,
     build_install_plan,
     collect_requirements,

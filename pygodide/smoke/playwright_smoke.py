@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Any
 
-from pygodide.smoke.types import (
+from pygodide.smoke.manifest import (
     READY_STATUS_SELECTOR,
     SmokeConfig,
     SmokeObservation,

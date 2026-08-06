@@ -71,18 +71,6 @@ def log_tee(
     return write
 
 
-def build_log_tee(
-    build_log_path: Path, log: Callable[[str], None]
-) -> Callable[[str], None]:
-    return log_tee(build_log_path, log)
-
-
-def smoke_log_tee(
-    smoke_log_path: Path, log: Callable[[str], None] | None = None
-) -> Callable[[str], None]:
-    return log_tee(smoke_log_path, log)
-
-
 def write_build_log_success(build_log_path: Path) -> None:
     _write_log_success(build_log_path)
 
@@ -144,10 +132,6 @@ def write_smoke_log_failure(smoke_log_path: Path, exc: BaseException) -> None:
     _write_log_failure(smoke_log_path, exc)
 
 
-def append_build_log(build_log_path: Path, *lines: str) -> None:
-    append_log(build_log_path, *lines)
-
-
 def append_log(log_path: Path, *lines: str) -> None:
     with log_path.open("a", encoding="utf-8") as log_file:
         for line in lines:
@@ -184,19 +168,13 @@ def log_build_choices(
         f"App entrypoint: {build_plan.entry_module}:{build_plan.entry_function} "
         f"({build_plan.app_source})"
     )
-    layout = getattr(build_plan, "canvas_layout", "fixed")
+    layout = build_plan.canvas_layout
     size = f"{build_plan.canvas_width}x{build_plan.canvas_height}"
-    aspect_found = getattr(build_plan, "canvas_aspect_found", None)
-    aspect_source = getattr(build_plan, "canvas_aspect_source", None)
-    aspect_width = getattr(build_plan, "canvas_aspect_width", build_plan.canvas_width)
-    aspect_height = getattr(
-        build_plan, "canvas_aspect_height", build_plan.canvas_height
-    )
-    aspect_size = f"{aspect_width}x{aspect_height}"
-    if aspect_found is True:
-        source_label = aspect_source or "source"
+    aspect_size = f"{build_plan.canvas_aspect_width}x{build_plan.canvas_aspect_height}"
+    if build_plan.canvas_aspect_found:
+        source_label = build_plan.canvas_aspect_source or "source"
         log(f"Canvas aspect: found {aspect_size} in {source_label}")
-    elif aspect_found is False:
+    else:
         log(
             "Canvas aspect: not found "
             f"(using default {aspect_size}; could not resolve set_mode size)"

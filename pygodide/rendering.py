@@ -32,24 +32,6 @@ def content_cache_buster(content: str) -> str:
     return digest[:12]
 
 
-def package_files_cache_buster(directory: str | Path, package_files: list[str]) -> str:
-    """Short fingerprint of packaged file paths + contents under DIRECTORY.
-
-    Used in tests and as a content fingerprint helper. Runtime builds prefer
-    :func:`file_content_cache_buster` on the app archive bytes.
-    """
-    root = Path(directory)
-    hasher = hashlib.sha256()
-    for relative_path in package_files:
-        hasher.update(relative_path.encode("utf-8"))
-        hasher.update(b"\0")
-        path = root / relative_path
-        if path.is_file():
-            hasher.update(path.read_bytes())
-        hasher.update(b"\0")
-    return hasher.hexdigest()[:12]
-
-
 def file_content_cache_buster(path: str | Path) -> str:
     """Short stable fingerprint of a single file's bytes (e.g. app.zip)."""
     digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()

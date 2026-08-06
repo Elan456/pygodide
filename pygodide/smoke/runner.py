@@ -11,21 +11,22 @@ from pygodide.builder.pipeline import build_app
 from pygodide.builder.plan import build_plan_for_source, clean_build_dir
 from pygodide.logs import (
     initialize_smoke_log,
-    smoke_log_tee,
+    log_tee,
     write_smoke_log_failure,
     write_smoke_log_success,
 )
 from pygodide.serving import serve_directory
-from pygodide.smoke.manifest import discover_targets, resolve_smoke_config
-from pygodide.smoke.playwright_smoke import run_playwright_smoke
-from pygodide.smoke.types import (
+from pygodide.smoke.manifest import (
     BuildRunner,
     DiscoveredTarget,
     Echo,
     SmokeConfig,
     SmokeRunner,
     SmokeSuiteResult,
+    discover_targets,
+    resolve_smoke_config,
 )
+from pygodide.smoke.playwright_smoke import run_playwright_smoke
 
 
 def run_smoke_suite(
@@ -151,7 +152,7 @@ def smoke_test_app(
         build_only=build_only,
     )
     console_log = echo if verbose else None
-    log = smoke_log_tee(smoke_log_path, console_log)
+    log = log_tee(smoke_log_path, console_log)
 
     if verbose and echo is not None:
         echo(f"Smoke log: {smoke_log_path}")
